@@ -1,14 +1,1 @@
-{
-  "functions": {
-    "source": "functions"
-  },
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "functions",
-      "node_modules",
-      ".git",
-      ".firebase"
-    ]
-  }
-}
+{"functions":{"source":"functions","runtime":"nodejs20"},"hosting":{"public":".","ignore":["firebase.json","**/.*","**/node_modules/**"],"cleanUrls":true,"trailingSlash":false},"firestore":{"rules":"firestore.rules"}}

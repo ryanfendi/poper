@@ -3412,3 +3412,83 @@ onAuthStateChanged(
 renderCart();
 
 updateCartBadge();
+
+window.openEditStoreName = async function () {
+  if (!currentUser) {
+    showToast("Silakan login terlebih dahulu");
+    return;
+  }
+
+  try {
+    const storeRef = doc(db, "stores", currentUser.uid);
+    const storeSnap = await getDoc(storeRef);
+
+    if (!storeSnap.exists()) {
+      showToast("Toko belum dibuat");
+      return;
+    }
+
+    const store = storeSnap.data();
+
+    document.getElementById("editStoreName").value =
+      store.name || "";
+
+    openSheet("editStoreNameSheet");
+
+  } catch (error) {
+    console.error(error);
+    showToast("Gagal membuka pengaturan toko");
+  }
+};
+
+document
+  .getElementById("editStoreNameForm")
+  .addEventListener("submit", async function (e) {
+
+    e.preventDefault();
+
+    if (!currentUser) return;
+
+    const input = document.getElementById("editStoreName");
+    const newName = input.value.trim();
+
+    if (!newName) {
+      showToast("Nama toko wajib diisi");
+      return;
+    }
+
+    if (newName.length < 3) {
+      showToast("Nama toko minimal 3 karakter");
+      return;
+    }
+
+    try {
+      const storeRef = doc(db, "stores", currentUser.uid);
+
+      await updateDoc(storeRef, {
+        name: newName,
+        updatedAt: serverTimestamp()
+      });
+
+      // Update tampilan
+      const storeNameElement =
+        document.getElementById("storeName");
+
+      if (storeNameElement) {
+        storeNameElement.textContent = newName;
+      }
+
+      closeAllSheets();
+
+      showToast("✅ Nama toko berhasil diperbarui");
+
+      // Refresh data toko
+      if (typeof loadSellerData === "function") {
+        await loadSellerData();
+      }
+
+    } catch (error) {
+      console.error(error);
+      showToast("❌ Gagal mengubah nama toko");
+    }
+  });

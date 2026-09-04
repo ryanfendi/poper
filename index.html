@@ -1,1147 +1,1488 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
-
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="theme-color"
-    content="#ff5a1f"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ff5a1f">
   <title>POPER</title>
+  <link rel="stylesheet" href="style.css">
 
-  <link
-    rel="stylesheet"
-    href="style.css"
-  >
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f6f7f9;
+      color: #171717;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .page {
+      display: none;
+      padding: 18px;
+      padding-bottom: 100px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 60px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .brand {
+      font-size: 25px;
+      font-weight: 900;
+      color: #ff5a1f;
+      letter-spacing: -1px;
+    }
+
+    .brand.big {
+      font-size: 38px;
+      text-align: center;
+    }
+
+    .icon-button {
+      border: 0;
+      background: #f3f3f3;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+
+    .hero {
+      margin-top: 15px;
+      border-radius: 24px;
+      padding: 25px;
+      background: linear-gradient(135deg, #ff5a1f, #ff8a4c);
+      color: white;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 27px;
+    }
+
+    .hero p {
+      margin: 0;
+      opacity: .9;
+    }
+
+    .search-box {
+      background: white;
+      margin: 15px 0;
+      border-radius: 16px;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .search-box input {
+      flex: 1;
+      border: 0;
+      outline: none;
+      padding: 13px 10px;
+      background: transparent;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 22px 0 12px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+    }
+
+    .section-title span {
+      color: #777;
+      font-size: 13px;
+    }
+
+    .categories {
+      display: flex;
+      gap: 9px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+    }
+
+    .categories button {
+      white-space: nowrap;
+      border: 1px solid #eee;
+      background: white;
+      border-radius: 13px;
+      padding: 11px 14px;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 17px;
+      overflow: hidden;
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .product-image {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      background: #eee;
+    }
+
+    .product-info {
+      padding: 12px;
+    }
+
+    .product-info h3 {
+      margin: 0 0 5px;
+      font-size: 15px;
+    }
+
+    .product-store {
+      color: #777;
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    .product-price {
+      font-size: 17px;
+      font-weight: 800;
+      color: #ff5a1f;
+    }
+
+    .product-category {
+      font-size: 11px;
+      color: #888;
+      margin-top: 5px;
+    }
+
+    .product-actions {
+      display: flex;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .product-actions button {
+      flex: 1;
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 5px;
+    }
+
+    .add-btn {
+      background: #ff5a1f;
+      color: white;
+    }
+
+    .favorite-btn {
+      background: #f1f1f1;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 72px;
+      background: white;
+      border-top: 1px solid #eee;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .bottom-nav button {
+      border: 0;
+      background: white;
+      color: #555;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 20px;
+    }
+
+    .bottom-nav span {
+      font-size: 11px;
+    }
+
+    .bottom-nav b {
+      position: absolute;
+      top: 5px;
+      right: calc(50% - 20px);
+      background: #ff3b30;
+      color: white;
+      border-radius: 20px;
+      min-width: 17px;
+      height: 17px;
+      font-size: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .page-heading {
+      margin-bottom: 18px;
+    }
+
+    .page-heading h1 {
+      margin-bottom: 5px;
+    }
+
+    .profile-card,
+    .menu-card,
+    .seller-store,
+    .wallet-card,
+    .seller-stats,
+    .admin-money,
+    .stat-card,
+    .auth-card {
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .profile-card {
+      text-align: center;
+    }
+
+    .avatar {
+      width: 70px;
+      height: 70px;
+      background: #fff0e9;
+      border-radius: 50%;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    .profile-card h2 {
+      margin-bottom: 5px;
+    }
+
+    .profile-card p {
+      color: #777;
+    }
+
+    .profile-card span {
+      background: #fff0e9;
+      color: #ff5a1f;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+
+    .menu-card {
+      padding: 5px 15px;
+    }
+
+    .menu-card button {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid #eee;
+      background: white;
+      padding: 16px 5px;
+      text-align: left;
+    }
+
+    .menu-card button:last-child {
+      border-bottom: 0;
+    }
+
+    .seller-store h2 {
+      margin-top: 0;
+    }
+
+    .seller-store p {
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .wallet-card {
+      background: #171717;
+      color: white;
+    }
+
+    .wallet-card span {
+      display: block;
+      opacity: .7;
+      margin-bottom: 8px;
+    }
+
+    .wallet-card strong {
+      display: block;
+      font-size: 28px;
+      margin-bottom: 15px;
+    }
+
+    .wallet-card button {
+      border: 0;
+      background: #ff5a1f;
+      color: white;
+      padding: 11px 16px;
+      border-radius: 10px;
+    }
+
+    .seller-stats,
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .admin-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .seller-stats div,
+    .stat-card {
+      text-align: center;
+    }
+
+    .seller-stats span,
+    .stat-card span {
+      display: block;
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 5px;
+    }
+
+    .seller-stats strong,
+    .stat-card strong {
+      font-size: 18px;
+    }
+
+    .admin-money {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+
+    .admin-money div {
+      background: #f7f7f7;
+      padding: 15px;
+      border-radius: 12px;
+    }
+
+    .admin-money span {
+      display: block;
+      color: #777;
+      font-size: 12px;
+    }
+
+    .admin-money strong {
+      display: block;
+      margin-top: 5px;
+    }
+
+    .primary-btn {
+      border: 0;
+      border-radius: 12px;
+      background: #ff5a1f;
+      color: white;
+      padding: 13px 16px;
+      font-weight: 700;
+    }
+
+    .secondary-btn {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      background: white;
+      padding: 11px 15px;
+    }
+
+    .full {
+      width: 100%;
+    }
+
+    .text-btn {
+      border: 0;
+      background: transparent;
+      color: #ff5a1f;
+      padding: 12px;
+      width: 100%;
+    }
+
+    .auth-card {
+      margin-top: 50px;
+    }
+
+    .auth-card h1 {
+      text-align: center;
+    }
+
+    .auth-card p {
+      text-align: center;
+      color: #777;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 13px;
+      margin-bottom: 12px;
+      outline: none;
+      background: white;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin: 4px 0 7px;
+      font-size: 13px;
+    }
+
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 150;
+      background: rgba(0,0,0,.45);
+    }
+
+    #overlay.active {
+      display: block;
+    }
+
+    .sheet {
+      position: fixed;
+      z-index: 200;
+      left: 50%;
+      bottom: -100%;
+      transform: translateX(-50%);
+      width: min(100%, 600px);
+      max-height: 90vh;
+      overflow-y: auto;
+      background: white;
+      border-radius: 22px 22px 0 0;
+      padding: 20px;
+      transition: bottom .25s ease;
+    }
+
+    .sheet.active {
+      bottom: 0;
+    }
+
+    .sheet-handle {
+      width: 45px;
+      height: 5px;
+      background: #ddd;
+      border-radius: 10px;
+      margin: 0 auto 15px;
+    }
+
+    .sheet-header,
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .sheet-header h2,
+    .sheet-head h3 {
+      margin: 0;
+    }
+
+    .sheet-header button,
+    .sheet-head button {
+      border: 0;
+      background: #f2f2f2;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+    }
+
+    .cart-item {
+      display: flex;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .cart-item img {
+      width: 65px;
+      height: 65px;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    .cart-item-info {
+      flex: 1;
+    }
+
+    .cart-item-info h4 {
+      margin: 0 0 5px;
+    }
+
+    .cart-item-info small {
+      color: #777;
+    }
+
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .qty-controls button {
+      border: 0;
+      background: #eee;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+    }
+
+    .summary-row.total {
+      border-top: 1px solid #eee;
+      margin-top: 8px;
+      padding-top: 12px;
+      font-weight: 800;
+      font-size: 17px;
+    }
+
+    .order-card,
+    .payout-card {
+      background: white;
+      border-radius: 16px;
+      padding: 15px;
+      margin-bottom: 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .status {
+      background: #fff0e9;
+      color: #ff5a1f;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .order-card p {
+      color: #666;
+      font-size: 13px;
+    }
+
+    .order-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .order-actions button {
+      flex: 1;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 40px 15px;
+      color: #777;
+    }
+
+    #toast {
+      position: fixed;
+      z-index: 500;
+      left: 50%;
+      bottom: 90px;
+      transform: translateX(-50%) translateY(20px);
+      background: #171717;
+      color: white;
+      padding: 12px 17px;
+      border-radius: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: .25s;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .seller-order-title {
+      margin-top: 25px;
+    }
+
+    @media (min-width: 700px) {
+      .product-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  </style>
 </head>
-
 
 <body>
 
 <div id="app">
 
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">POPER</div>
+    <button class="icon-button" onclick="showPage('profilePage')">👤</button>
+  </header>
 
-<!-- ================= HEADER ================= -->
+  <!-- HOME -->
+  <main id="homePage" class="page active">
 
-<header class="topbar">
+    <section class="hero">
+      <div>
+        <h1>Mau beli apa hari ini?</h1>
+        <p>Temukan produk dari toko favoritmu.</p>
+      </div>
+    </section>
 
-  <div class="brand">
-    POPER
-  </div>
+    <div class="search-box">
+      <span>🔎</span>
+      <input
+        id="searchInput"
+        placeholder="Cari produk..."
+        oninput="searchProducts(this.value)"
+      >
+    </div>
 
-  <button
-    class="icon-button"
-    onclick="showPage('profilePage')"
-  >
-    👤
-  </button>
+    <section>
+      <div class="section-title">
+        <h2>Kategori</h2>
+      </div>
 
-</header>
+      <div class="categories">
+        <button onclick="filterCategory('Semua')">🛍️ Semua</button>
+        <button onclick="filterCategory('Makanan')">🍔 Makanan</button>
+        <button onclick="filterCategory('Elektronik')">📱 Elektronik</button>
+        <button onclick="filterCategory('Fashion')">👕 Fashion</button>
+        <button onclick="filterCategory('Kecantikan')">💄 Kecantikan</button>
+        <button onclick="filterCategory('Gaming')">🎮 Gaming</button>
+      </div>
+    </section>
 
+    <section>
+      <div class="section-title">
+        <h2>Produk</h2>
+        <span id="productCount">0 produk</span>
+      </div>
 
-<!-- ================= HOME ================= -->
+      <div id="productGrid" class="product-grid"></div>
+    </section>
 
-<main id="homePage" class="page active">
+  </main>
 
-  <section class="hero">
+  <!-- SEARCH -->
+  <main id="searchPage" class="page">
+    <div class="page-heading">
+      <h1>Pencarian</h1>
+    </div>
 
-    <div>
+    <div id="searchGrid" class="product-grid"></div>
+  </main>
 
-      <h1>
-        Mau beli apa hari ini?
-      </h1>
+  <!-- ORDERS -->
+  <main id="ordersPage" class="page">
+    <div class="page-heading">
+      <h1>Pesanan Saya</h1>
+    </div>
 
-      <p>
-        Temukan produk dari toko favoritmu.
+    <div id="orders"></div>
+  </main>
+
+  <!-- PROFILE -->
+  <main id="profilePage" class="page">
+
+    <div class="profile-card">
+      <div id="profileAvatar" class="avatar">👤</div>
+
+      <h2 id="profileName">Pengguna</h2>
+
+      <p id="profileEmail">-</p>
+
+      <span id="profileRole">Buyer</span>
+    </div>
+
+    <div class="menu-card">
+
+      <button onclick="openSheet('addressSheet')">
+        📍 Alamat Pengiriman
+      </button>
+
+      <button onclick="openSheet('paymentSheet')">
+        💳 Pembayaran
+      </button>
+
+      <button
+        id="sellerEntry"
+        style="display:none"
+        onclick="showPage('sellerPage')"
+      >
+        🏪 Dashboard Seller
+      </button>
+
+      <button
+        id="adminEntry"
+        style="display:none"
+        onclick="showPage('adminPage')"
+      >
+        👑 Admin POPER
+      </button>
+
+      <button onclick="logoutUser()">
+        🚪 Keluar
+      </button>
+
+    </div>
+
+  </main>
+
+  <!-- SELLER -->
+  <main id="sellerPage" class="page">
+
+    <div class="page-heading">
+      <h1>Dashboard Seller</h1>
+      <p>Kelola toko dan produkmu.</p>
+    </div>
+
+    <!-- STORE -->
+    <div class="seller-store">
+
+      <h2 id="storeName">Toko Saya</h2>
+
+      <p id="storeAddress">
+        Belum ada alamat
       </p>
 
+      <button
+        class="primary-btn full"
+        onclick="openEditStore()"
+      >
+        ✏️ Edit Toko
+      </button>
+
     </div>
 
-  </section>
+    <!-- WALLET -->
+    <div class="wallet-card">
 
+      <span>Saldo tersedia</span>
 
-  <div class="search-box">
+      <strong id="sellerBalance">
+        Rp0
+      </strong>
 
-    <span>🔎</span>
+      <button onclick="openSheet('payoutSheet')">
+        Tarik Saldo
+      </button>
 
-    <input
-      id="searchInput"
-      placeholder="Cari produk..."
-      oninput="searchProducts(this.value)"
+    </div>
+
+    <!-- STATS -->
+    <div class="seller-stats">
+
+      <div>
+        <span>Produk</span>
+        <strong id="sellerProducts">0</strong>
+      </div>
+
+      <div>
+        <span>Pesanan</span>
+        <strong id="sellerOrders">0</strong>
+      </div>
+
+      <div>
+        <span>Pendapatan</span>
+        <strong id="sellerRevenue">Rp0</strong>
+      </div>
+
+    </div>
+
+    <button
+      class="primary-btn full"
+      onclick="openSheet('sellerFormSheet')"
     >
+      + Tambah Produk
+    </button>
 
-  </div>
+    <br>
 
+    <div id="sellerProductGrid" class="product-grid"></div>
 
-  <section>
+    <h2 class="seller-order-title">
+      Pesanan Masuk
+    </h2>
 
-    <div class="section-title">
+    <div id="sellerOrdersList"></div>
 
-      <h2>Kategori</h2>
+  </main>
+
+  <!-- ADMIN -->
+  <main id="adminPage" class="page">
+
+    <div class="page-heading">
+      <h1>Admin POPER</h1>
+      <p>Dashboard marketplace.</p>
+    </div>
+
+    <div class="admin-grid">
+
+      <div class="stat-card">
+        <span>Pembeli</span>
+        <strong id="adminBuyers">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Seller</span>
+        <strong id="adminSellers">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Produk</span>
+        <strong id="adminProducts">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Pesanan</span>
+        <strong id="adminOrders">0</strong>
+      </div>
 
     </div>
 
+    <div class="admin-money">
 
-    <div class="categories">
+      <div>
+        <span>GMV</span>
+        <strong id="adminGMV">Rp0</strong>
+      </div>
 
-      <button
-        onclick="filterCategory('Semua')"
-      >
-        🛍️ Semua
-      </button>
-
-      <button
-        onclick="filterCategory('Makanan')"
-      >
-        🍔 Makanan
-      </button>
-
-      <button
-        onclick="filterCategory('Elektronik')"
-      >
-        📱 Elektronik
-      </button>
-
-      <button
-        onclick="filterCategory('Fashion')"
-      >
-        👕 Fashion
-      </button>
-
-      <button
-        onclick="filterCategory('Kecantikan')"
-      >
-        💄 Kecantikan
-      </button>
-
-      <button
-        onclick="filterCategory('Gaming')"
-      >
-        🎮 Gaming
-      </button>
+      <div>
+        <span>Komisi POPER</span>
+        <strong id="adminCommission">Rp0</strong>
+      </div>
 
     </div>
 
-  </section>
+    <h2>Payout Seller</h2>
 
+    <div id="adminPayouts"></div>
 
-  <section>
+    <h2>Pesanan</h2>
 
-    <div class="section-title">
+    <div id="adminOrdersList"></div>
 
-      <h2>Produk</h2>
+  </main>
 
-      <span id="productCount">
-        0 produk
-      </span>
+  <!-- AUTH -->
+  <main id="authPage" class="page">
+
+    <div class="auth-card">
+
+      <div class="brand big">
+        POPER
+      </div>
+
+      <h1>Selamat datang</h1>
+
+      <p>
+        Masuk atau buat akun baru.
+      </p>
+
+      <!-- LOGIN -->
+      <form id="loginForm" onsubmit="loginUser(event)">
+
+        <input
+          id="loginEmail"
+          type="email"
+          placeholder="Email"
+          required
+        >
+
+        <input
+          id="loginPassword"
+          type="password"
+          placeholder="Password"
+          required
+        >
+
+        <button class="primary-btn full">
+          Masuk
+        </button>
+
+      </form>
+
+      <button
+        class="text-btn"
+        onclick="toggleRegister()"
+      >
+        Belum punya akun? Daftar
+      </button>
+
+      <!-- REGISTER -->
+      <form
+        id="registerForm"
+        style="display:none"
+        onsubmit="registerUser(event)"
+      >
+
+        <input
+          id="registerName"
+          placeholder="Nama"
+          required
+        >
+
+        <input
+          id="registerEmail"
+          type="email"
+          placeholder="Email"
+          required
+        >
+
+        <input
+          id="registerPassword"
+          type="password"
+          placeholder="Password minimal 6 karakter"
+          minlength="6"
+          required
+        >
+
+        <select id="registerRole">
+          <option value="buyer">
+            Saya ingin membeli
+          </option>
+
+          <option value="seller">
+            Saya ingin berjualan
+          </option>
+        </select>
+
+        <button class="primary-btn full">
+          Daftar
+        </button>
+
+      </form>
 
     </div>
 
+  </main>
 
-    <div
-      id="productGrid"
-      class="product-grid"
-    ></div>
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
 
-  </section>
+    <button onclick="showPage('homePage')">
+      🏠
+      <span>Home</span>
+    </button>
 
-</main>
+    <button onclick="showPage('searchPage')">
+      🔎
+      <span>Cari</span>
+    </button>
 
+    <button onclick="openSheet('cartSheet')">
+      🛒
+      <b id="cartBadge">0</b>
+      <span>Cart</span>
+    </button>
 
-<!-- ================= SEARCH ================= -->
+    <button onclick="showPage('ordersPage')">
+      📦
+      <span>Pesanan</span>
+    </button>
 
-<main
-  id="searchPage"
-  class="page"
->
-
-  <div class="page-heading">
-
-    <h1>Pencarian</h1>
-
-  </div>
-
-
-  <div
-    id="searchGrid"
-    class="product-grid"
-  ></div>
-
-</main>
-
-
-<!-- ================= ORDERS ================= -->
-
-<main
-  id="ordersPage"
-  class="page"
->
-
-  <div class="page-heading">
-
-    <h1>Pesanan Saya</h1>
-
-  </div>
-
-
-  <div id="orders"></div>
-
-</main>
-
-
-<!-- ================= PROFILE ================= -->
-
-<main
-  id="profilePage"
-  class="page"
->
-
-  <div class="profile-card">
-
-    <div
-      id="profileAvatar"
-      class="avatar"
-    >
+    <button onclick="showPage('profilePage')">
       👤
-    </div>
-
-    <h2 id="profileName">
-      Pengguna
-    </h2>
-
-    <p id="profileEmail">
-      -
-    </p>
-
-    <span id="profileRole">
-      Buyer
-    </span>
-
-  </div>
-
-
-  <div class="menu-card">
-
-    <button onclick="openSheet('addressSheet')">
-      📍 Alamat
+      <span>Akun</span>
     </button>
 
-    <button onclick="openSheet('paymentSheet')">
-      💳 Pembayaran
-    </button>
+  </nav>
 
-    <button
-      id="sellerEntry"
-      style="display:none"
-      onclick="showPage('sellerPage')"
-    >
-      🏪 Dashboard Seller
-    </button>
+  <!-- OVERLAY -->
+  <div id="overlay" onclick="closeAllSheets()"></div>
 
-    <button
-      id="adminEntry"
-      style="display:none"
-      onclick="showPage('adminPage')"
-    >
-      👑 Admin POPER
-    </button>
+  <!-- CART -->
+  <div id="cartSheet" class="sheet">
 
-    <button onclick="logoutUser()">
-      🚪 Keluar
-    </button>
+    <div class="sheet-handle"></div>
 
-  </div>
+    <div class="sheet-header">
+      <h2>Keranjang</h2>
 
-</main>
-
-
-<!-- ================= SELLER ================= -->
-
-<main
-  id="sellerPage"
-  class="page"
->
-
-  <div class="page-heading">
-
-    <h1>Dashboard Seller</h1>
-
-  </div>
-
-
-  <div class="seller-store">
-
-    <h2 id="storeName">
-      Toko Saya
-    </h2>
-<button class="btn secondary" onclick="openEditStoreName()">
-  ✏️ Edit Nama Toko
-</button>
-    <p id="storeAddress">
-      Belum ada alamat
-    </p>
-
-  </div>
-
-
-  <div class="wallet-card">
-
-    <span>
-      Saldo tersedia
-    </span>
-
-    <strong id="sellerBalance">
-      Rp0
-    </strong>
-
-    <button
-      onclick="openSheet('payoutSheet')"
-    >
-      Tarik Saldo
-    </button>
-
-  </div>
-
-
-  <div class="seller-stats">
-
-    <div>
-      <span>Produk</span>
-      <strong id="sellerProducts">
-        0
-      </strong>
-    </div>
-
-    <div>
-      <span>Pesanan</span>
-      <strong id="sellerOrders">
-        0
-      </strong>
-    </div>
-
-    <div>
-      <span>Pendapatan</span>
-      <strong id="sellerRevenue">
-        Rp0
-      </strong>
-    </div>
-
-  </div>
-
-
-  <button
-    class="primary-btn full"
-    onclick="openSheet('sellerFormSheet')"
-  >
-    + Tambah Produk
-  </button>
-
-
-  <div
-    id="sellerProductGrid"
-    class="product-grid"
-  ></div>
-
-
-  <h2 class="seller-order-title">
-    Pesanan Masuk
-  </h2>
-
-
-  <div id="sellerOrdersList"></div>
-
-</main>
-
-
-<!-- ================= ADMIN ================= -->
-
-<main
-  id="adminPage"
-  class="page"
->
-
-  <div class="page-heading">
-
-    <h1>Admin POPER</h1>
-
-    <p>
-      Dashboard marketplace
-    </p>
-
-  </div>
-
-
-  <div class="admin-grid">
-
-    <div class="stat-card">
-      <span>Pembeli</span>
-      <strong id="adminBuyers">
-        0
-      </strong>
-    </div>
-
-    <div class="stat-card">
-      <span>Seller</span>
-      <strong id="adminSellers">
-        0
-      </strong>
-    </div>
-
-    <div class="stat-card">
-      <span>Produk</span>
-      <strong id="adminProducts">
-        0
-      </strong>
-    </div>
-
-    <div class="stat-card">
-      <span>Pesanan</span>
-      <strong id="adminOrders">
-        0
-      </strong>
-    </div>
-
-  </div>
-
-
-  <div class="admin-money">
-
-    <div>
-
-      <span>GMV</span>
-
-      <strong id="adminGMV">
-        Rp0
-      </strong>
-
-    </div>
-
-
-    <div>
-
-      <span>Komisi POPER</span>
-
-      <strong id="adminCommission">
-        Rp0
-      </strong>
-
-    </div>
-
-  </div>
-
-
-  <h2>
-    Payout Seller
-  </h2>
-
-
-  <div id="adminPayouts"></div>
-
-
-  <h2>
-    Pesanan
-  </h2>
-
-
-  <div id="adminOrdersList"></div>
-
-</main>
-
-
-<!-- ================= AUTH ================= -->
-
-<main
-  id="authPage"
-  class="page"
->
-
-  <div class="auth-card">
-
-    <div class="brand big">
-      POPER
-    </div>
-
-    <h1>
-      Selamat datang
-    </h1>
-
-    <p>
-      Masuk atau buat akun baru.
-    </p>
-
-
-    <form
-      id="loginForm"
-      onsubmit="loginUser(event)"
-    >
-
-      <input
-        id="loginEmail"
-        type="email"
-        placeholder="Email"
-        required
-      >
-
-      <input
-        id="loginPassword"
-        type="password"
-        placeholder="Password"
-        required
-      >
-
-      <button
-        class="primary-btn full"
-      >
-        Masuk
+      <button onclick="closeSheet('cartSheet')">
+        ×
       </button>
+    </div>
 
-    </form>
+    <div id="cartItems"></div>
 
-
-    <button
-      class="text-btn"
-      onclick="toggleRegister()"
-    >
-      Belum punya akun? Daftar
-    </button>
-
-
-    <form
-      id="registerForm"
-      style="display:none"
-      onsubmit="registerUser(event)"
-    >
-
-      <input
-        id="registerName"
-        placeholder="Nama"
-        required
-      >
-
-      <input
-        id="registerEmail"
-        type="email"
-        placeholder="Email"
-        required
-      >
-
-      <input
-        id="registerPassword"
-        type="password"
-        placeholder="Password minimal 6 karakter"
-        minlength="6"
-        required
-      >
-
-      <select id="registerRole">
-
-        <option value="buyer">
-          Saya ingin membeli
-        </option>
-
-        <option value="seller">
-          Saya ingin berjualan
-        </option>
-
-      </select>
-
-
-      <button
-        class="primary-btn full"
-      >
-        Daftar
-      </button>
-
-    </form>
-
-  </div>
-
-</main>
-
-
-<!-- ================= BOTTOM NAV ================= -->
-
-<nav class="bottom-nav">
-
-  <button
-    onclick="showPage('homePage')"
-  >
-    🏠
-    <span>Home</span>
-  </button>
-
-  <button
-    onclick="showPage('searchPage')"
-  >
-    🔎
-    <span>Cari</span>
-  </button>
-
-  <button
-    onclick="openSheet('cartSheet')"
-  >
-    🛒
-
-    <b id="cartBadge">
-      0
-    </b>
-
-    <span>Cart</span>
-  </button>
-
-  <button
-    onclick="showPage('ordersPage')"
-  >
-    📦
-    <span>Pesanan</span>
-  </button>
-
-  <button
-    onclick="showPage('profilePage')"
-  >
-    👤
-    <span>Akun</span>
-  </button>
-
-</nav>
-
-
-<!-- ================= OVERLAY ================= -->
-
-<div
-  id="overlay"
-  onclick="closeAllSheets()"
-></div>
-
-
-<!-- ================= CART ================= -->
-
-<div
-  id="cartSheet"
-  class="sheet"
->
-
-  <div class="sheet-handle"></div>
-
-  <div class="sheet-header">
-
-    <h2>Keranjang</h2>
-
-    <button onclick="closeSheet('cartSheet')">
-      ×
-    </button>
-
-  </div>
-
-
-  <div id="cartItems"></div>
-
-
-  <div class="cart-footer">
-
-    <strong id="cartTotal">
-      Rp0
-    </strong>
+    <div id="cartSummary"></div>
 
     <button
-      class="primary-btn"
+      id="checkoutButton"
+      class="primary-btn full"
       onclick="openCheckout()"
     >
-      Checkout
+      Lanjut Checkout
     </button>
 
   </div>
 
-</div>
+  <!-- CHECKOUT -->
+  <div id="checkoutSheet" class="sheet">
 
+    <div class="sheet-handle"></div>
 
-<!-- ================= CHECKOUT ================= -->
+    <div class="sheet-header">
 
-<div
-  id="checkoutSheet"
-  class="sheet"
->
+      <h2>Checkout</h2>
 
-  <div class="sheet-handle"></div>
+      <button onclick="closeSheet('checkoutSheet')">
+        ×
+      </button>
 
-  <div class="sheet-header">
+    </div>
 
-    <h2>Checkout</h2>
+    <label>Nama Penerima</label>
 
-    <button
-      onclick="closeSheet('checkoutSheet')"
+    <input
+      id="checkoutName"
+      placeholder="Nama penerima"
     >
-      ×
-    </button>
-
-  </div>
-
-
-  <form
-    id="checkoutForm"
-    onsubmit="checkout(event)"
-  >
-
-    <label>Alamat</label>
-
-    <textarea
-      id="checkoutAddress"
-      required
-    ></textarea>
-
 
     <label>Nomor HP</label>
 
     <input
       id="checkoutPhone"
-      required
+      placeholder="08xxxxxxxxxx"
     >
 
+    <label>Alamat</label>
 
-    <div class="checkout-row">
+    <textarea
+      id="checkoutAddress"
+      placeholder="Alamat lengkap"
+    ></textarea>
 
-      <span>Subtotal</span>
+    <label>Metode Pembayaran</label>
 
-      <strong id="checkoutSubtotal">
-        Rp0
-      </strong>
+    <select id="checkoutPayment">
 
-    </div>
+      <option value="COD">
+        COD
+      </option>
 
+      <option value="TRANSFER">
+        Transfer Bank
+      </option>
 
-    <div class="checkout-row">
+      <option value="QRIS">
+        QRIS
+      </option>
 
-      <span>Ongkir</span>
+    </select>
 
-      <strong id="checkoutShipping">
-        Rp0
-      </strong>
-
-    </div>
-
-
-    <div class="checkout-row total">
-
-      <span>Total</span>
-
-      <strong id="checkoutTotal">
-        Rp0
-      </strong>
-
-    </div>
-
-
-    <h3>
-      Pembayaran
-    </h3>
-
-
-    <label class="radio-row">
-
-      <input
-        type="radio"
-        name="payment"
-        value="COD"
-        checked
-      >
-
-      COD
-
-    </label>
-
-
-    <label class="radio-row">
-
-      <input
-        type="radio"
-        name="payment"
-        value="TRANSFER"
-      >
-
-      Transfer
-
-    </label>
-
-
-    <label class="radio-row">
-
-      <input
-        type="radio"
-        name="payment"
-        value="EWALLET"
-      >
-
-      E-Wallet
-
-    </label>
-
+    <div id="checkoutSummary"></div>
 
     <button
       class="primary-btn full"
+      onclick="placeOrder()"
     >
       Buat Pesanan
     </button>
 
-  </form>
+  </div>
 
-</div>
+  <!-- SELLER PRODUCT -->
+  <div id="sellerFormSheet" class="sheet">
 
+    <div class="sheet-handle"></div>
 
-<!-- ================= SELLER FORM ================= -->
+    <div class="sheet-header">
 
-<div
-  id="sellerFormSheet"
-  class="sheet"
->
+      <h2>Tambah Produk</h2>
 
-  <div class="sheet-handle"></div>
+      <button onclick="closeSheet('sellerFormSheet')">
+        ×
+      </button>
 
-  <div class="sheet-header">
+    </div>
 
-    <h2>Tambah Produk</h2>
-
-    <button
-      onclick="closeSheet('sellerFormSheet')"
+    <form
+      id="sellerProductForm"
+      onsubmit="saveSellerProduct(event)"
     >
-      ×
-    </button>
+
+      <label>Nama Produk</label>
+
+      <input
+        id="productName"
+        placeholder="Nama produk"
+        required
+      >
+
+      <label>Harga</label>
+
+      <input
+        id="productPrice"
+        type="number"
+        min="0"
+        placeholder="Harga"
+        required
+      >
+
+      <label>Stok</label>
+
+      <input
+        id="productStock"
+        type="number"
+        min="0"
+        value="1"
+        required
+      >
+
+      <label>Kategori</label>
+
+      <select id="productCategory">
+
+        <option value="Makanan">
+          Makanan
+        </option>
+
+        <option value="Elektronik">
+          Elektronik
+        </option>
+
+        <option value="Fashion">
+          Fashion
+        </option>
+
+        <option value="Kecantikan">
+          Kecantikan
+        </option>
+
+        <option value="Gaming">
+          Gaming
+        </option>
+
+        <option value="Lainnya">
+          Lainnya
+        </option>
+
+      </select>
+
+      <label>Deskripsi</label>
+
+      <textarea
+        id="productDescription"
+        placeholder="Deskripsi produk"
+      ></textarea>
+
+      <label>Gambar Produk</label>
+
+      <input
+        id="productImage"
+        type="file"
+        accept="image/*"
+        required
+      >
+
+      <button
+        type="submit"
+        class="primary-btn full"
+      >
+        Upload & Simpan Produk
+      </button>
+
+    </form>
 
   </div>
 
+  <!-- EDIT STORE -->
+  <div id="editStoreSheet" class="sheet">
 
-  <form
-    id="sellerForm"
-    onsubmit="createProduct(event)"
-  >
+    <div class="sheet-handle"></div>
 
-    <input
-      id="sellerProductImage"
-      type="file"
-      accept="image/*"
-      required
+    <div class="sheet-header">
+
+      <h2>Edit Toko</h2>
+
+      <button
+        type="button"
+        onclick="closeSheet('editStoreSheet')"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <form
+      id="editStoreForm"
+      onsubmit="saveStoreSettings(event)"
     >
 
+      <label>Nama Toko</label>
 
-    <img
-      id="imagePreview"
-      class="image-preview"
-    >
+      <input
+        id="editStoreName"
+        type="text"
+        placeholder="Masukkan nama toko"
+        maxlength="50"
+        required
+      >
 
+      <label>Nomor HP Toko</label>
+
+      <input
+        id="editStorePhone"
+        type="tel"
+        placeholder="08xxxxxxxxxx"
+      >
+
+      <label>Alamat Toko</label>
+
+      <textarea
+        id="editStoreAddress"
+        rows="4"
+        placeholder="Alamat lengkap toko"
+        required
+      ></textarea>
+
+      <label>Deskripsi Toko</label>
+
+      <textarea
+        id="editStoreDescription"
+        rows="4"
+        placeholder="Ceritakan tentang toko"
+      ></textarea>
+
+      <button
+        type="submit"
+        class="primary-btn full"
+      >
+        💾 Simpan Perubahan
+      </button>
+
+    </form>
+
+  </div>
+
+  <!-- PAYOUT -->
+  <div id="payoutSheet" class="sheet">
+
+    <div class="sheet-handle"></div>
+
+    <div class="sheet-header">
+
+      <h2>Tarik Saldo</h2>
+
+      <button onclick="closeSheet('payoutSheet')">
+        ×
+      </button>
+
+    </div>
+
+    <p>
+      Saldo tersedia:
+      <strong id="payoutAvailable">
+        Rp0
+      </strong>
+    </p>
+
+    <label>Nominal</label>
 
     <input
-      id="sellerProductName"
-      placeholder="Nama produk"
-      required
-    >
-
-
-    <input
-      id="sellerProductPrice"
+      id="payoutAmount"
       type="number"
-      placeholder="Harga"
-      required
+      min="10000"
+      placeholder="Minimal Rp10.000"
     >
 
+    <label>Nama Bank</label>
 
     <input
-      id="sellerProductDiscount"
-      type="number"
-      placeholder="Diskon %"
-      value="0"
-      min="0"
-      max="100"
+      id="payoutBank"
+      placeholder="Contoh: BCA"
     >
 
+    <label>Nomor Rekening</label>
 
     <input
-      id="sellerProductStock"
-      type="number"
-      placeholder="Stok"
-      required
-      min="0"
+      id="payoutAccount"
+      placeholder="Nomor rekening"
     >
 
+    <label>Nama Pemilik Rekening</label>
 
-    <select id="sellerProductCategory">
-
-      <option>Makanan</option>
-      <option>Elektronik</option>
-      <option>Fashion</option>
-      <option>Kecantikan</option>
-      <option>Gaming</option>
-      <option>Lainnya</option>
-
-    </select>
-
-
-    <textarea
-      id="sellerProductDescription"
-      placeholder="Deskripsi"
-    ></textarea>
-
+    <input
+      id="payoutAccountName"
+      placeholder="Nama pemilik rekening"
+    >
 
     <button
       class="primary-btn full"
+      onclick="requestPayout()"
     >
-      Publikasikan Produk
-    </button>
-
-  </form>
-
-</div>
-
-
-<!-- ================= PAYOUT ================= -->
-
-<div
-  id="payoutSheet"
-  class="sheet"
->
-
-  <div class="sheet-handle"></div>
-
-  <div class="sheet-header">
-
-    <h2>Tarik Saldo</h2>
-
-    <button
-      onclick="closeSheet('payoutSheet')"
-    >
-      ×
+      Ajukan Penarikan
     </button>
 
   </div>
 
+  <!-- ADDRESS BUYER -->
+  <div id="addressSheet" class="sheet">
 
-  <p>
-    Saldo tersedia:
-  </p>
+    <div class="sheet-handle"></div>
 
-  <strong
-    id="payoutAvailable"
-    class="big-money"
-  >
-    Rp0
-  </strong>
+    <div class="sheet-header">
 
+      <h2>Alamat Pengiriman</h2>
 
-  <input
-    id="payoutAmount"
-    type="number"
-    placeholder="Nominal penarikan"
-  >
+      <button onclick="closeSheet('addressSheet')">
+        ×
+      </button>
 
-
-  <select id="payoutMethod">
-
-    <option value="BANK">
-      Bank
-    </option>
-
-    <option value="EWALLET">
-      E-Wallet
-    </option>
-
-  </select>
-
-
-  <input
-    id="payoutName"
-    placeholder="Nama pemilik"
-  >
-
-
-  <input
-    id="payoutAccount"
-    placeholder="Nomor rekening / e-wallet"
-  >
-
-
-  <button
-    class="primary-btn full"
-    onclick="requestPayout()"
-  >
-    Ajukan Penarikan
-  </button>
-
-</div>
-
-
-<!-- ================= ADDRESS ================= -->
-
-<div
-  id="addressSheet"
-  class="sheet"
->
-
-  <div class="sheet-header">
-
-    <h2>Alamat</h2>
-
-    <button
-      onclick="closeSheet('addressSheet')"
-    >
-      ×
-    </button>
-
-  </div>
-
-
-  <input
-    id="addressName"
-    placeholder="Nama penerima"
-  >
-
-  <input
-    id="addressPhone"
-    placeholder="Nomor HP"
-  >
-
-  <textarea
-    id="addressText"
-    placeholder="Alamat lengkap"
-  ></textarea>
-
-
-  <button
-    class="primary-btn full"
-    onclick="saveAddress()"
-  >
-    Simpan
-  </button>
-
-</div>
-
-
-<!-- ================= PAYMENT ================= -->
-
-<div
-  id="paymentSheet"
-  class="sheet"
->
-
-  <div class="sheet-header">
-
-    <h2>Pembayaran</h2>
-
-    <button
-      onclick="closeSheet('paymentSheet')"
-    >
-      ×
-    </button>
-
-  </div>
-
-
-  <label class="check-row">
+    </div>
 
     <input
-      id="checkCOD"
-      type="checkbox"
-      checked
+      id="addressName"
+      placeholder="Nama penerima"
     >
-
-    COD
-
-  </label>
-
-
-  <label class="check-row">
 
     <input
-      id="checkTransfer"
-      type="checkbox"
+      id="addressPhone"
+      placeholder="Nomor HP"
     >
 
-    Transfer
-
-  </label>
-
-
-  <label class="check-row">
-
-    <input
-      id="checkEWallet"
-      type="checkbox"
-    >
-
-    E-Wallet
-
-  </label>
-
-</div>
-
-
-<!-- ================= TRACKING ================= -->
-
-<div
-  id="trackingSheet"
-  class="sheet"
->
-
-  <div class="sheet-header">
-
-    <h2>Tracking</h2>
+    <textarea
+      id="addressText"
+      placeholder="Alamat lengkap"
+    ></textarea>
 
     <button
-      onclick="closeSheet('trackingSheet')"
+      class="primary-btn full"
+      onclick="saveAddress()"
     >
-      ×
+      Simpan
     </button>
 
   </div>
 
+  <!-- PAYMENT -->
+  <div id="paymentSheet" class="sheet">
 
-  <div id="trackingContent"></div>
+    <div class="sheet-handle"></div>
 
-</div>
+    <div class="sheet-header">
 
+      <h2>Pembayaran</h2>
 
-<!-- ================= TOAST ================= -->
+      <button onclick="closeSheet('paymentSheet')">
+        ×
+      </button>
 
-<div id="toast"></div>
+    </div>
 
+    <p>
+      Metode pembayaran tersedia:
+    </p>
 
-</div>
+    <div class="order-card">
+      💵 COD
+    </div>
 
+    <div class="order-card">
+      🏦 Transfer Bank
+    </div>
 
-<script
-  type="module"
-  src="app.js"
-></script>
+    <div class="order-card">
+      📱 QRIS
+    </div>
 
-<div class="sheet" id="editStoreNameSheet">
-  <div class="sheet-head">
-    <h3>Edit Nama Toko</h3>
-    <button onclick="closeAllSheets()">✕</button>
   </div>
 
-  <form id="editStoreNameForm">
-    <label>Nama Toko</label>
+  <!-- TRACKING -->
+  <div id="trackingSheet" class="sheet">
 
-    <input
-      type="text"
-      id="editStoreName"
-      placeholder="Masukkan nama toko"
-      maxlength="50"
-      required
-    >
+    <div class="sheet-handle"></div>
 
-    <button type="submit" class="btn primary">
-      Simpan Perubahan
-    </button>
-  </form>
+    <div class="sheet-header">
+
+      <h2>Detail Pesanan</h2>
+
+      <button onclick="closeSheet('trackingSheet')">
+        ×
+      </button>
+
+    </div>
+
+    <div id="trackingContent"></div>
+
+  </div>
+
+  <div id="toast"></div>
+
 </div>
-  
+
+<script type="module" src="app.js"></script>
+
 </body>
-
-  </html>
+      </html>

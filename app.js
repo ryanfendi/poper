@@ -1,12 +1,6 @@
-import {
-  auth,
-  db
-} from "./firebase-config.js";
+import { auth, db } from "./firebase-config.js";
 
-import {
-  uploadImage
-} from "./cloudinary.js";
-
+import { uploadImage } from "./cloudinary.js";
 
 import {
   collection,
@@ -23,57 +17,49 @@ import {
   serverTimestamp,
   runTransaction,
   onSnapshot
-} from
-"https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged
-} from
-"https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
+
+/* =========================================================
+   GLOBAL
+========================================================= */
 
 let currentUser = null;
-
 let currentProfile = null;
 
 let products = [];
 
 let currentCategory = "Semua";
 
-let cart =
-  JSON.parse(
-    localStorage.getItem("poper_cart") ||
-    "[]"
-  );
+let cart = JSON.parse(
+  localStorage.getItem("poper_cart") || "[]"
+);
 
 let notificationUnsubscribe = null;
 
 
-/* =========================================
-   BASIC
-========================================= */
+/* =========================================================
+   HELPER
+========================================================= */
 
-window.formatRupiah =
-function formatRupiah(number) {
+function formatRupiah(value) {
 
-  return new Intl.NumberFormat(
-    "id-ID",
-    {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0
-    }
-  ).format(
-    Number(number || 0)
-  );
-};
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0
+  }).format(Number(value || 0));
+
+}
 
 
-window.escapeHtml =
 function escapeHtml(value) {
 
   return String(value ?? "")
@@ -82,17 +68,18 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-};
+
+}
 
 
 function setText(id, value) {
 
-  const el =
-    document.getElementById(id);
+  const el = document.getElementById(id);
 
   if (el) {
-    el.textContent = value;
+    el.textContent = value ?? "";
   }
+
 }
 
 
@@ -108,281 +95,224 @@ function saveCart() {
 
 function getFinalPrice(product) {
 
-  const price =
-    Number(product.price || 0);
-
-  const discount =
-    Number(product.discount || 0);
-
-  return Math.round(
-    price -
-    price * discount / 100
-  );
-}
-
-
-function getSubtotal() {
-
-  return cart.reduce(
-    (sum, item) =>
-      sum +
-      (
-        getFinalPrice(item) *
-        Number(item.quantity || 0)
-      ),
+  return Number(
+    product.finalPrice ??
+    product.price ??
     0
   );
 
 }
 
 
-/* =========================================
-   PAGE
-========================================= */
+function getSubtotal() {
 
-window.showPage =
-function showPage(pageId) {
+  return cart.reduce((total, item) => {
+
+    return total +
+      getFinalPrice(item) *
+      Number(item.quantity || 1);
+
+  }, 0);
+
+}
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+let toastTimer = null;
+
+function showToast(message) {
+
+  const toast = document.getElementById("toast");
+
+  if (!toast) return;
+
+  toast.textContent = message;
+
+  toast.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer = setTimeout(() => {
+
+    toast.classList.remove("show");
+
+  }, 3000);
+
+}
+
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+window.showPage = function(pageId) {
 
   document
     .querySelectorAll(".page")
     .forEach(page => {
 
-      page.classList.remove(
-        "active"
-      );
+      page.classList.remove("active");
 
     });
 
-
-  const page =
-    document.getElementById(
-      pageId
-    );
-
+  const page = document.getElementById(pageId);
 
   if (page) {
-
-    page.classList.add(
-      "active"
-    );
-
-    window.scrollTo(
-      0,
-      0
-    );
+    page.classList.add("active");
   }
 
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
 
-  if (
-    pageId ===
-    "ordersPage"
-  ) {
-
+  if (pageId === "ordersPage") {
     loadBuyerOrders();
-
   }
 
-
-  if (
-    pageId ===
-    "sellerPage"
-  ) {
-
+  if (pageId === "sellerPage") {
     loadSellerDashboard();
-
   }
 
-
-  if (
-    pageId ===
-    "adminPage"
-  ) {
-
+  if (pageId === "adminPage") {
     loadAdminDashboard();
-
   }
 
 };
 
 
-/* =========================================
-   SHEETS
-========================================= */
+window.openSheet = function(id) {
 
-window.openSheet =
-function openSheet(id) {
-
-  const sheet =
-    document.getElementById(id);
+  const sheet = document.getElementById(id);
 
   if (!sheet) return;
 
-  sheet.classList.add("open");
-
   document
-    .getElementById("overlay")
-    .classList.add("show");
+    .querySelectorAll(".sheet")
+    .forEach(item => {
+
+      item.classList.remove("active");
+
+    });
+
+  sheet.classList.add("active");
+
+  const overlay = document.getElementById("overlay");
+
+  if (overlay) {
+    overlay.classList.add("active");
+  }
 
 };
 
 
-window.closeSheet =
-function closeSheet(id) {
+window.closeSheet = function(id) {
 
-  const sheet =
-    document.getElementById(id);
+  const sheet = document.getElementById(id);
 
   if (sheet) {
-
-    sheet.classList.remove(
-      "open"
-    );
-
+    sheet.classList.remove("active");
   }
 
+  const activeSheets = document.querySelectorAll(
+    ".sheet.active"
+  );
 
-  const openSheets =
-    document.querySelectorAll(
-      ".sheet.open"
-    );
+  if (activeSheets.length === 0) {
 
+    const overlay =
+      document.getElementById("overlay");
 
-  if (!openSheets.length) {
-
-    document
-      .getElementById("overlay")
-      .classList.remove("show");
+    if (overlay) {
+      overlay.classList.remove("active");
+    }
 
   }
 
 };
 
 
-window.closeAllSheets =
-function closeAllSheets() {
+window.closeAllSheets = function() {
 
   document
     .querySelectorAll(".sheet")
-    .forEach(
-      sheet =>
-        sheet.classList.remove(
-          "open"
-        )
-    );
+    .forEach(sheet => {
 
+      sheet.classList.remove("active");
 
-  document
-    .getElementById("overlay")
-    .classList.remove("show");
+    });
 
-};
+  const overlay =
+    document.getElementById("overlay");
 
-
-window.showToast =
-function showToast(message) {
-
-  const toast =
-    document.getElementById(
-      "toast"
-    );
-
-
-  toast.textContent =
-    message;
-
-
-  toast.style.display =
-    "block";
-
-
-  setTimeout(() => {
-
-    toast.style.display =
-      "none";
-
-  }, 2500);
+  if (overlay) {
+    overlay.classList.remove("active");
+  }
 
 };
 
 
-/* =========================================
+/* =========================================================
    AUTH
-========================================= */
+========================================================= */
 
-window.toggleRegister =
-function toggleRegister() {
+window.toggleRegister = function() {
 
-  const login =
-    document.getElementById(
-      "loginForm"
-    );
+  const loginForm =
+    document.getElementById("loginForm");
 
-  const register =
-    document.getElementById(
-      "registerForm"
-    );
+  const registerForm =
+    document.getElementById("registerForm");
 
+  if (!loginForm || !registerForm) return;
 
-  const visible =
-    register.style.display !==
-    "none";
+  if (registerForm.style.display === "none") {
 
+    loginForm.style.display = "none";
+    registerForm.style.display = "block";
 
-  register.style.display =
-    visible
-      ? "none"
-      : "block";
+  } else {
 
+    loginForm.style.display = "block";
+    registerForm.style.display = "none";
 
-  login.style.display =
-    visible
-      ? "block"
-      : "none";
+  }
 
 };
 
 
-window.registerUser =
-async function registerUser(event) {
+window.registerUser = async function(event) {
 
   event.preventDefault();
 
+  const name =
+    document.getElementById("registerName")
+      .value.trim();
+
+  const email =
+    document.getElementById("registerEmail")
+      .value.trim();
+
+  const password =
+    document.getElementById("registerPassword")
+      .value;
+
+  const role =
+    document.getElementById("registerRole")
+      .value;
+
+  if (!name || !email || !password) {
+
+    showToast("Lengkapi data terlebih dahulu");
+
+    return;
+
+  }
 
   try {
-
-    const name =
-      document
-        .getElementById(
-          "registerName"
-        )
-        .value
-        .trim();
-
-
-    const email =
-      document
-        .getElementById(
-          "registerEmail"
-        )
-        .value
-        .trim();
-
-
-    const password =
-      document
-        .getElementById(
-          "registerPassword"
-        )
-        .value;
-
-
-    const role =
-      document
-        .getElementById(
-          "registerRole"
-        )
-        .value;
-
 
     const credential =
       await createUserWithEmailAndPassword(
@@ -391,112 +321,61 @@ async function registerUser(event) {
         password
       );
 
+    const uid = credential.user.uid;
 
     await setDoc(
-      doc(
-        db,
-        "users",
-        credential.user.uid
-      ),
+      doc(db, "users", uid),
       {
-
         name,
-
         email,
-
         role,
-
-        createdAt:
-          serverTimestamp()
-
+        createdAt: serverTimestamp()
       }
     );
-
 
     if (role === "seller") {
 
       await setDoc(
-        doc(
-          db,
-          "stores",
-          credential.user.uid
-        ),
+        doc(db, "stores", uid),
         {
-
-          ownerId:
-            credential.user.uid,
-
-          name:
-            `${name}'s Store`,
-
-          description:
-            "",
-
-          phone:
-            "",
-
-          address:
-            "",
-
-          active:
-            true,
-
-          rating:
-            0,
-
-          ratingCount:
-            0,
-
-          totalProducts:
-            0,
-
-          createdAt:
-            serverTimestamp()
-
+          ownerId: uid,
+          name: `${name}'s Store`,
+          description: "",
+          phone: "",
+          address: "",
+          active: true,
+          rating: 0,
+          ratingCount: 0,
+          totalProducts: 0,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
         }
       );
 
-
       await setDoc(
-        doc(
-          db,
-          "wallets",
-          credential.user.uid
-        ),
+        doc(db, "wallets", uid),
         {
-
-          userId:
-            credential.user.uid,
-
-          availableBalance:
-            0,
-
-          pendingBalance:
-            0,
-
-          totalEarned:
-            0,
-
-          updatedAt:
-            serverTimestamp()
-
+          userId: uid,
+          availableBalance: 0,
+          pendingBalance: 0,
+          totalEarned: 0,
+          updatedAt: serverTimestamp()
         }
       );
 
     }
 
+    showToast("✅ Akun berhasil dibuat");
 
-    showToast(
-      "Akun berhasil dibuat"
-    );
-
+    showPage("homePage");
 
   } catch (error) {
 
     console.error(error);
 
     showToast(
-      error.message
+      "Gagal daftar: " +
+      getFirebaseError(error)
     );
 
   }
@@ -504,30 +383,19 @@ async function registerUser(event) {
 };
 
 
-window.loginUser =
-async function loginUser(event) {
+window.loginUser = async function(event) {
 
   event.preventDefault();
 
+  const email =
+    document.getElementById("loginEmail")
+      .value.trim();
+
+  const password =
+    document.getElementById("loginPassword")
+      .value;
 
   try {
-
-    const email =
-      document
-        .getElementById(
-          "loginEmail"
-        )
-        .value
-        .trim();
-
-
-    const password =
-      document
-        .getElementById(
-          "loginPassword"
-        )
-        .value;
-
 
     await signInWithEmailAndPassword(
       auth,
@@ -535,16 +403,17 @@ async function loginUser(event) {
       password
     );
 
+    showToast("✅ Berhasil masuk");
 
-    showToast(
-      "Login berhasil"
-    );
-
+    showPage("homePage");
 
   } catch (error) {
 
+    console.error(error);
+
     showToast(
-      "Email atau password salah"
+      "Login gagal: " +
+      getFirebaseError(error)
     );
 
   }
@@ -552,120 +421,159 @@ async function loginUser(event) {
 };
 
 
-window.logoutUser =
-async function logoutUser() {
+window.logoutUser = async function() {
 
-  await signOut(auth);
+  try {
 
-  showToast(
-    "Berhasil keluar"
-  );
+    await signOut(auth);
+
+    currentUser = null;
+    currentProfile = null;
+
+    if (notificationUnsubscribe) {
+
+      notificationUnsubscribe();
+
+      notificationUnsubscribe = null;
+
+    }
+
+    showToast("Berhasil keluar");
+
+    showPage("homePage");
+
+  } catch (error) {
+
+    console.error(error);
+
+    showToast("Gagal keluar");
+
+  }
 
 };
 
 
-/* =========================================
+function getFirebaseError(error) {
+
+  const code = error?.code || "";
+
+  const messages = {
+
+    "auth/email-already-in-use":
+      "Email sudah digunakan",
+
+    "auth/invalid-email":
+      "Email tidak valid",
+
+    "auth/weak-password":
+      "Password terlalu lemah",
+
+    "auth/invalid-credential":
+      "Email atau password salah",
+
+    "auth/user-not-found":
+      "Akun tidak ditemukan",
+
+    "auth/wrong-password":
+      "Password salah"
+
+  };
+
+  return messages[code] || error.message || "Terjadi kesalahan";
+
+}
+
+
+/* =========================================================
    PROFILE
-========================================= */
+========================================================= */
 
 async function loadProfile() {
 
   if (!currentUser) return;
 
+  try {
 
-  const snap =
-    await getDoc(
-      doc(
-        db,
-        "users",
-        currentUser.uid
-      )
+    const snap =
+      await getDoc(
+        doc(db, "users", currentUser.uid)
+      );
+
+    if (!snap.exists()) {
+
+      currentProfile = null;
+
+      return;
+
+    }
+
+    currentProfile = {
+      id: currentUser.uid,
+      ...snap.data()
+    };
+
+    setText(
+      "profileName",
+      currentProfile.name || "Pengguna"
     );
 
-
-  if (!snap.exists()) {
-
-    currentProfile = null;
-
-    return;
-
-  }
-
-
-  currentProfile =
-    snap.data();
-
-
-  setText(
-    "profileName",
-    currentProfile.name ||
-    "Pengguna"
-  );
-
-
-  setText(
-    "profileEmail",
-    currentUser.email ||
-    ""
-  );
-
-
-  setText(
-    "profileRole",
-    currentProfile.role ||
-    "buyer"
-  );
-
-
-  const sellerEntry =
-    document.getElementById(
-      "sellerEntry"
+    setText(
+      "profileEmail",
+      currentProfile.email ||
+      currentUser.email ||
+      "-"
     );
 
-
-  const adminEntry =
-    document.getElementById(
-      "adminEntry"
+    setText(
+      "profileRole",
+      currentProfile.role === "seller"
+        ? "Seller"
+        : currentProfile.role === "admin"
+          ? "Admin"
+          : "Buyer"
     );
 
+    const sellerEntry =
+      document.getElementById("sellerEntry");
 
-  if (
-    currentProfile.role ===
-    "seller"
-  ) {
+    const adminEntry =
+      document.getElementById("adminEntry");
 
-    sellerEntry.style.display =
-      "block";
+    if (sellerEntry) {
 
-  } else {
+      sellerEntry.style.display =
+        currentProfile.role === "seller"
+          ? "block"
+          : "none";
 
-    sellerEntry.style.display =
-      "none";
+    }
 
-  }
+    if (adminEntry) {
 
+      adminEntry.style.display =
+        currentProfile.role === "admin"
+          ? "block"
+          : "none";
 
-  if (
-    currentProfile.role ===
-    "admin"
-  ) {
+    }
 
-    adminEntry.style.display =
-      "block";
+    await loadBuyerAddress();
 
-  } else {
+  } catch (error) {
 
-    adminEntry.style.display =
-      "none";
+    console.error(
+      "loadProfile:",
+      error
+    );
 
   }
 
 }
 
 
-/* =========================================
+/* =========================================================
    PRODUCTS
-========================================= */
+========================================================= */
 
 async function loadProducts() {
 
@@ -673,65 +581,58 @@ async function loadProducts() {
 
     const snapshot =
       await getDocs(
-        collection(
-          db,
-          "products"
-        )
+        collection(db, "products")
       );
 
+    products = snapshot.docs.map(item => ({
+      id: item.id,
+      ...item.data()
+    }));
 
-    products =
-      snapshot.docs.map(
-        item => ({
-
-          id:
-            item.id,
-
-          ...item.data()
-
-        })
-      );
-
-
-    renderProducts(
-      products
-    );
-
+    renderProducts();
 
   } catch (error) {
 
-    console.error(error);
-
-    showToast(
-      "Gagal memuat produk"
+    console.error(
+      "loadProducts:",
+      error
     );
+
+    showToast("Gagal memuat produk");
 
   }
 
 }
 
 
-function renderProducts(list) {
+function renderProducts() {
+
+  let filtered = products;
+
+  if (currentCategory !== "Semua") {
+
+    filtered =
+      filtered.filter(
+        product =>
+          product.category === currentCategory
+      );
+
+  }
 
   const grid =
-    document.getElementById(
-      "productGrid"
-    );
-
+    document.getElementById("productGrid");
 
   if (!grid) return;
 
-
   setText(
     "productCount",
-    `${list.length} produk`
+    `${filtered.length} produk`
   );
 
-
-  if (!list.length) {
+  if (filtered.length === 0) {
 
     grid.innerHTML = `
-      <div class="empty-state">
+      <div class="empty">
         Belum ada produk.
       </div>
     `;
@@ -740,13 +641,9 @@ function renderProducts(list) {
 
   }
 
-
   grid.innerHTML =
-    list
-      .map(
-        product =>
-          productCard(product)
-      )
+    filtered
+      .map(productCard)
       .join("");
 
 }
@@ -754,243 +651,262 @@ function renderProducts(list) {
 
 function productCard(product) {
 
+  const image =
+    product.imageUrl ||
+    product.image ||
+    "https://via.placeholder.com/500?text=POPER";
+
   const price =
     getFinalPrice(product);
 
-
-  const oldPrice =
-    Number(product.price || 0);
-
-
   return `
-
-    <article class="product-card">
-
-      <button
-        class="favorite"
-        onclick="
-          toggleFavorite(
-            '${product.id}'
-          )
-        "
-      >
-        ♡
-      </button>
-
+    <div class="product-card">
 
       <img
         class="product-image"
-        src="${escapeHtml(
-          product.imageUrl ||
-          "https://via.placeholder.com/500"
-        )}"
-        alt="${escapeHtml(
-          product.name
-        )}"
+        src="${escapeHtml(image)}"
+        alt="${escapeHtml(product.name || "Produk")}"
+        onerror="this.src='https://via.placeholder.com/500?text=POPER'"
       >
 
+      <div class="product-info">
 
-      <div class="product-body">
+        <h3>
+          ${escapeHtml(product.name || "Produk")}
+        </h3>
 
-        <div class="product-name">
-          ${escapeHtml(
-            product.name
-          )}
+        <div class="product-store">
+          🏪 ${escapeHtml(product.storeName || "Toko")}
         </div>
-
 
         <div class="product-price">
           ${formatRupiah(price)}
         </div>
 
-
-        ${
-          Number(product.discount || 0) > 0
-          ? `
-            <div class="product-old-price">
-              ${formatRupiah(oldPrice)}
-            </div>
-          `
-          : ""
-        }
-
-
-        <div class="product-store">
-          ${escapeHtml(
-            product.storeName ||
-            "POPER Store"
-          )}
+        <div class="product-category">
+          ${escapeHtml(product.category || "Lainnya")}
         </div>
 
+        <div class="product-actions">
 
-        <button
-          class="add-cart"
-          onclick="
-            addToCart(
-              '${product.id}'
-            )
-          "
-        >
-          + Keranjang
-        </button>
+          <button
+            class="favorite-btn"
+            onclick="toggleFavorite('${product.id}')"
+          >
+            ♡
+          </button>
+
+          <button
+            class="add-btn"
+            onclick="addToCart('${product.id}')"
+          >
+            + Keranjang
+          </button>
+
+        </div>
 
       </div>
 
-    </article>
-
+    </div>
   `;
 
 }
 
 
-window.searchProducts =
-function searchProducts(value) {
+window.filterCategory = function(category) {
+
+  currentCategory = category;
+
+  renderProducts();
+
+};
+
+
+window.searchProducts = function(value) {
 
   const keyword =
-    value
-      .toLowerCase()
-      .trim();
+    String(value || "")
+      .trim()
+      .toLowerCase();
 
+  showPage("searchPage");
 
-  const filtered =
-    products.filter(
-      product => {
+  const grid =
+    document.getElementById("searchGrid");
 
-        const matchName =
-          String(
-            product.name || ""
-          )
-          .toLowerCase()
-          .includes(
-            keyword
-          );
+  if (!grid) return;
 
+  let result = products;
 
-        const matchCategory =
-          currentCategory ===
-          "Semua" ||
-          product.category ===
-          currentCategory;
+  if (currentCategory !== "Semua") {
 
+    result =
+      result.filter(
+        p =>
+          p.category === currentCategory
+      );
 
-        return (
-          matchName &&
-          matchCategory
-        );
+  }
 
-      }
-    );
+  if (keyword) {
 
+    result =
+      result.filter(product => {
 
-  renderProducts(
-    filtered
-  );
+        const text = `
+          ${product.name || ""}
+          ${product.storeName || ""}
+          ${product.category || ""}
+          ${product.description || ""}
+        `.toLowerCase();
 
-};
+        return text.includes(keyword);
 
+      });
 
-window.filterCategory =
-function filterCategory(category) {
+  }
 
-  currentCategory =
-    category;
+  if (result.length === 0) {
 
-
-  searchProducts(
-    document
-      .getElementById(
-        "searchInput"
-      )
-      .value
-  );
-
-};
-
-
-/* =========================================
-   CART
-========================================= */
-
-window.addToCart =
-function addToCart(productId) {
-
-  const product =
-    products.find(
-      p =>
-        p.id ===
-        productId
-    );
-
-
-  if (!product) {
-
-    showToast(
-      "Produk tidak ditemukan"
-    );
+    grid.innerHTML = `
+      <div class="empty">
+        Produk tidak ditemukan.
+      </div>
+    `;
 
     return;
 
   }
 
+  grid.innerHTML =
+    result.map(productCard).join("");
+
+};
+
+
+window.toggleFavorite = function(productId) {
+
+  const key = "poper_favorites";
+
+  let favorites =
+    JSON.parse(
+      localStorage.getItem(key) || "[]"
+    );
+
+  if (favorites.includes(productId)) {
+
+    favorites =
+      favorites.filter(id => id !== productId);
+
+    showToast("Dihapus dari favorit");
+
+  } else {
+
+    favorites.push(productId);
+
+    showToast("❤️ Ditambahkan ke favorit");
+
+  }
+
+  localStorage.setItem(
+    key,
+    JSON.stringify(favorites)
+  );
+
+};
+
+
+/* =========================================================
+   CART
+========================================================= */
+
+window.addToCart = function(productId) {
+
+  const product =
+    products.find(
+      item => item.id === productId
+    );
+
+  if (!product) {
+
+    showToast("Produk tidak ditemukan");
+
+    return;
+
+  }
 
   const existing =
     cart.find(
-      item =>
-        item.productId ===
-        productId
+      item => item.id === productId
     );
-
 
   if (existing) {
 
-    existing.quantity++;
+    existing.quantity =
+      Number(existing.quantity || 1) + 1;
 
   } else {
 
     cart.push({
-
-      productId:
-        product.id,
-
-      name:
-        product.name,
-
-      price:
-        product.price,
-
-      discount:
-        product.discount || 0,
-
-      imageUrl:
-        product.imageUrl,
-
-      stock:
-        product.stock,
-
-      storeId:
-        product.storeId,
-
-      storeName:
-        product.storeName,
-
-      sellerId:
-        product.sellerId,
-
-      quantity:
-        1
-
+      ...product,
+      quantity: 1
     });
 
   }
 
-
   saveCart();
+
+  renderCart();
 
   updateCartBadge();
 
-  showToast(
-    "Produk masuk keranjang"
-  );
+  showToast("🛒 Produk masuk keranjang");
+
+};
+
+
+window.changeCartQty = function(productId, change) {
+
+  const item =
+    cart.find(
+      product => product.id === productId
+    );
+
+  if (!item) return;
+
+  item.quantity =
+    Number(item.quantity || 1) + change;
+
+  if (item.quantity <= 0) {
+
+    cart =
+      cart.filter(
+        product => product.id !== productId
+      );
+
+  }
+
+  saveCart();
+
+  renderCart();
+
+  updateCartBadge();
+
+};
+
+
+window.removeCartItem = function(productId) {
+
+  cart =
+    cart.filter(
+      item => item.id !== productId
+    );
+
+  saveCart();
+
+  renderCart();
+
+  updateCartBadge();
 
 };
 
@@ -1000,13 +916,9 @@ function updateCartBadge() {
   const count =
     cart.reduce(
       (sum, item) =>
-        sum +
-        Number(
-          item.quantity || 0
-        ),
+        sum + Number(item.quantity || 1),
       0
     );
-
 
   setText(
     "cartBadge",
@@ -1019,100 +931,93 @@ function updateCartBadge() {
 function renderCart() {
 
   const container =
-    document.getElementById(
-      "cartItems"
-    );
+    document.getElementById("cartItems");
 
+  const summary =
+    document.getElementById("cartSummary");
+
+  const checkoutButton =
+    document.getElementById("checkoutButton");
 
   if (!container) return;
 
-
-  if (!cart.length) {
+  if (cart.length === 0) {
 
     container.innerHTML = `
-      <div class="empty-state">
+      <div class="empty">
+        🛒<br>
         Keranjang masih kosong.
       </div>
     `;
 
-    setText(
-      "cartTotal",
-      formatRupiah(0)
-    );
+    if (summary) {
+      summary.innerHTML = "";
+    }
+
+    if (checkoutButton) {
+      checkoutButton.disabled = true;
+      checkoutButton.style.opacity = ".5";
+    }
 
     return;
 
   }
 
+  if (checkoutButton) {
+
+    checkoutButton.disabled = false;
+    checkoutButton.style.opacity = "1";
+
+  }
 
   container.innerHTML =
-    cart.map(
-      item => `
+    cart.map(item => {
 
+      const image =
+        item.imageUrl ||
+        item.image ||
+        "https://via.placeholder.com/100?text=POPER";
+
+      return `
         <div class="cart-item">
 
           <img
-            src="${escapeHtml(
-              item.imageUrl ||
-              "https://via.placeholder.com/200"
-            )}"
+            src="${escapeHtml(image)}"
+            alt=""
           >
 
+          <div class="cart-item-info">
 
-          <div class="cart-info">
+            <h4>
+              ${escapeHtml(item.name || "Produk")}
+            </h4>
 
-            <strong>
-              ${escapeHtml(
-                item.name
-              )}
-            </strong>
+            <small>
+              ${formatRupiah(getFinalPrice(item))}
+            </small>
 
-            <div>
-              ${formatRupiah(
-                getFinalPrice(item)
-              )}
-            </div>
-
-
-            <div class="qty">
+            <div class="qty-controls">
 
               <button
-                onclick="
-                  changeCartQuantity(
-                    '${item.productId}',
-                    -1
-                  )
-                "
+                onclick="changeCartQty('${item.id}', -1)"
               >
                 −
               </button>
 
-
-              <span>
-                ${item.quantity}
-              </span>
-
+              <strong>
+                ${Number(item.quantity || 1)}
+              </strong>
 
               <button
-                onclick="
-                  changeCartQuantity(
-                    '${item.productId}',
-                    1
-                  )
-                "
+                onclick="changeCartQty('${item.id}', 1)"
               >
                 +
               </button>
 
-
               <button
-                onclick="
-                  removeCartItem(
-                    '${item.productId}'
-                  )
-                "
+                onclick="removeCartItem('${item.id}')"
               >
-                🗑
+                🗑️
               </button>
 
             </div>
@@ -1120,303 +1025,365 @@ function renderCart() {
           </div>
 
         </div>
+      `;
 
-      `
-    ).join("");
-
-
-  setText(
-    "cartTotal",
-    formatRupiah(
-      getSubtotal()
-    )
-  );
-
-}
-
-
-window.changeCartQuantity =
-function changeCartQuantity(
-  productId,
-  amount
-) {
-
-  const item =
-    cart.find(
-      x =>
-        x.productId ===
-        productId
-    );
-
-
-  if (!item) return;
-
-
-  item.quantity +=
-    amount;
-
-
-  if (
-    item.quantity <= 0
-  ) {
-
-    cart =
-      cart.filter(
-        x =>
-          x.productId !==
-          productId
-      );
-
-  }
-
-
-  saveCart();
-
-  updateCartBadge();
-
-  renderCart();
-
-};
-
-
-window.removeCartItem =
-function removeCartItem(
-  productId
-) {
-
-  cart =
-    cart.filter(
-      x =>
-        x.productId !==
-        productId
-    );
-
-
-  saveCart();
-
-  updateCartBadge();
-
-  renderCart();
-
-};
-
-
-/* =========================================
-   CHECKOUT
-========================================= */
-
-window.openCheckout =
-function openCheckout() {
-
-  if (!currentUser) {
-
-    showToast(
-      "Silakan login terlebih dahulu"
-    );
-
-    closeSheet(
-      "cartSheet"
-    );
-
-    showPage(
-      "authPage"
-    );
-
-    return;
-
-  }
-
-
-  if (!cart.length) {
-
-    showToast(
-      "Keranjang kosong"
-    );
-
-    return;
-
-  }
-
+    }).join("");
 
   const subtotal =
     getSubtotal();
 
-
   const shipping =
-    10000;
+    cart.length > 0 ? 10000 : 0;
+
+  const total =
+    subtotal + shipping;
+
+  if (summary) {
+
+    summary.innerHTML = `
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <strong>${formatRupiah(subtotal)}</strong>
+      </div>
+
+      <div class="summary-row">
+        <span>Pengiriman</span>
+        <strong>${formatRupiah(shipping)}</strong>
+      </div>
+
+      <div class="summary-row total">
+        <span>Total</span>
+        <strong>${formatRupiah(total)}</strong>
+      </div>
+    `;
+
+  }
+
+}
 
 
-  setText(
-    "checkoutSubtotal",
-    formatRupiah(
-      subtotal
-    )
-  );
+/* =========================================================
+   BUYER ADDRESS
+========================================================= */
+
+async function loadBuyerAddress() {
+
+  if (!currentUser) return;
+
+  try {
+
+    const snap =
+      await getDoc(
+        doc(
+          db,
+          "addresses",
+          currentUser.uid
+        )
+      );
+
+    if (!snap.exists()) return;
+
+    const data = snap.data();
+
+    const name =
+      document.getElementById("addressName");
+
+    const phone =
+      document.getElementById("addressPhone");
+
+    const text =
+      document.getElementById("addressText");
+
+    if (name) name.value = data.name || "";
+
+    if (phone) phone.value = data.phone || "";
+
+    if (text) text.value = data.address || "";
+
+  } catch (error) {
+
+    console.error(
+      "loadBuyerAddress:",
+      error
+    );
+
+  }
+
+}
 
 
-  setText(
-    "checkoutShipping",
-    formatRupiah(
-      shipping
-    )
-  );
+window.saveAddress = async function() {
 
+  if (!currentUser) {
 
-  setText(
-    "checkoutTotal",
-    formatRupiah(
-      subtotal +
-      shipping
-    )
-  );
+    showToast("Silakan login terlebih dahulu");
 
+    return;
 
-  closeSheet(
-    "cartSheet"
-  );
+  }
 
+  const name =
+    document.getElementById("addressName")
+      .value.trim();
 
-  openSheet(
-    "checkoutSheet"
-  );
+  const phone =
+    document.getElementById("addressPhone")
+      .value.trim();
+
+  const address =
+    document.getElementById("addressText")
+      .value.trim();
+
+  if (!name || !phone || !address) {
+
+    showToast("Lengkapi alamat terlebih dahulu");
+
+    return;
+
+  }
+
+  try {
+
+    await setDoc(
+      doc(
+        db,
+        "addresses",
+        currentUser.uid
+      ),
+      {
+        userId: currentUser.uid,
+        name,
+        phone,
+        address,
+        updatedAt: serverTimestamp()
+      },
+      {
+        merge: true
+      }
+    );
+
+    showToast("✅ Alamat pengiriman tersimpan");
+
+    closeSheet("addressSheet");
+
+  } catch (error) {
+
+    console.error(error);
+
+    showToast(
+      "Gagal menyimpan alamat: " +
+      error.message
+    );
+
+  }
 
 };
 
 
-window.checkout =
-async function checkout(event) {
+/* =========================================================
+   CHECKOUT
+========================================================= */
 
-  event.preventDefault();
-
+window.openCheckout = async function() {
 
   if (!currentUser) {
 
-    showToast(
-      "Silakan login"
-    );
+    showToast("Silakan login terlebih dahulu");
+
+    showPage("authPage");
 
     return;
 
   }
 
+  if (cart.length === 0) {
 
-  if (!cart.length) {
-
-    showToast(
-      "Keranjang kosong"
-    );
+    showToast("Keranjang kosong");
 
     return;
 
   }
-
 
   try {
 
-    const address =
-      document
-        .getElementById(
-          "checkoutAddress"
-        )
-        .value
-        .trim();
+    await loadBuyerAddress();
+
+    const subtotal =
+      getSubtotal();
+
+    const shipping =
+      10000;
+
+    const total =
+      subtotal + shipping;
+
+    setText(
+      "checkoutSummary",
+      ""
+    );
+
+    const summary =
+      document.getElementById(
+        "checkoutSummary"
+      );
+
+    if (summary) {
+
+      summary.innerHTML = `
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <strong>${formatRupiah(subtotal)}</strong>
+        </div>
+
+        <div class="summary-row">
+          <span>Pengiriman</span>
+          <strong>${formatRupiah(shipping)}</strong>
+        </div>
+
+        <div class="summary-row total">
+          <span>Total</span>
+          <strong>${formatRupiah(total)}</strong>
+        </div>
+      `;
+
+    }
+
+    closeSheet("cartSheet");
+
+    openSheet("checkoutSheet");
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+};
 
 
-    const phone =
-      document
-        .getElementById(
-          "checkoutPhone"
-        )
-        .value
-        .trim();
+window.placeOrder = async function() {
 
+  if (!currentUser) {
 
-    const payment =
-      document.querySelector(
-        'input[name="payment"]:checked'
-      ).value;
+    showToast("Silakan login");
 
+    return;
 
-    const groups = {};
+  }
 
+  if (cart.length === 0) {
+
+    showToast("Keranjang kosong");
+
+    return;
+
+  }
+
+  const name =
+    document.getElementById("checkoutName")
+      .value.trim();
+
+  const phone =
+    document.getElementById("checkoutPhone")
+      .value.trim();
+
+  const address =
+    document.getElementById("checkoutAddress")
+      .value.trim();
+
+  const payment =
+    document.getElementById("checkoutPayment")
+      .value;
+
+  if (!name || !phone || !address) {
+
+    showToast("Lengkapi data pengiriman");
+
+    return;
+
+  }
+
+  try {
+
+    /*
+      Satu cart bisa berisi produk dari
+      beberapa toko.
+    */
+
+    const grouped = {};
 
     cart.forEach(item => {
 
-      if (
-        !groups[item.storeId]
-      ) {
+      const storeId =
+        item.storeId ||
+        item.sellerId;
 
-        groups[item.storeId] =
-          [];
+      if (!storeId) return;
 
+      if (!grouped[storeId]) {
+        grouped[storeId] = [];
       }
 
-
-      groups[item.storeId]
-        .push(item);
+      grouped[storeId].push(item);
 
     });
 
+    const storeIds =
+      Object.keys(grouped);
 
-    for (
-      const storeId
-      of Object.keys(groups)
-    ) {
+    if (storeIds.length === 0) {
+
+      showToast(
+        "Produk tidak memiliki toko"
+      );
+
+      return;
+
+    }
+
+    for (const storeId of storeIds) {
 
       const items =
-        groups[storeId];
+        grouped[storeId];
 
+      const sellerId =
+        items[0].sellerId ||
+        storeId;
 
       const subtotal =
         items.reduce(
           (sum, item) =>
             sum +
-            (
-              getFinalPrice(item) *
-              item.quantity
-            ),
+            getFinalPrice(item) *
+            Number(item.quantity || 1),
           0
         );
-
 
       const shipping =
         10000;
 
-
       const total =
-        subtotal +
-        shipping;
-
+        subtotal + shipping;
 
       const platformFee =
         Math.round(
           subtotal * 0.10
         );
 
-
       const sellerRevenue =
-        subtotal -
-        platformFee;
-
-
-      const sellerId =
-        items[0].sellerId;
-
+        subtotal - platformFee;
 
       const orderRef =
         await addDoc(
-          collection(
-            db,
-            "orders"
-          ),
+          collection(db, "orders"),
           {
-
-            buyerId:
-              currentUser.uid,
+            buyerId: currentUser.uid,
 
             sellerId,
 
             storeId,
+
+            buyerName: name,
 
             address,
 
@@ -1439,23 +1406,17 @@ async function checkout(event) {
                 ? "pending"
                 : "waiting_payment",
 
-            balanceReleased:
-              false,
+            balanceReleased: false,
 
             createdAt:
               serverTimestamp(),
 
             updatedAt:
               serverTimestamp()
-
           }
         );
 
-
-      for (
-        const item
-        of items
-      ) {
+      for (const item of items) {
 
         await addDoc(
           collection(
@@ -1465,97 +1426,83 @@ async function checkout(event) {
             "items"
           ),
           {
+            productId: item.id,
 
-            productId:
-              item.productId,
+            name: item.name || "",
 
-            name:
-              item.name,
+            imageUrl:
+              item.imageUrl ||
+              item.image ||
+              "",
 
             price:
               getFinalPrice(item),
 
             quantity:
-              item.quantity,
+              Number(item.quantity || 1),
 
-            imageUrl:
-              item.imageUrl,
+            sellerId,
 
             storeId,
 
-            sellerId
-
+            createdAt:
+              serverTimestamp()
           }
         );
 
       }
 
-
       await addDoc(
-        collection(
-          db,
-          "notifications"
-        ),
+        collection(db, "notifications"),
         {
+          userId: sellerId,
 
-          userId:
-            sellerId,
+          type: "new_order",
 
-          title:
-            "Pesanan baru",
+          title: "Pesanan baru",
 
           message:
-            "Kamu menerima pesanan baru.",
+            `Pesanan baru sebesar ${formatRupiah(total)}`,
 
-          type:
-            "order",
+          orderId: orderRef.id,
 
-          orderId:
-            orderRef.id,
-
-          read:
-            false,
+          read: false,
 
           createdAt:
             serverTimestamp()
-
         }
       );
 
     }
 
-
     cart = [];
 
     saveCart();
 
+    renderCart();
+
     updateCartBadge();
 
-
-    closeSheet(
-      "checkoutSheet"
-    );
-
+    closeAllSheets();
 
     showToast(
-      "Pesanan berhasil dibuat"
+      "🎉 Pesanan berhasil dibuat"
     );
 
+    showPage("ordersPage");
 
-    showPage(
-      "ordersPage"
-    );
-
-
-    loadBuyerOrders();
-
+    await loadBuyerOrders();
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "placeOrder:",
+      error
+    );
 
     showToast(
-      "Checkout gagal"
+      "Gagal membuat pesanan: " +
+      error.message
     );
 
   }
@@ -1563,32 +1510,34 @@ async function checkout(event) {
 };
 
 
-/* =========================================
+/* =========================================================
    BUYER ORDERS
-========================================= */
+========================================================= */
 
 async function loadBuyerOrders() {
 
-  if (!currentUser) return;
-
-
   const container =
-    document.getElementById(
-      "orders"
-    );
-
+    document.getElementById("orders");
 
   if (!container) return;
 
+  if (!currentUser) {
+
+    container.innerHTML = `
+      <div class="empty">
+        Silakan login untuk melihat pesanan.
+      </div>
+    `;
+
+    return;
+
+  }
 
   try {
 
     const q =
       query(
-        collection(
-          db,
-          "orders"
-        ),
+        collection(db, "orders"),
         where(
           "buyerId",
           "==",
@@ -1596,15 +1545,26 @@ async function loadBuyerOrders() {
         )
       );
 
-
     const snapshot =
       await getDocs(q);
 
+    const orders =
+      snapshot.docs
+        .map(item => ({
+          id: item.id,
+          ...item.data()
+        }))
+        .sort(
+          (a, b) =>
+            timestampValue(b.createdAt) -
+            timestampValue(a.createdAt)
+        );
 
-    if (snapshot.empty) {
+    if (orders.length === 0) {
 
       container.innerHTML = `
-        <div class="empty-state">
+        <div class="empty">
+          📦<br>
           Belum ada pesanan.
         </div>
       `;
@@ -1613,222 +1573,229 @@ async function loadBuyerOrders() {
 
     }
 
-
-    const orders =
-      snapshot.docs
-        .map(
-          item => ({
-            id:
-              item.id,
-            ...item.data()
-          })
-        )
-        .sort(
-          (a,b) =>
-            (
-              b.createdAt?.seconds ||
-              0
-            ) -
-            (
-              a.createdAt?.seconds ||
-              0
-            )
-        );
-
-
     container.innerHTML =
-      orders
-        .map(
-          order => `
+      orders.map(order => {
 
-            <div class="order-card">
+        return `
+          <div class="order-card">
 
-              <h3>
-                Pesanan #${order.id.slice(0,8)}
-              </h3>
+            <div class="order-header">
+
+              <strong>
+                Pesanan #${escapeHtml(order.id.slice(0, 8))}
+              </strong>
 
               <span class="status">
-                ${escapeHtml(
-                  order.status
-                )}
+                ${escapeHtml(order.status || "pending")}
               </span>
-
-              <p>
-                ${formatRupiah(
-                  order.total
-                )}
-              </p>
-
-              <p>
-                Pembayaran:
-                ${escapeHtml(
-                  order.payment
-                )}
-              </p>
-
-
-              ${
-                order.status ===
-                "shipped"
-                ? `
-                  <button
-                    class="primary-btn"
-                    onclick="
-                      confirmDelivery(
-                        '${order.id}'
-                      )
-                    "
-                  >
-                    Pesanan sudah diterima
-                  </button>
-                `
-                : ""
-              }
-
-
-              <button
-                class="primary-btn"
-                onclick="
-                  trackOrder(
-                    '${order.id}'
-                  )
-                "
-              >
-                Lacak Pesanan
-              </button>
 
             </div>
 
-          `
-        )
-        .join("");
+            <p>
+              Total:
+              <strong>
+                ${formatRupiah(order.total)}
+              </strong>
+            </p>
 
+            <p>
+              Pembayaran:
+              ${escapeHtml(order.payment || "-")}
+            </p>
+
+            <div class="order-actions">
+
+              <button
+                onclick="openTracking('${order.id}')"
+              >
+                Lihat Detail
+              </button>
+
+              ${
+                order.status === "shipped"
+                  ? `
+                    <button
+                      onclick="confirmDelivery('${order.id}')"
+                    >
+                      Pesanan Diterima
+                    </button>
+                  `
+                  : ""
+              }
+
+            </div>
+
+          </div>
+        `;
+
+      }).join("");
 
   } catch (error) {
 
     console.error(error);
+
+    container.innerHTML = `
+      <div class="empty">
+        Gagal memuat pesanan.
+      </div>
+    `;
 
   }
 
 }
 
 
-/* =========================================
-   TRACKING
-========================================= */
+function timestampValue(timestamp) {
 
-window.trackOrder =
-function trackOrder(orderId) {
+  if (!timestamp) return 0;
 
-  openSheet(
-    "trackingSheet"
-  );
+  if (
+    typeof timestamp.toMillis === "function"
+  ) {
 
+    return timestamp.toMillis();
 
-  const content =
-    document.getElementById(
-      "trackingContent"
-    );
+  }
 
+  if (timestamp.seconds) {
 
-  content.innerHTML = `
-    <p>
-      Menghubungkan tracking...
-    </p>
-  `;
+    return timestamp.seconds * 1000;
+
+  }
+
+  return 0;
+
+}
 
 
-  onSnapshot(
-    doc(
-      db,
-      "orders",
-      orderId
-    ),
-    snapshot => {
+window.openTracking = async function(orderId) {
 
-      if (!snapshot.exists()) {
+  try {
 
-        content.innerHTML =
-          "Pesanan tidak ditemukan.";
+    const snap =
+      await getDoc(
+        doc(db, "orders", orderId)
+      );
 
-        return;
+    if (!snap.exists()) {
 
-      }
+      showToast("Pesanan tidak ditemukan");
 
-
-      const order =
-        snapshot.data();
-
-
-      content.innerHTML = `
-
-        <div class="order-card">
-
-          <h2>
-            ${escapeHtml(
-              order.status
-            )}
-          </h2>
-
-          <p>
-            Status pesanan diperbarui
-            secara realtime.
-          </p>
-
-        </div>
-
-      `;
+      return;
 
     }
-  );
+
+    const order = snap.data();
+
+    const content =
+      document.getElementById(
+        "trackingContent"
+      );
+
+    if (!content) return;
+
+    content.innerHTML = `
+
+      <div class="order-card">
+
+        <h3>
+          Pesanan #${escapeHtml(orderId.slice(0, 8))}
+        </h3>
+
+        <p>
+          Status:
+          <strong>
+            ${escapeHtml(order.status || "-")}
+          </strong>
+        </p>
+
+        <p>
+          Total:
+          <strong>
+            ${formatRupiah(order.total)}
+          </strong>
+        </p>
+
+        <p>
+          Alamat:
+          ${escapeHtml(order.address || "-")}
+        </p>
+
+        <p>
+          Pembayaran:
+          ${escapeHtml(order.payment || "-")}
+        </p>
+
+      </div>
+
+    `;
+
+    openSheet("trackingSheet");
+
+  } catch (error) {
+
+    console.error(error);
+
+    showToast("Gagal membuka pesanan");
+
+  }
 
 };
 
 
-window.confirmDelivery =
-async function confirmDelivery(
-  orderId
-) {
+window.confirmDelivery = async function(orderId) {
 
-  showToast(
-    "Memproses konfirmasi..."
-  );
-
+  if (!currentUser) return;
 
   try {
 
+    const orderRef =
+      doc(db, "orders", orderId);
+
+    const orderSnap =
+      await getDoc(orderRef);
+
+    if (!orderSnap.exists()) {
+
+      showToast("Pesanan tidak ditemukan");
+
+      return;
+
+    }
+
+    const order =
+      orderSnap.data();
+
+    if (
+      order.buyerId !== currentUser.uid
+    ) {
+
+      showToast("Akses ditolak");
+
+      return;
+
+    }
+
     await updateDoc(
-      doc(
-        db,
-        "orders",
-        orderId
-      ),
+      orderRef,
       {
-
-        status:
-          "delivered",
-
-        updatedAt:
-          serverTimestamp()
-
+        status: "delivered",
+        updatedAt: serverTimestamp()
       }
     );
 
-
     showToast(
-      "Pesanan selesai"
+      "✅ Pesanan diterima"
     );
 
-
-    loadBuyerOrders();
-
+    await loadBuyerOrders();
 
   } catch (error) {
 
     console.error(error);
 
     showToast(
-      "Gagal mengonfirmasi"
+      "Gagal mengonfirmasi pesanan"
     );
 
   }
@@ -1836,711 +1803,369 @@ async function confirmDelivery(
 };
 
 
-/* =========================================
-   SELLER
-========================================= */
+/* =========================================================
+   SELLER STORE
+========================================================= */
+
+/*
+  INI BAGIAN YANG MEMPERBAIKI MASALAH UTAMA:
+
+  Alamat buyer disimpan di:
+  addresses/{uid}
+
+  Alamat toko disimpan di:
+  stores/{uid}
+
+  Jadi seller TIDAK menggunakan saveAddress().
+*/
+
+
+window.openEditStore = async function() {
+
+  if (!currentUser) {
+
+    showToast(
+      "Silakan login terlebih dahulu"
+    );
+
+    return;
+
+  }
+
+  if (
+    currentProfile?.role !== "seller"
+  ) {
+
+    showToast(
+      "Akun ini bukan seller"
+    );
+
+    return;
+
+  }
+
+  try {
+
+    const storeRef =
+      doc(
+        db,
+        "stores",
+        currentUser.uid
+      );
+
+    const storeSnap =
+      await getDoc(storeRef);
+
+    if (!storeSnap.exists()) {
+
+      showToast(
+        "Data toko belum dibuat"
+      );
+
+      return;
+
+    }
+
+    const store =
+      storeSnap.data();
+
+    const name =
+      document.getElementById(
+        "editStoreName"
+      );
+
+    const phone =
+      document.getElementById(
+        "editStorePhone"
+      );
+
+    const address =
+      document.getElementById(
+        "editStoreAddress"
+      );
+
+    const description =
+      document.getElementById(
+        "editStoreDescription"
+      );
+
+    if (name) {
+      name.value = store.name || "";
+    }
+
+    if (phone) {
+      phone.value = store.phone || "";
+    }
+
+    if (address) {
+      address.value = store.address || "";
+    }
+
+    if (description) {
+      description.value =
+        store.description || "";
+    }
+
+    openSheet("editStoreSheet");
+
+  } catch (error) {
+
+    console.error(
+      "openEditStore:",
+      error
+    );
+
+    showToast(
+      "Gagal membuka data toko"
+    );
+
+  }
+
+};
+
+
+window.saveStoreSettings = async function(event) {
+
+  event.preventDefault();
+
+  if (!currentUser) {
+
+    showToast(
+      "Silakan login terlebih dahulu"
+    );
+
+    return;
+
+  }
+
+  if (
+    currentProfile?.role !== "seller"
+  ) {
+
+    showToast(
+      "Hanya seller yang dapat mengubah toko"
+    );
+
+    return;
+
+  }
+
+  const name =
+    document.getElementById(
+      "editStoreName"
+    ).value.trim();
+
+  const phone =
+    document.getElementById(
+      "editStorePhone"
+    ).value.trim();
+
+  const address =
+    document.getElementById(
+      "editStoreAddress"
+    ).value.trim();
+
+  const description =
+    document.getElementById(
+      "editStoreDescription"
+    ).value.trim();
+
+  if (name.length < 3) {
+
+    showToast(
+      "Nama toko minimal 3 karakter"
+    );
+
+    return;
+
+  }
+
+  if (!address) {
+
+    showToast(
+      "Alamat toko wajib diisi"
+    );
+
+    return;
+
+  }
+
+  const submitButton =
+    event.target.querySelector(
+      'button[type="submit"]'
+    );
+
+  if (submitButton) {
+
+    submitButton.disabled = true;
+    submitButton.textContent =
+      "Menyimpan...";
+
+  }
+
+  try {
+
+    const storeRef =
+      doc(
+        db,
+        "stores",
+        currentUser.uid
+      );
+
+    const storeSnap =
+      await getDoc(storeRef);
+
+    if (!storeSnap.exists()) {
+
+      showToast(
+        "Data toko tidak ditemukan"
+      );
+
+      return;
+
+    }
+
+    const oldStore =
+      storeSnap.data();
+
+    const oldName =
+      oldStore.name || "";
+
+    /*
+      SIMPAN DATA TOKO
+    */
+
+    await updateDoc(
+      storeRef,
+      {
+        name,
+
+        phone,
+
+        address,
+
+        description,
+
+        updatedAt:
+          serverTimestamp()
+      }
+    );
+
+    /*
+      JIKA NAMA TOKO BERUBAH,
+      UPDATE storeName PADA PRODUK SELLER.
+    */
+
+    if (oldName !== name) {
+
+      const productQuery =
+        query(
+          collection(db, "products"),
+          where(
+            "sellerId",
+            "==",
+            currentUser.uid
+          )
+        );
+
+      const productSnapshot =
+        await getDocs(productQuery);
+
+      for (
+        const productDoc
+        of productSnapshot.docs
+      ) {
+
+        await updateDoc(
+          doc(
+            db,
+            "products",
+            productDoc.id
+          ),
+          {
+            storeName: name,
+            updatedAt:
+              serverTimestamp()
+          }
+        );
+
+      }
+
+    }
+
+    /*
+      UPDATE TAMPILAN LANGSUNG
+    */
+
+    setText(
+      "storeName",
+      name
+    );
+
+    setText(
+      "storeAddress",
+      address
+    );
+
+    closeSheet(
+      "editStoreSheet"
+    );
+
+    showToast(
+      "✅ Data toko berhasil disimpan"
+    );
+
+    /*
+      REFRESH PRODUK
+    */
+
+    await loadProducts();
+
+    await loadSellerProducts();
+
+  } catch (error) {
+
+    console.error(
+      "saveStoreSettings:",
+      error
+    );
+
+    showToast(
+      "Gagal menyimpan toko: " +
+      error.message
+    );
+
+  } finally {
+
+    if (submitButton) {
+
+      submitButton.disabled = false;
+
+      submitButton.textContent =
+        "💾 Simpan Perubahan";
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   SELLER DASHBOARD
+========================================================= */
 
 async function loadSellerDashboard() {
 
   if (
     !currentUser ||
     !currentProfile ||
-    currentProfile.role !==
-    "seller"
+    currentProfile.role !== "seller"
   ) {
-
     return;
-
   }
-
-
-  const storeSnap =
-    await getDoc(
-      doc(
-        db,
-        "stores",
-        currentUser.uid
-      )
-    );
-
-
-  if (storeSnap.exists()) {
-
-    const store =
-      storeSnap.data();
-
-
-    setText(
-      "storeName",
-      store.name ||
-      "Toko Saya"
-    );
-
-
-    setText(
-      "storeAddress",
-      store.address ||
-      "Belum ada alamat"
-    );
-
-  }
-
-
-  await loadSellerProducts();
-
-  await loadSellerOrders();
-
-  await loadSellerWallet();
-
-}
-
-
-async function loadSellerProducts() {
-
-  const grid =
-    document.getElementById(
-      "sellerProductGrid"
-    );
-
-
-  if (!grid) return;
-
-
-  const q =
-    query(
-      collection(
-        db,
-        "products"
-      ),
-      where(
-        "sellerId",
-        "==",
-        currentUser.uid
-      )
-    );
-
-
-  const snapshot =
-    await getDocs(q);
-
-
-  setText(
-    "sellerProducts",
-    snapshot.size
-  );
-
-
-  grid.innerHTML =
-    snapshot.docs
-      .map(
-        item => {
-
-          const product =
-            {
-              id:
-                item.id,
-              ...item.data()
-            };
-
-
-          return productCard(
-            product
-          );
-
-        }
-      )
-      .join("");
-
-}
-
-
-async function loadSellerOrders() {
-
-  const container =
-    document.getElementById(
-      "sellerOrdersList"
-    );
-
-
-  if (!container) return;
-
-
-  const q =
-    query(
-      collection(
-        db,
-        "orders"
-      ),
-      where(
-        "sellerId",
-        "==",
-        currentUser.uid
-      )
-    );
-
-
-  const snapshot =
-    await getDocs(q);
-
-
-  setText(
-    "sellerOrders",
-    snapshot.size
-  );
-
-
-  let revenue = 0;
-
-
-  snapshot.forEach(
-    item => {
-
-      const order =
-        item.data();
-
-
-      if (
-        order.status !==
-        "cancelled"
-      ) {
-
-        revenue +=
-          Number(
-            order.sellerRevenue ||
-            0
-          );
-
-      }
-
-    }
-  );
-
-
-  setText(
-    "sellerRevenue",
-    formatRupiah(
-      revenue
-    )
-  );
-
-
-  if (snapshot.empty) {
-
-    container.innerHTML =
-      "Belum ada pesanan.";
-
-    return;
-
-  }
-
-
-  container.innerHTML =
-    snapshot.docs
-      .map(
-        item => {
-
-          const order =
-            item.data();
-
-
-          return `
-
-            <div class="order-card">
-
-              <h3>
-                #${item.id.slice(0,8)}
-              </h3>
-
-              <span class="status">
-                ${escapeHtml(
-                  order.status
-                )}
-              </span>
-
-              <p>
-                ${formatRupiah(
-                  order.total
-                )}
-              </p>
-
-
-              ${
-                order.status ===
-                "pending"
-                ? `
-                  <button
-                    class="primary-btn"
-                    onclick="
-                      updateOrderStatus(
-                        '${item.id}',
-                        'confirmed'
-                      )
-                    "
-                  >
-                    Konfirmasi
-                  </button>
-                `
-                : ""
-              }
-
-
-              ${
-                order.status ===
-                "confirmed"
-                ? `
-                  <button
-                    class="primary-btn"
-                    onclick="
-                      updateOrderStatus(
-                        '${item.id}',
-                        'processing'
-                      )
-                    "
-                  >
-                    Proses
-                  </button>
-                `
-                : ""
-              }
-
-
-              ${
-                order.status ===
-                "processing"
-                ? `
-                  <button
-                    class="primary-btn"
-                    onclick="
-                      updateOrderStatus(
-                        '${item.id}',
-                        'shipped'
-                      )
-                    "
-                  >
-                    Kirim
-                  </button>
-                `
-                : ""
-              }
-
-            </div>
-
-          `;
-
-        }
-      )
-      .join("");
-
-}
-
-
-window.updateOrderStatus =
-async function updateOrderStatus(
-  orderId,
-  status
-) {
 
   try {
-
-    const orderSnap =
-      await getDoc(
-        doc(
-          db,
-          "orders",
-          orderId
-        )
-      );
-
-
-    if (!orderSnap.exists()) {
-
-      throw new Error(
-        "Pesanan tidak ditemukan"
-      );
-
-    }
-
-
-    const order =
-      orderSnap.data();
-
-
-    if (
-      order.sellerId !==
-      currentUser.uid
-    ) {
-
-      throw new Error(
-        "Tidak memiliki akses"
-      );
-
-    }
-
-
-    await updateDoc(
-      doc(
-        db,
-        "orders",
-        orderId
-      ),
-      {
-
-        status,
-
-        updatedAt:
-          serverTimestamp()
-
-      }
-    );
-
-
-    await addDoc(
-      collection(
-        db,
-        "notifications"
-      ),
-      {
-
-        userId:
-          order.buyerId,
-
-        title:
-          "Pesanan diperbarui",
-
-        message:
-          `Pesanan sekarang ${status}`,
-
-        type:
-          "order",
-
-        orderId,
-
-        read:
-          false,
-
-        createdAt:
-          serverTimestamp()
-
-      }
-    );
-
-
-    showToast(
-      "Status diperbarui"
-    );
-
-
-    loadSellerOrders();
-
-
-  } catch (error) {
-
-    console.error(error);
-
-    showToast(
-      error.message
-    );
-
-  }
-
-};
-
-
-/* =========================================
-   WALLET
-========================================= */
-
-async function loadSellerWallet() {
-
-  if (!currentUser) return;
-
-
-  const snap =
-    await getDoc(
-      doc(
-        db,
-        "wallets",
-        currentUser.uid
-      )
-    );
-
-
-  const balance =
-    snap.exists()
-      ? Number(
-          snap.data()
-            .availableBalance || 0
-        )
-      : 0;
-
-
-  setText(
-    "sellerBalance",
-    formatRupiah(
-      balance
-    )
-  );
-
-
-  setText(
-    "payoutAvailable",
-    formatRupiah(
-      balance
-    )
-  );
-
-}
-
-
-window.requestPayout =
-async function requestPayout() {
-
-  if (!currentUser) {
-
-    showToast(
-      "Login terlebih dahulu"
-    );
-
-    return;
-
-  }
-
-
-  const amount =
-    Number(
-      document
-        .getElementById(
-          "payoutAmount"
-        )
-        .value
-    );
-
-
-  const method =
-    document
-      .getElementById(
-        "payoutMethod"
-      )
-      .value;
-
-
-  const name =
-    document
-      .getElementById(
-        "payoutName"
-      )
-      .value
-      .trim();
-
-
-  const account =
-    document
-      .getElementById(
-        "payoutAccount"
-      )
-      .value
-      .trim();
-
-
-  if (
-    amount <= 0 ||
-    !name ||
-    !account
-  ) {
-
-    showToast(
-      "Lengkapi data payout"
-    );
-
-    return;
-
-  }
-
-
-  try {
-
-    const walletSnap =
-      await getDoc(
-        doc(
-          db,
-          "wallets",
-          currentUser.uid
-        )
-      );
-
-
-    if (!walletSnap.exists()) {
-
-      throw new Error(
-        "Wallet belum tersedia"
-      );
-
-    }
-
-
-    const available =
-      Number(
-        walletSnap.data()
-          .availableBalance || 0
-      );
-
-
-    if (
-      amount >
-      available
-    ) {
-
-      throw new Error(
-        "Saldo tidak mencukupi"
-      );
-
-    }
-
-
-    await addDoc(
-      collection(
-        db,
-        "payouts"
-      ),
-      {
-
-        sellerId:
-          currentUser.uid,
-
-        amount,
-
-        method,
-
-        accountName:
-          name,
-
-        accountNumber:
-          account,
-
-        status:
-          "pending",
-
-        createdAt:
-          serverTimestamp()
-
-      }
-    );
-
-
-    closeSheet(
-      "payoutSheet"
-    );
-
-
-    showToast(
-      "Payout diajukan"
-    );
-
-
-  } catch (error) {
-
-    showToast(
-      error.message
-    );
-
-  }
-
-};
-
-
-/* =========================================
-   SELLER PRODUCT
-========================================= */
-
-window.createProduct =
-async function createProduct(event) {
-
-  event.preventDefault();
-
-
-  if (!currentUser) {
-
-    showToast(
-      "Login sebagai seller"
-    );
-
-    return;
-
-  }
-
-
-  try {
-
-    const file =
-      document
-        .getElementById(
-          "sellerProductImage"
-        )
-        .files[0];
-
-
-    const imageUrl =
-      await uploadImage(
-        file
-      );
-
-
-    const name =
-      document
-        .getElementById(
-          "sellerProductName"
-        )
-        .value
-        .trim();
-
-
-    const price =
-      Number(
-        document
-          .getElementById(
-            "sellerProductPrice"
-          )
-          .value
-      );
-
-
-    const discount =
-      Number(
-        document
-          .getElementById(
-            "sellerProductDiscount"
-          )
-          .value ||
-          0
-      );
-
-
-    const stock =
-      Number(
-        document
-          .getElementById(
-            "sellerProductStock"
-          )
-          .value
-      );
-
-
-    const category =
-      document
-        .getElementById(
-          "sellerProductCategory"
-        )
-        .value;
-
-
-    const description =
-      document
-        .getElementById(
-          "sellerProductDescription"
-        )
-        .value
-        .trim();
-
 
     const storeSnap =
       await getDoc(
@@ -2551,23 +2176,306 @@ async function createProduct(event) {
         )
       );
 
+    if (storeSnap.exists()) {
+
+      const store =
+        storeSnap.data();
+
+      setText(
+        "storeName",
+        store.name || "Toko Saya"
+      );
+
+      setText(
+        "storeAddress",
+        store.address ||
+        "Belum ada alamat toko"
+      );
+
+    } else {
+
+      setText(
+        "storeName",
+        "Toko Saya"
+      );
+
+      setText(
+        "storeAddress",
+        "Data toko belum dibuat"
+      );
+
+    }
+
+    await loadSellerProducts();
+
+    await loadSellerOrders();
+
+    await loadSellerWallet();
+
+  } catch (error) {
+
+    console.error(
+      "loadSellerDashboard:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   SELLER PRODUCT
+========================================================= */
+
+async function loadSellerProducts() {
+
+  if (!currentUser) return;
+
+  const grid =
+    document.getElementById(
+      "sellerProductGrid"
+    );
+
+  if (!grid) return;
+
+  try {
+
+    const q =
+      query(
+        collection(db, "products"),
+        where(
+          "sellerId",
+          "==",
+          currentUser.uid
+        )
+      );
+
+    const snapshot =
+      await getDocs(q);
+
+    const sellerProducts =
+      snapshot.docs.map(item => ({
+        id: item.id,
+        ...item.data()
+      }));
+
+    setText(
+      "sellerProducts",
+      sellerProducts.length
+    );
+
+    if (sellerProducts.length === 0) {
+
+      grid.innerHTML = `
+        <div class="empty">
+          Belum ada produk.
+        </div>
+      `;
+
+      return;
+
+    }
+
+    grid.innerHTML =
+      sellerProducts
+        .map(product => {
+
+          const image =
+            product.imageUrl ||
+            product.image ||
+            "https://via.placeholder.com/300?text=POPER";
+
+          return `
+            <div class="product-card">
+
+              <img
+                class="product-image"
+                src="${escapeHtml(image)}"
+                alt=""
+              >
+
+              <div class="product-info">
+
+                <h3>
+                  ${escapeHtml(product.name)}
+                </h3>
+
+                <div class="product-price">
+                  ${formatRupiah(
+                    getFinalPrice(product)
+                  )}
+                </div>
+
+                <div class="product-category">
+                  Stok:
+                  ${Number(product.stock || 0)}
+                </div>
+
+                <button
+                  class="secondary-btn full"
+                  style="margin-top:10px"
+                  onclick="deleteSellerProduct('${product.id}')"
+                >
+                  🗑️ Hapus
+                </button>
+
+              </div>
+
+            </div>
+          `;
+
+        }).join("");
+
+  } catch (error) {
+
+    console.error(
+      "loadSellerProducts:",
+      error
+    );
+
+    grid.innerHTML = `
+      <div class="empty">
+        Gagal memuat produk.
+      </div>
+    `;
+
+  }
+
+}
+
+
+window.saveSellerProduct = async function(event) {
+
+  event.preventDefault();
+
+  if (!currentUser) {
+
+    showToast("Silakan login");
+
+    return;
+
+  }
+
+  if (
+    currentProfile?.role !== "seller"
+  ) {
+
+    showToast("Hanya seller");
+
+    return;
+
+  }
+
+  const name =
+    document.getElementById(
+      "productName"
+    ).value.trim();
+
+  const price =
+    Number(
+      document.getElementById(
+        "productPrice"
+      ).value
+    );
+
+  const stock =
+    Number(
+      document.getElementById(
+        "productStock"
+      ).value
+    );
+
+  const category =
+    document.getElementById(
+      "productCategory"
+    ).value;
+
+  const description =
+    document.getElementById(
+      "productDescription"
+    ).value.trim();
+
+  const file =
+    document.getElementById(
+      "productImage"
+    ).files[0];
+
+  if (!name || price <= 0 || stock < 0) {
+
+    showToast(
+      "Data produk tidak valid"
+    );
+
+    return;
+
+  }
+
+  if (!file) {
+
+    showToast(
+      "Pilih gambar produk"
+    );
+
+    return;
+
+  }
+
+  const button =
+    event.target.querySelector(
+      'button[type="submit"]'
+    );
+
+  if (button) {
+
+    button.disabled = true;
+    button.textContent =
+      "Mengupload...";
+
+  }
+
+  try {
+
+    /*
+      AMBIL NAMA TOKO TERBARU
+    */
+
+    const storeSnap =
+      await getDoc(
+        doc(
+          db,
+          "stores",
+          currentUser.uid
+        )
+      );
+
+    if (!storeSnap.exists()) {
+
+      showToast(
+        "Toko belum dibuat"
+      );
+
+      return;
+
+    }
 
     const store =
-      storeSnap.exists()
-        ? storeSnap.data()
-        : {};
+      storeSnap.data();
 
+    /*
+      UPLOAD CLOUDINARY
+    */
+
+    const imageUrl =
+      await uploadImage(file);
+
+    /*
+      SIMPAN FIRESTORE
+    */
 
     await addDoc(
-      collection(
-        db,
-        "products"
-      ),
+      collection(db, "products"),
       {
-
-        ownerId:
-          currentUser.uid,
-
         sellerId:
           currentUser.uid,
 
@@ -2575,14 +2483,14 @@ async function createProduct(event) {
           currentUser.uid,
 
         storeName:
-          store.name ||
-          "POPER Store",
+          store.name || "Toko",
 
         name,
 
         price,
 
-        discount,
+        finalPrice:
+          price,
 
         stock,
 
@@ -2592,48 +2500,179 @@ async function createProduct(event) {
 
         imageUrl,
 
-        active:
-          true,
+        active: true,
 
         createdAt:
           serverTimestamp(),
 
         updatedAt:
           serverTimestamp()
-
       }
     );
 
+    /*
+      UPDATE JUMLAH PRODUK TOKO
+    */
+
+    await updateDoc(
+      doc(
+        db,
+        "stores",
+        currentUser.uid
+      ),
+      {
+        totalProducts:
+          Number(store.totalProducts || 0) + 1,
+
+        updatedAt:
+          serverTimestamp()
+      }
+    );
+
+    event.target.reset();
 
     closeSheet(
       "sellerFormSheet"
     );
 
-
-    document
-      .getElementById(
-        "sellerForm"
-      )
-      .reset();
-
-
     showToast(
-      "Produk berhasil dibuat"
+      "✅ Produk berhasil ditambahkan"
     );
-
 
     await loadProducts();
 
     await loadSellerProducts();
 
+  } catch (error) {
+
+    console.error(
+      "saveSellerProduct:",
+      error
+    );
+
+    showToast(
+      "Gagal menyimpan produk: " +
+      error.message
+    );
+
+  } finally {
+
+    if (button) {
+
+      button.disabled = false;
+
+      button.textContent =
+        "Upload & Simpan Produk";
+
+    }
+
+  }
+
+};
+
+
+window.deleteSellerProduct = async function(productId) {
+
+  if (!currentUser) return;
+
+  const confirmDelete =
+    confirm(
+      "Hapus produk ini?"
+    );
+
+  if (!confirmDelete) return;
+
+  try {
+
+    const productRef =
+      doc(
+        db,
+        "products",
+        productId
+      );
+
+    const productSnap =
+      await getDoc(productRef);
+
+    if (!productSnap.exists()) {
+
+      showToast(
+        "Produk tidak ditemukan"
+      );
+
+      return;
+
+    }
+
+    const product =
+      productSnap.data();
+
+    if (
+      product.sellerId !==
+      currentUser.uid
+    ) {
+
+      showToast(
+        "Anda tidak memiliki akses"
+      );
+
+      return;
+
+    }
+
+    await deleteDoc(productRef);
+
+    /*
+      UPDATE TOTAL PRODUK TOKO
+    */
+
+    const storeRef =
+      doc(
+        db,
+        "stores",
+        currentUser.uid
+      );
+
+    const storeSnap =
+      await getDoc(storeRef);
+
+    if (storeSnap.exists()) {
+
+      const store =
+        storeSnap.data();
+
+      await updateDoc(
+        storeRef,
+        {
+          totalProducts:
+            Math.max(
+              0,
+              Number(
+                store.totalProducts || 0
+              ) - 1
+            ),
+
+          updatedAt:
+            serverTimestamp()
+        }
+      );
+
+    }
+
+    showToast(
+      "Produk dihapus"
+    );
+
+    await loadProducts();
+
+    await loadSellerProducts();
 
   } catch (error) {
 
     console.error(error);
 
     showToast(
-      error.message ||
-      "Gagal membuat produk"
+      "Gagal menghapus produk"
     );
 
   }
@@ -2641,328 +2680,592 @@ async function createProduct(event) {
 };
 
 
-/* IMAGE PREVIEW */
+/* =========================================================
+   SELLER ORDERS
+========================================================= */
 
-document
-  .getElementById(
-    "sellerProductImage"
-  )
-  ?.addEventListener(
-    "change",
-    event => {
-
-      const file =
-        event.target.files[0];
-
-
-      if (!file) return;
-
-
-      const preview =
-        document.getElementById(
-          "imagePreview"
-        );
-
-
-      preview.src =
-        URL.createObjectURL(
-          file
-        );
-
-
-      preview.style.display =
-        "block";
-
-    }
-  );
-
-
-/* =========================================
-   ADDRESS
-========================================= */
-
-window.saveAddress =
-async function saveAddress() {
+async function loadSellerOrders() {
 
   if (!currentUser) return;
 
-
-  const name =
-    document
-      .getElementById(
-        "addressName"
-      )
-      .value
-      .trim();
-
-
-  const phone =
-    document
-      .getElementById(
-        "addressPhone"
-      )
-      .value
-      .trim();
-
-
-  const address =
-    document
-      .getElementById(
-        "addressText"
-      )
-      .value
-      .trim();
-
-
-  if (
-    !name ||
-    !phone ||
-    !address
-  ) {
-
-    showToast(
-      "Lengkapi alamat"
+  const container =
+    document.getElementById(
+      "sellerOrdersList"
     );
 
-    return;
+  if (!container) return;
 
-  }
+  try {
 
+    const q =
+      query(
+        collection(db, "orders"),
+        where(
+          "sellerId",
+          "==",
+          currentUser.uid
+        )
+      );
 
-  await addDoc(
-    collection(
-      db,
-      "addresses"
-    ),
-    {
+    const snapshot =
+      await getDocs(q);
 
-      userId:
-        currentUser.uid,
+    const orders =
+      snapshot.docs
+        .map(item => ({
+          id: item.id,
+          ...item.data()
+        }))
+        .sort(
+          (a, b) =>
+            timestampValue(b.createdAt) -
+            timestampValue(a.createdAt)
+        );
 
-      name,
+    setText(
+      "sellerOrders",
+      orders.length
+    );
 
-      phone,
+    const revenue =
+      orders.reduce(
+        (sum, order) => {
 
-      address,
+          if (
+            order.status === "cancelled"
+          ) {
+            return sum;
+          }
 
-      createdAt:
-        serverTimestamp()
+          return (
+            sum +
+            Number(
+              order.sellerRevenue || 0
+            )
+          );
+
+        },
+        0
+      );
+
+    setText(
+      "sellerRevenue",
+      formatRupiah(revenue)
+    );
+
+    if (orders.length === 0) {
+
+      container.innerHTML = `
+        <div class="empty">
+          Belum ada pesanan masuk.
+        </div>
+      `;
+
+      return;
 
     }
-  );
 
+    container.innerHTML =
+      orders.map(order => {
 
-  showToast(
-    "Alamat disimpan"
-  );
+        return `
+          <div class="order-card">
 
+            <div class="order-header">
 
-  closeSheet(
-    "addressSheet"
-  );
+              <strong>
+                #${escapeHtml(
+                  order.id.slice(0, 8)
+                )}
+              </strong>
 
-};
+              <span class="status">
+                ${escapeHtml(
+                  order.status || "pending"
+                )}
+              </span>
 
+            </div>
 
-/* =========================================
-   FAVORITE
-========================================= */
+            <p>
+              Pembeli:
+              ${escapeHtml(
+                order.buyerName || "-"
+              )}
+            </p>
 
-window.toggleFavorite =
-async function toggleFavorite(
-  productId
-) {
+            <p>
+              Total:
+              <strong>
+                ${formatRupiah(order.total)}
+              </strong>
+            </p>
 
-  if (!currentUser) {
+            <p>
+              Pendapatan seller:
+              <strong>
+                ${formatRupiah(
+                  order.sellerRevenue
+                )}
+              </strong>
+            </p>
 
-    showToast(
-      "Login untuk menyimpan favorit"
+            <div class="order-actions">
+
+              <button
+                onclick="sellerUpdateOrderStatus('${order.id}', 'processing')"
+              >
+                Proses
+              </button>
+
+              <button
+                onclick="sellerUpdateOrderStatus('${order.id}', 'shipped')"
+              >
+                Kirim
+              </button>
+
+              <button
+                onclick="sellerUpdateOrderStatus('${order.id}', 'cancelled')"
+              >
+                Batal
+              </button>
+
+            </div>
+
+          </div>
+        `;
+
+      }).join("");
+
+  } catch (error) {
+
+    console.error(
+      "loadSellerOrders:",
+      error
     );
 
-    return;
+    container.innerHTML = `
+      <div class="empty">
+        Gagal memuat pesanan.
+      </div>
+    `;
 
   }
-
-
-  const ref =
-    doc(
-      db,
-      "favorites",
-      currentUser.uid,
-      "items",
-      productId
-    );
-
-
-  const snap =
-    await getDoc(ref);
-
-
-  if (snap.exists()) {
-
-    await deleteDoc(ref);
-
-    showToast(
-      "Dihapus dari favorit"
-    );
-
-  } else {
-
-    await setDoc(
-      ref,
-      {
-
-        productId,
-
-        createdAt:
-          serverTimestamp()
-
-      }
-    );
-
-
-    showToast(
-      "Ditambahkan ke favorit"
-    );
-
-  }
-
-};
-
-
-/* =========================================
-   ADMIN
-========================================= */
-
-async function isAdmin() {
-
-  if (
-    !currentUser ||
-    !currentProfile
-  ) {
-
-    return false;
-
-  }
-
-
-  return (
-    currentProfile.role ===
-    "admin"
-  );
 
 }
 
 
-async function loadAdminDashboard() {
+window.sellerUpdateOrderStatus =
+  async function(orderId, status) {
 
-  if (
-    !(await isAdmin())
-  ) {
+    if (!currentUser) return;
+
+    try {
+
+      const orderRef =
+        doc(
+          db,
+          "orders",
+          orderId
+        );
+
+      const snap =
+        await getDoc(orderRef);
+
+      if (!snap.exists()) {
+
+        showToast(
+          "Pesanan tidak ditemukan"
+        );
+
+        return;
+
+      }
+
+      const order =
+        snap.data();
+
+      if (
+        order.sellerId !==
+        currentUser.uid
+      ) {
+
+        showToast(
+          "Akses ditolak"
+        );
+
+        return;
+
+      }
+
+      await updateDoc(
+        orderRef,
+        {
+          status,
+          updatedAt:
+            serverTimestamp()
+        }
+      );
+
+      /*
+        NOTIFIKASI BUYER
+      */
+
+      await addDoc(
+        collection(
+          db,
+          "notifications"
+        ),
+        {
+          userId:
+            order.buyerId,
+
+          type:
+            "order_update",
+
+          title:
+            "Status pesanan berubah",
+
+          message:
+            `Pesanan kamu sekarang ${status}`,
+
+          orderId,
+
+          read: false,
+
+          createdAt:
+            serverTimestamp()
+        }
+      );
+
+      /*
+        Jika COD / order sudah selesai,
+        saldo seller nantinya dapat dirilis.
+      */
+
+      showToast(
+        "Status pesanan diperbarui"
+      );
+
+      await loadSellerOrders();
+
+    } catch (error) {
+
+      console.error(error);
+
+      showToast(
+        "Gagal mengubah status"
+      );
+
+    }
+
+  };
+
+
+/* =========================================================
+   SELLER WALLET
+========================================================= */
+
+async function loadSellerWallet() {
+
+  if (!currentUser) return;
+
+  try {
+
+    const snap =
+      await getDoc(
+        doc(
+          db,
+          "wallets",
+          currentUser.uid
+        )
+      );
+
+    if (!snap.exists()) {
+
+      setText(
+        "sellerBalance",
+        formatRupiah(0)
+      );
+
+      setText(
+        "payoutAvailable",
+        formatRupiah(0)
+      );
+
+      return;
+
+    }
+
+    const wallet =
+      snap.data();
+
+    const balance =
+      Number(
+        wallet.availableBalance || 0
+      );
+
+    setText(
+      "sellerBalance",
+      formatRupiah(balance)
+    );
+
+    setText(
+      "payoutAvailable",
+      formatRupiah(balance)
+    );
+
+  } catch (error) {
+
+    console.error(
+      "loadSellerWallet:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   PAYOUT
+========================================================= */
+
+window.requestPayout = async function() {
+
+  if (!currentUser) {
+
+    showToast("Silakan login");
+
+    return;
+
+  }
+
+  const amount =
+    Number(
+      document.getElementById(
+        "payoutAmount"
+      ).value
+    );
+
+  const bank =
+    document.getElementById(
+      "payoutBank"
+    ).value.trim();
+
+  const account =
+    document.getElementById(
+      "payoutAccount"
+    ).value.trim();
+
+  const accountName =
+    document.getElementById(
+      "payoutAccountName"
+    ).value.trim();
+
+  if (amount < 10000) {
 
     showToast(
-      "Akses admin ditolak"
+      "Minimal penarikan Rp10.000"
     );
 
     return;
 
   }
 
+  if (!bank || !account || !accountName) {
+
+    showToast(
+      "Lengkapi rekening"
+    );
+
+    return;
+
+  }
 
   try {
 
-    const users =
-      await getDocs(
-        collection(
-          db,
-          "users"
-        )
+    const walletRef =
+      doc(
+        db,
+        "wallets",
+        currentUser.uid
       );
 
-
-    const productsSnap =
-      await getDocs(
-        collection(
-          db,
-          "products"
-        )
+    const payoutRef =
+      doc(
+        collection(db, "payouts")
       );
 
+    await runTransaction(
+      db,
+      async transaction => {
 
-    const ordersSnap =
+        const walletSnap =
+          await transaction.get(
+            walletRef
+          );
+
+        if (!walletSnap.exists()) {
+
+          throw new Error(
+            "Wallet tidak ditemukan"
+          );
+
+        }
+
+        const wallet =
+          walletSnap.data();
+
+        const available =
+          Number(
+            wallet.availableBalance || 0
+          );
+
+        if (amount > available) {
+
+          throw new Error(
+            "Saldo tidak mencukupi"
+          );
+
+        }
+
+        /*
+          KUNCI PENTING:
+
+          saldo langsung dikurangi saat
+          payout dibuat supaya seller tidak
+          dapat mengajukan payout dua kali.
+        */
+
+        transaction.update(
+          walletRef,
+          {
+            availableBalance:
+              available - amount,
+
+            pendingBalance:
+              Number(
+                wallet.pendingBalance || 0
+              ) + amount,
+
+            updatedAt:
+              serverTimestamp()
+          }
+        );
+
+        transaction.set(
+          payoutRef,
+          {
+            sellerId:
+              currentUser.uid,
+
+            amount,
+
+            bank,
+
+            account,
+
+            accountName,
+
+            status:
+              "pending",
+
+            createdAt:
+              serverTimestamp(),
+
+            updatedAt:
+              serverTimestamp()
+          }
+        );
+
+      }
+    );
+
+    document.getElementById(
+      "payoutAmount"
+    ).value = "";
+
+    document.getElementById(
+      "payoutBank"
+    ).value = "";
+
+    document.getElementById(
+      "payoutAccount"
+    ).value = "";
+
+    document.getElementById(
+      "payoutAccountName"
+    ).value = "";
+
+    closeSheet(
+      "payoutSheet"
+    );
+
+    showToast(
+      "✅ Permintaan payout dikirim"
+    );
+
+    await loadSellerWallet();
+
+  } catch (error) {
+
+    console.error(
+      "requestPayout:",
+      error
+    );
+
+    showToast(
+      "Payout gagal: " +
+      error.message
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   ADMIN
+========================================================= */
+
+async function loadAdminDashboard() {
+
+  if (
+    !currentUser ||
+    currentProfile?.role !== "admin"
+  ) {
+    return;
+  }
+
+  try {
+
+    const usersSnap =
       await getDocs(
-        collection(
-          db,
-          "orders"
-        )
+        collection(db, "users")
       );
-
 
     let buyers = 0;
-
     let sellers = 0;
 
-    let gmv = 0;
+    usersSnap.forEach(item => {
 
-    let commission = 0;
+      const data = item.data();
 
-
-    users.forEach(
-      item => {
-
-        const user =
-          item.data();
-
-
-        if (
-          user.role ===
-          "buyer"
-        ) buyers++;
-
-
-        if (
-          user.role ===
-          "seller"
-        ) sellers++;
-
+      if (data.role === "buyer") {
+        buyers++;
       }
-    );
 
-
-    ordersSnap.forEach(
-      item => {
-
-        const order =
-          item.data();
-
-
-        if (
-          order.status ===
-          "cancelled"
-        ) return;
-
-
-        gmv +=
-          Number(
-            order.total || 0
-          );
-
-
-        commission +=
-          Number(
-            order.platformFee ||
-            0
-          );
-
+      if (data.role === "seller") {
+        sellers++;
       }
-    );
 
+    });
 
     setText(
       "adminBuyers",
       buyers
     );
-
 
     setText(
       "adminSellers",
@@ -2970,47 +3273,80 @@ async function loadAdminDashboard() {
     );
 
 
+    const productsSnap =
+      await getDocs(
+        collection(db, "products")
+      );
+
     setText(
       "adminProducts",
       productsSnap.size
     );
 
 
+    const ordersSnap =
+      await getDocs(
+        collection(db, "orders")
+      );
+
     setText(
       "adminOrders",
       ordersSnap.size
     );
 
+    let gmv = 0;
+    let commission = 0;
+
+    ordersSnap.forEach(item => {
+
+      const order =
+        item.data();
+
+      if (
+        order.status !== "cancelled"
+      ) {
+
+        gmv += Number(
+          order.subtotal || 0
+        );
+
+        commission += Number(
+          order.platformFee || 0
+        );
+
+      }
+
+    });
 
     setText(
       "adminGMV",
-      formatRupiah(
-        gmv
-      )
+      formatRupiah(gmv)
     );
-
 
     setText(
       "adminCommission",
-      formatRupiah(
-        commission
-      )
+      formatRupiah(commission)
     );
-
 
     await loadAdminPayouts();
 
     await loadAdminOrders();
 
-
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "loadAdminDashboard:",
+      error
+    );
 
   }
 
 }
 
+
+/* =========================================================
+   ADMIN PAYOUTS
+========================================================= */
 
 async function loadAdminPayouts() {
 
@@ -3019,207 +3355,448 @@ async function loadAdminPayouts() {
       "adminPayouts"
     );
 
-
   if (!container) return;
 
+  try {
 
-  const q =
-    query(
-      collection(
-        db,
-        "payouts"
-      ),
-      where(
-        "status",
-        "==",
-        "pending"
-      )
-    );
+    const snapshot =
+      await getDocs(
+        collection(db, "payouts")
+      );
 
+    const payouts =
+      snapshot.docs
+        .map(item => ({
+          id: item.id,
+          ...item.data()
+        }))
+        .sort(
+          (a, b) =>
+            timestampValue(b.createdAt) -
+            timestampValue(a.createdAt)
+        );
 
-  const snapshot =
-    await getDocs(q);
+    if (payouts.length === 0) {
 
-
-  if (snapshot.empty) {
-
-    container.innerHTML =
-      `
-        <div class="order-card">
-          Tidak ada payout.
+      container.innerHTML = `
+        <div class="empty">
+          Belum ada payout.
         </div>
       `;
 
-    return;
+      return;
 
-  }
+    }
 
+    container.innerHTML =
+      payouts.map(payout => {
 
-  container.innerHTML =
-    snapshot.docs
-      .map(
-        item => {
+        return `
+          <div class="payout-card">
 
-          const payout =
-            item.data();
+            <strong>
+              ${formatRupiah(payout.amount)}
+            </strong>
 
+            <p>
+              Seller:
+              ${escapeHtml(
+                payout.sellerId || "-"
+              )}
+            </p>
 
-          return `
+            <p>
+              ${escapeHtml(
+                payout.bank || "-"
+              )}
+              -
+              ${escapeHtml(
+                payout.account || "-"
+              )}
+            </p>
 
-            <div class="payout-card">
-
+            <p>
+              Status:
               <strong>
-                ${formatRupiah(
-                  payout.amount
+                ${escapeHtml(
+                  payout.status || "-"
                 )}
               </strong>
+            </p>
 
-              <p>
-                ${escapeHtml(
-                  payout.accountName
-                )}
-              </p>
+            ${
+              payout.status === "pending"
+                ? `
+                  <div class="order-actions">
 
-              <p>
-                ${escapeHtml(
-                  payout.accountNumber
-                )}
-              </p>
+                    <button
+                      onclick="adminApprovePayout('${payout.id}')"
+                    >
+                      ✅ Approve
+                    </button>
 
-              <button
-                onclick="
-                  approvePayout(
-                    '${item.id}'
-                  )
-                "
-              >
-                Setujui
-              </button>
+                    <button
+                      onclick="adminRejectPayout('${payout.id}')"
+                    >
+                      ❌ Tolak
+                    </button>
 
-              <button
-                onclick="
-                  rejectPayout(
-                    '${item.id}'
-                  )
-                "
-              >
-                Tolak
-              </button>
+                  </div>
+                `
+                : ""
+            }
 
-            </div>
+          </div>
+        `;
 
-          `;
+      }).join("");
 
-        }
-      )
-      .join("");
+  } catch (error) {
+
+    console.error(
+      "loadAdminPayouts:",
+      error
+    );
+
+  }
 
 }
 
 
-window.approvePayout =
-async function approvePayout(
-  payoutId
-) {
+window.adminApprovePayout =
+  async function(payoutId) {
 
-  if (
-    !(await isAdmin())
-  ) return;
+    if (
+      currentProfile?.role !== "admin"
+    ) {
 
+      showToast("Akses ditolak");
 
-  try {
+      return;
 
-    await updateDoc(
-      doc(
-        db,
-        "payouts",
-        payoutId
-      ),
-      {
+    }
 
-        status:
-          "approved",
+    try {
 
-        approvedAt:
-          serverTimestamp(),
+      const payoutRef =
+        doc(
+          db,
+          "payouts",
+          payoutId
+        );
 
-        approvedBy:
-          currentUser.uid
+      const payoutSnap =
+        await getDoc(payoutRef);
 
-      }
-    );
+      if (!payoutSnap.exists()) {
 
+        showToast(
+          "Payout tidak ditemukan"
+        );
 
-    showToast(
-      "Payout disetujui"
-    );
-
-
-    loadAdminPayouts();
-
-
-  } catch (error) {
-
-    showToast(
-      "Gagal menyetujui"
-    );
-
-  }
-
-};
-
-
-window.rejectPayout =
-async function rejectPayout(
-  payoutId
-) {
-
-  if (
-    !(await isAdmin())
-  ) return;
-
-
-  try {
-
-    await updateDoc(
-      doc(
-        db,
-        "payouts",
-        payoutId
-      ),
-      {
-
-        status:
-          "rejected",
-
-        rejectedAt:
-          serverTimestamp(),
-
-        rejectedBy:
-          currentUser.uid
+        return;
 
       }
-    );
+
+      const payout =
+        payoutSnap.data();
+
+      if (
+        payout.status !== "pending"
+      ) {
+
+        showToast(
+          "Payout sudah diproses"
+        );
+
+        return;
+
+      }
+
+      const walletRef =
+        doc(
+          db,
+          "wallets",
+          payout.sellerId
+        );
+
+      await runTransaction(
+        db,
+        async transaction => {
+
+          const walletSnap =
+            await transaction.get(
+              walletRef
+            );
+
+          if (!walletSnap.exists()) {
+
+            throw new Error(
+              "Wallet seller tidak ditemukan"
+            );
+
+          }
+
+          const wallet =
+            walletSnap.data();
+
+          transaction.update(
+            walletRef,
+            {
+              pendingBalance:
+                Math.max(
+                  0,
+                  Number(
+                    wallet.pendingBalance || 0
+                  ) -
+                  Number(
+                    payout.amount || 0
+                  )
+                ),
+
+              updatedAt:
+                serverTimestamp()
+            }
+          );
+
+          transaction.update(
+            payoutRef,
+            {
+              status: "approved",
+
+              processedBy:
+                currentUser.uid,
+
+              processedAt:
+                serverTimestamp(),
+
+              updatedAt:
+                serverTimestamp()
+            }
+          );
+
+        }
+      );
+
+      await addDoc(
+        collection(db, "notifications"),
+        {
+          userId:
+            payout.sellerId,
+
+          type:
+            "payout_update",
+
+          title:
+            "Payout disetujui",
+
+          message:
+            `Payout ${formatRupiah(
+              payout.amount
+            )} disetujui.`,
+
+          read: false,
+
+          createdAt:
+            serverTimestamp()
+        }
+      );
+
+      showToast(
+        "Payout disetujui"
+      );
+
+      await loadAdminPayouts();
+
+    } catch (error) {
+
+      console.error(error);
+
+      showToast(
+        "Gagal approve payout: " +
+        error.message
+      );
+
+    }
+
+  };
 
 
-    showToast(
-      "Payout ditolak"
-    );
+window.adminRejectPayout =
+  async function(payoutId) {
+
+    if (
+      currentProfile?.role !== "admin"
+    ) {
+
+      showToast("Akses ditolak");
+
+      return;
+
+    }
+
+    try {
+
+      const payoutRef =
+        doc(
+          db,
+          "payouts",
+          payoutId
+        );
+
+      const payoutSnap =
+        await getDoc(payoutRef);
+
+      if (!payoutSnap.exists()) {
+
+        showToast(
+          "Payout tidak ditemukan"
+        );
+
+        return;
+
+      }
+
+      const payout =
+        payoutSnap.data();
+
+      if (
+        payout.status !== "pending"
+      ) {
+
+        showToast(
+          "Payout sudah diproses"
+        );
+
+        return;
+
+      }
+
+      const walletRef =
+        doc(
+          db,
+          "wallets",
+          payout.sellerId
+        );
+
+      await runTransaction(
+        db,
+        async transaction => {
+
+          const walletSnap =
+            await transaction.get(
+              walletRef
+            );
+
+          if (!walletSnap.exists()) {
+
+            throw new Error(
+              "Wallet seller tidak ditemukan"
+            );
+
+          }
+
+          const wallet =
+            walletSnap.data();
+
+          const available =
+            Number(
+              wallet.availableBalance || 0
+            );
+
+          const pending =
+            Number(
+              wallet.pendingBalance || 0
+            );
+
+          const amount =
+            Number(
+              payout.amount || 0
+            );
+
+          transaction.update(
+            walletRef,
+            {
+              availableBalance:
+                available + amount,
+
+              pendingBalance:
+                Math.max(
+                  0,
+                  pending - amount
+                ),
+
+              updatedAt:
+                serverTimestamp()
+            }
+          );
+
+          transaction.update(
+            payoutRef,
+            {
+              status: "rejected",
+
+              processedBy:
+                currentUser.uid,
+
+              processedAt:
+                serverTimestamp(),
+
+              updatedAt:
+                serverTimestamp()
+            }
+          );
+
+        }
+      );
+
+      await addDoc(
+        collection(db, "notifications"),
+        {
+          userId:
+            payout.sellerId,
+
+          type:
+            "payout_update",
+
+          title:
+            "Payout ditolak",
+
+          message:
+            `Payout ${formatRupiah(
+              payout.amount
+            )} ditolak dan saldo dikembalikan.`,
+
+          read: false,
+
+          createdAt:
+            serverTimestamp()
+        }
+      );
+
+      showToast(
+        "Payout ditolak"
+      );
+
+      await loadAdminPayouts();
+
+    } catch (error) {
+
+      console.error(error);
+
+      showToast(
+        "Gagal menolak payout: " +
+        error.message
+      );
+
+    }
+
+  };
 
 
-    loadAdminPayouts();
-
-
-  } catch (error) {
-
-    showToast(
-      "Gagal menolak"
-    );
-
-  }
-
-};
-
+/* =========================================================
+   ADMIN ORDERS
+========================================================= */
 
 async function loadAdminOrders() {
 
@@ -3228,77 +3805,123 @@ async function loadAdminOrders() {
       "adminOrdersList"
     );
 
-
   if (!container) return;
 
+  try {
 
-  const snapshot =
-    await getDocs(
-      collection(
-        db,
-        "orders"
-      )
-    );
+    const snapshot =
+      await getDocs(
+        collection(db, "orders")
+      );
 
+    const orders =
+      snapshot.docs
+        .map(item => ({
+          id: item.id,
+          ...item.data()
+        }))
+        .sort(
+          (a, b) =>
+            timestampValue(b.createdAt) -
+            timestampValue(a.createdAt)
+        );
 
-  container.innerHTML =
-    snapshot.docs
-      .slice(0,50)
-      .map(
-        item => {
+    if (orders.length === 0) {
 
-          const order =
-            item.data();
+      container.innerHTML = `
+        <div class="empty">
+          Belum ada pesanan.
+        </div>
+      `;
 
+      return;
 
-          return `
+    }
 
-            <div class="order-card">
+    container.innerHTML =
+      orders.map(order => {
+
+        return `
+          <div class="order-card">
+
+            <div class="order-header">
 
               <strong>
-                #${item.id.slice(0,8)}
-              </strong>
-
-              <p>
-                ${formatRupiah(
-                  order.total
+                #${escapeHtml(
+                  order.id.slice(0, 8)
                 )}
-              </p>
+              </strong>
 
               <span class="status">
                 ${escapeHtml(
-                  order.status
+                  order.status || "-"
                 )}
               </span>
 
             </div>
 
-          `;
+            <p>
+              Buyer:
+              ${escapeHtml(
+                order.buyerId || "-"
+              )}
+            </p>
 
-        }
-      )
-      .join("");
+            <p>
+              Seller:
+              ${escapeHtml(
+                order.sellerId || "-"
+              )}
+            </p>
+
+            <p>
+              GMV:
+              <strong>
+                ${formatRupiah(
+                  order.subtotal
+                )}
+              </strong>
+            </p>
+
+            <p>
+              Komisi:
+              <strong>
+                ${formatRupiah(
+                  order.platformFee
+                )}
+              </strong>
+            </p>
+
+          </div>
+        `;
+
+      }).join("");
+
+  } catch (error) {
+
+    console.error(
+      "loadAdminOrders:",
+      error
+    );
+
+  }
 
 }
 
 
-/* =========================================
-   NOTIFICATION
-========================================= */
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
 
-function listenNotifications() {
+function startNotificationListener() {
 
   if (!currentUser) return;
 
-
-  if (
-    notificationUnsubscribe
-  ) {
+  if (notificationUnsubscribe) {
 
     notificationUnsubscribe();
 
   }
-
 
   const q =
     query(
@@ -3318,21 +3941,47 @@ function listenNotifications() {
       )
     );
 
-
   notificationUnsubscribe =
     onSnapshot(
       q,
       snapshot => {
 
         if (
-          snapshot.size > 0
+          snapshot.docChanges().length === 0
         ) {
-
-          showToast(
-            `${snapshot.size} notifikasi baru`
-          );
-
+          return;
         }
+
+        snapshot.docChanges()
+          .forEach(change => {
+
+            if (
+              change.type === "added"
+            ) {
+
+              const data =
+                change.doc.data();
+
+              if (data.title) {
+
+                showToast(
+                  "🔔 " +
+                  data.title
+                );
+
+              }
+
+            }
+
+          });
+
+      },
+      error => {
+
+        console.error(
+          "notification listener:",
+          error
+        );
 
       }
     );
@@ -3340,155 +3989,83 @@ function listenNotifications() {
 }
 
 
-/* =========================================
+/* =========================================================
    AUTH STATE
-========================================= */
+========================================================= */
 
 onAuthStateChanged(
   auth,
   async user => {
 
-    currentUser =
-      user;
-
+    currentUser = user;
 
     if (!user) {
 
-      currentProfile =
-        null;
+      currentProfile = null;
 
+      if (notificationUnsubscribe) {
 
-      showPage(
-        "authPage"
-      );
+        notificationUnsubscribe();
 
+        notificationUnsubscribe = null;
+
+      }
+
+      /*
+        Tetap tampilkan marketplace.
+      */
+
+      await loadProducts();
+
+      showPage("homePage");
 
       return;
 
     }
 
+    try {
 
-    await loadProfile();
+      await loadProfile();
 
-    await loadProducts();
+      await loadProducts();
 
-    listenNotifications();
+      startNotificationListener();
 
-    updateCartBadge();
+      if (
+        currentProfile?.role === "seller"
+      ) {
 
+        await loadSellerDashboard();
 
-    if (
-      currentProfile?.role ===
-      "seller"
-    ) {
+      }
 
-      await loadSellerDashboard();
+      if (
+        currentProfile?.role === "admin"
+      ) {
+
+        await loadAdminDashboard();
+
+      }
+
+      showPage("homePage");
+
+    } catch (error) {
+
+      console.error(
+        "auth state:",
+        error
+      );
 
     }
-
-
-    if (
-      currentProfile?.role ===
-      "admin"
-    ) {
-
-      await loadAdminDashboard();
-
-    }
-
-
-    showPage(
-      "homePage"
-    );
 
   }
 );
 
 
-/* =========================================
+/* =========================================================
    INITIAL
-========================================= */
+========================================================= */
 
 renderCart();
 
 updateCartBadge();
-
-window.openEditStoreName = async function () {
-  if (!currentUser) {
-    showToast("Silakan login terlebih dahulu");
-    return;
-  }
-
-  try {
-    const storeRef = doc(db, "stores", currentUser.uid);
-    const storeSnap = await getDoc(storeRef);
-
-    if (!storeSnap.exists()) {
-      showToast("Toko belum dibuat");
-      return;
-    }
-
-    const store = storeSnap.data();
-
-    document.getElementById("editStoreName").value =
-      store.name || "";
-
-    openSheet("editStoreNameSheet");
-
-  } catch (error) {
-    console.error(error);
-    showToast("Gagal membuka pengaturan toko");
-  }
-};
-
-document
-  .getElementById("editStoreNameForm")
-  .addEventListener("submit", async function (e) {
-
-    e.preventDefault();
-
-    if (!currentUser) return;
-
-    const input = document.getElementById("editStoreName");
-    const newName = input.value.trim();
-
-    if (!newName) {
-      showToast("Nama toko wajib diisi");
-      return;
-    }
-
-    if (newName.length < 3) {
-      showToast("Nama toko minimal 3 karakter");
-      return;
-    }
-
-    try {
-      const storeRef = doc(db, "stores", currentUser.uid);
-
-      await updateDoc(storeRef, {
-        name: newName,
-        updatedAt: serverTimestamp()
-      });
-
-      // Update tampilan
-      const storeNameElement =
-        document.getElementById("storeName");
-
-      if (storeNameElement) {
-        storeNameElement.textContent = newName;
-      }
-
-      closeAllSheets();
-
-      showToast("✅ Nama toko berhasil diperbarui");
-
-      // Refresh data toko
-      if (typeof loadSellerData === "function") {
-        await loadSellerData();
-      }
-
-    } catch (error) {
-      console.error(error);
-      showToast("❌ Gagal mengubah nama toko");
-    }
-  });

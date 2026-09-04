@@ -283,7 +283,9 @@
     <h2 id="storeName">
       Toko Saya
     </h2>
-
+<button class="btn secondary" onclick="openEditStoreName()">
+  ✏️ Edit Nama Toko
+</button>
     <p id="storeAddress">
       Belum ada alamat
     </p>
@@ -1117,6 +1119,29 @@
   src="app.js"
 ></script>
 
+<div class="sheet" id="editStoreNameSheet">
+  <div class="sheet-head">
+    <h3>Edit Nama Toko</h3>
+    <button onclick="closeAllSheets()">✕</button>
+  </div>
+
+  <form id="editStoreNameForm">
+    <label>Nama Toko</label>
+
+    <input
+      type="text"
+      id="editStoreName"
+      placeholder="Masukkan nama toko"
+      maxlength="50"
+      required
+    >
+
+    <button type="submit" class="btn primary">
+      Simpan Perubahan
+    </button>
+  </form>
+</div>
+  
 </body>
 
-</html>
+  </html>

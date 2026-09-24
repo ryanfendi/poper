@@ -1,20 +1,448 @@
-<!doctype html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111827"><title>POPER</title><link rel="stylesheet" href="style.css"></head><body>
-<header><button class="brand" onclick="showPage('homePage')">POPER</button><div><button onclick="showPage('ordersPage');loadOrders()">📦</button><button onclick="openSheet('cartSheet');renderCart()">🛒 <b id="cartCount">0</b></button></div></header>
-<main id="homePage" class="page active"><section class="hero"><b>⚡ PESAN PRODUK</b><h1>Belanja lebih sederhana.</h1><p>Cari produk, pilih toko, checkout dan bayar.</p></section><div class="search"><input id="searchInput" placeholder="Cari produk..." oninput="renderProducts()"></div><div id="categories" class="chips"></div><h2>Produk</h2><div id="productGrid" class="grid"></div></main>
-<main id="ordersPage" class="page"><h1>Pesanan</h1><div id="ordersList"></div></main>
-<main id="profilePage" class="page"><div class="profile"><div class="avatar">👤</div><h2 id="profileName">Tamu</h2><p id="profileEmail">Belum login</p></div><button class="menu" onclick="openAuth()">🔐 Login / Akun</button><button class="menu" onclick="openAddressSheet()">📍 Alamat</button><button class="menu" onclick="openSheet('sellerSheet')">🏪 Seller</button></main>
-<main id="storePage" class="page"><button onclick="showPage('homePage')">← Kembali</button><img id="storeBanner" class="banner"><div class="store"><img id="storeLogo"><div><h1 id="storeName">Toko</h1><p id="storeRating"></p></div></div><p id="storeDesc"></p><button id="followBtn" class="primary full" onclick="toggleFollowStore()">❤️ Ikuti</button><h2>Produk</h2><div id="storeProducts" class="grid"></div></main>
-<main id="paymentPage" class="page"><h1>💳 Pembayaran</h1><div class="status"><div id="paymentIcon">⏳</div><h2 id="paymentTitle">Menunggu</h2><p id="paymentMessage"></p><strong id="paymentAmount">Rp0</strong></div><div id="qrBlock" class="box hidden"><h3>Scan QRIS</h3><img id="qrImage" class="qr"></div><div id="vaBlock" class="box hidden"><h3>Virtual Account</h3><p id="vaBank"></p><strong id="vaNumber"></strong></div><button id="deeplink" class="primary full hidden">Buka Pembayaran</button><button class="secondary full" onclick="showPage('ordersPage');loadOrders()">Lihat Pesanan</button></main>
-<main id="sellerPage" class="page"><h1>🏪 Seller Center</h1><div class="wallet"><small>Saldo tersedia</small><strong id="available">Rp0</strong><p>Pending: <span id="pending">Rp0</span></p><button class="primary" onclick="openPayoutSheet()">Tarik Dana</button></div><div class="box"><img id="sellerBanner" class="banner"><div class="store"><img id="sellerLogo"><div><h2 id="sellerName">Toko</h2><p id="sellerAddress"></p></div></div><button class="secondary full" onclick="openEditStore()">Edit Toko</button><button class="secondary full" onclick="openMyStore()">Lihat Toko</button></div><div class="row"><h2>Produk Saya</h2><button class="primary" onclick="openProductForm()">+ Produk</button></div><div id="sellerProducts" class="grid"></div><h2>Pesanan Masuk</h2><div id="sellerOrders"></div></main>
-<main id="adminPage" class="page"><h1>⚙️ Admin</h1><div class="stats"><div><b id="usersCount">0</b><small>Users</small></div><div><b id="ordersCount">0</b><small>Orders</small></div><div><b id="gmv">Rp0</b><small>GMV</small></div></div></main>
-<nav><button onclick="showPage('homePage')">⌂<small>Home</small></button><button onclick="showPage('ordersPage');loadOrders()">📦<small>Pesanan</small></button><button onclick="openSheet('cartSheet');renderCart()">🛒<small>Cart</small></button><button onclick="showPage('profilePage')">☻<small>Profil</small></button></nav>
-<div id="overlay" onclick="closeAllSheets()"></div>
-<section id="cartSheet" class="sheet"><div class="sheetHead"><h2>Keranjang</h2><button onclick="closeAllSheets()">×</button></div><div id="cartList"></div><div class="total"><b>Total</b><b id="cartTotal">Rp0</b></div><button class="primary full" onclick="openCheckout()">Checkout</button></section>
-<section id="checkoutSheet" class="sheet"><div class="sheetHead"><h2>Checkout</h2><button onclick="closeAllSheets()">×</button></div><textarea id="address" placeholder="Alamat lengkap"></textarea><input id="phone" placeholder="No WhatsApp"><div class="payments"><button onclick="setPayment('QRIS',this)" class="selected">📱 QRIS</button><button onclick="setPayment('BANK_TRANSFER',this)">🏦 Bank</button><button onclick="setPayment('E_WALLET',this)">💚 E-Wallet</button><button onclick="setPayment('COD',this)">💵 COD</button></div><div class="total"><b>Total</b><b id="checkoutTotal">Rp0</b></div><button class="primary full" onclick="submitOrder()">Buat Pesanan</button></section>
-<section id="authSheet" class="sheet"><div class="sheetHead"><h2>🔐 Akun</h2><button onclick="closeAllSheets()">×</button></div><input id="name" placeholder="Nama"><input id="email" type="email" placeholder="Email"><input id="password" type="password" placeholder="Password"><button class="primary full" onclick="register()">Daftar</button><button class="secondary full" onclick="login()">Login</button><button class="danger full" onclick="logout()">Logout</button></section>
-<section id="sellerSheet" class="sheet"><div class="sheetHead"><h2>Seller</h2><button onclick="closeAllSheets()">×</button></div><p>Aktifkan toko lalu kelola produk dan saldo.</p><button class="primary full" onclick="createStore()">Aktifkan Toko</button><button class="secondary full" onclick="closeAllSheets();loadSeller()">Buka Seller Center</button></section>
-<section id="storeEditSheet" class="sheet"><div class="sheetHead"><h2>Edit Toko</h2><button onclick="closeAllSheets()">×</button></div><input id="storeEditName" placeholder="Nama toko"><input id="storeEditPhone" placeholder="Telepon"><textarea id="storeEditAddress" placeholder="Alamat"></textarea><textarea id="storeEditDesc" placeholder="Deskripsi"></textarea><input id="storeEditLogo" type="file" accept="image/*"><input id="storeEditBanner" type="file" accept="image/*"><button class="primary full" onclick="saveStore()">Simpan</button></section>
-<section id="productSheet" class="sheet"><div class="sheetHead"><h2 id="productTitle">Produk</h2><button onclick="closeAllSheets()">×</button></div><input type="hidden" id="productId"><input id="productName" placeholder="Nama produk"><input id="productPrice" type="number" placeholder="Harga"><input id="productStock" type="number" placeholder="Stok"><select id="productCategory"><option>Makanan</option><option>Elektronik</option><option>Fashion</option><option>Kecantikan</option><option>Gaming</option><option>Lainnya</option></select><textarea id="productDesc" placeholder="Deskripsi"></textarea><input id="productImage" type="file" accept="image/*"><button class="primary full" onclick="saveProduct()">Simpan</button></section>
-<section id="payoutSheet" class="sheet"><div class="sheetHead"><h2>Tarik Dana</h2><button onclick="closeAllSheets()">×</button></div><input id="payoutAmount" type="number" placeholder="Jumlah minimal 10000"><input id="payoutBank" placeholder="Bank"><input id="payoutAccount" placeholder="Nomor rekening"><input id="payoutHolder" placeholder="Nama pemilik"><button class="primary full" onclick="payout()">Ajukan</button></section>
-<section id="addressSheet" class="sheet"><div class="sheetHead"><h2>Alamat</h2><button onclick="closeAllSheets()">×</button></div><textarea id="savedAddress" placeholder="Alamat"></textarea><input id="savedPhone" placeholder="WhatsApp"><button class="primary full" onclick="saveAddress()">Simpan</button></section>
-<div id="toast"></div><script type="module" src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anime Store</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#111;
+color:#fff;
+}
+
+header{
+background:linear-gradient(135deg,#ff0000,#660000);
+padding:30px 20px;
+text-align:center;
+}
+
+header h1{
+font-size:32px;
+margin-bottom:10px;
+}
+
+header p{
+font-size:14px;
+}
+
+.search-box{
+padding:15px;
+}
+
+.search-box input{
+width:100%;
+padding:12px;
+border:none;
+border-radius:10px;
+font-size:16px;
+}
+
+.products{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+gap:15px;
+padding:15px;
+}
+
+.card{
+background:#1d1d1d;
+border-radius:15px;
+overflow:hidden;
+box-shadow:0 0 10px rgba(255,0,0,.3);
+}
+
+.card img{
+width:100%;
+height:200px;
+object-fit:cover;
+}
+
+.card-content{
+padding:12px;
+}
+
+.card h3{
+font-size:15px;
+margin-bottom:8px;
+}
+
+.price{
+color:#00ff88;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+.btn{
+background:#ff0000;
+color:white;
+border:none;
+padding:10px;
+width:100%;
+border-radius:10px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.btn:hover{
+background:#cc0000;
+}
+
+.request{
+padding:20px;
+}
+
+.request button{
+background:#00aa55;
+}
+
+.modal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,.8);
+justify-content:center;
+align-items:center;
+z-index:999;
+}
+
+.modal-content{
+background:#222;
+padding:20px;
+border-radius:15px;
+width:95%;
+max-width:400px;
+}
+
+.modal-content h2{
+margin-bottom:15px;
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content textarea{
+width:100%;
+padding:10px;
+margin-bottom:10px;
+border:none;
+border-radius:8px;
+}
+
+.total{
+font-size:20px;
+font-weight:bold;
+color:#00ff88;
+margin:10px 0;
+}
+
+.close{
+background:#666;
+margin-bottom:10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🔥 ANIME STORE</h1>
+<p>Kaos Anime Premium • Gratis Ongkir</p>
+<p>Harga Rp75.000</p>
+</header>
+
+<div class="search-box">
+<input type="text" id="searchInput" placeholder="Cari Anime...">
+</div>
+
+<div class="products" id="productList">
+
+<div class="card">
+<img src="https://picsum.photos/300/300?1">
+<div class="card-content">
+<h3>Naruto Hokage</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Naruto Hokage')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?2">
+<div class="card-content">
+<h3>Naruto Akatsuki</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Naruto Akatsuki')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?3">
+<div class="card-content">
+<h3>Itachi Uchiha</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Itachi Uchiha')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?4">
+<div class="card-content">
+<h3>Luffy Gear 5</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Luffy Gear 5')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?5">
+<div class="card-content">
+<h3>Zoro Wano</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Zoro Wano')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?6">
+<div class="card-content">
+<h3>Trafalgar Law</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Trafalgar Law')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?7">
+<div class="card-content">
+<h3>Gojo Satoru</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Gojo Satoru')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?8">
+<div class="card-content">
+<h3>Sukuna</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Sukuna')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?9">
+<div class="card-content">
+<h3>Tanjiro</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Tanjiro')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?10">
+<div class="card-content">
+<h3>Nezuko</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Nezuko')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?11">
+<div class="card-content">
+<h3>Sung Jin-Woo</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Sung Jin-Woo')">Pesan</button>
+</div>
+</div>
+
+<div class="card">
+<img src="https://picsum.photos/300/300?12">
+<div class="card-content">
+<h3>Levi Ackerman</h3>
+<div class="price">Rp75.000</div>
+<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+</div>
+</div>
+
+</div>
+
+<div class="request">
+<button class="btn" onclick="requestAnime()">🎨 Request Desain Anime</button>
+</div>
+
+<div class="modal" id="orderModal">
+<div class="modal-content">
+
+<h2>Checkout</h2>
+
+<input type="text" id="customerName" placeholder="Nama">
+
+<textarea id="address" placeholder="Alamat Lengkap"></textarea>
+
+<input type="text" id="productName" readonly>
+
+<select id="size">
+<option>S</option>
+<option>M</option>
+<option>L</option>
+<option>XL</option>
+<option>XXL</option>
+</select>
+
+<select id="sleeve" onchange="calculateTotal()">
+<option value="75000">Lengan Pendek</option>
+<option value="95000">Lengan Panjang (+20.000)</option>
+</select>
+
+<input type="number" id="qty" value="1" min="1" onchange="calculateTotal()">
+
+<div class="total" id="total">
+Total: Rp75.000
+</div>
+
+<button class="btn" onclick="checkoutWhatsapp()">
+Checkout WhatsApp
+</button>
+
+<button class="btn close" onclick="closeModal()">
+Tutup
+</button>
+
+</div>
+</div>
+
+<script>
+
+const WA_NUMBER="6285601817789";
+
+function orderProduct(product){
+document.getElementById("productName").value=product;
+document.getElementById("orderModal").style.display="flex";
+calculateTotal();
+}
+
+function closeModal(){
+document.getElementById("orderModal").style.display="none";
+}
+
+function calculateTotal(){
+
+let price=parseInt(
+document.getElementById("sleeve").value
+);
+
+let qty=parseInt(
+document.getElementById("qty").value
+);
+
+let total=price*qty;
+
+document.getElementById("total").innerHTML=
+"Total: Rp"+total.toLocaleString("id-ID");
+}
+
+function checkoutWhatsapp(){
+
+let nama=
+document.getElementById("customerName").value;
+
+let alamat=
+document.getElementById("address").value;
+
+let produk=
+document.getElementById("productName").value;
+
+let ukuran=
+document.getElementById("size").value;
+
+let jenis=
+document.getElementById("sleeve").selectedOptions[0].text;
+
+let qty=
+document.getElementById("qty").value;
+
+let price=
+parseInt(document.getElementById("sleeve").value);
+
+let total=price*qty;
+
+let pesan=
+`Halo Anime Store,
+
+Saya ingin memesan:
+
+Produk: ${produk}
+Ukuran: ${ukuran}
+Jenis: ${jenis}
+Jumlah: ${qty}
+
+Nama: ${nama}
+
+Alamat:
+${alamat}
+
+Total: Rp${total.toLocaleString("id-ID")}
+
+Mohon info pembayaran.`;
+
+window.open(
+`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(pesan)}`
+);
+
+}
+
+function requestAnime(){
+
+let pesan=
+`Halo Anime Store,
+
+Saya ingin request desain anime custom.
+
+Nama Anime:
+Karakter:
+Ukuran:
+Jenis Lengan:
+Catatan Tambahan:`;
+
+window.open(
+`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(pesan)}`
+);
+
+}
+
+document.getElementById("searchInput")
+.addEventListener("keyup",function(){
+
+let value=this.value.toLowerCase();
+
+let cards=
+document.querySelectorAll(".card");
+
+cards.forEach(card=>{
+
+let text=
+card.innerText.toLowerCase();
+
+card.style.display=
+text.includes(value)
+? "block"
+: "none";
+
+});
+
+});
+
+</script>
+
+</body>
+</html>

@@ -20,88 +20,100 @@ color:#fff;
 
 header{
 background:linear-gradient(135deg,#ff0000,#660000);
-padding:30px 20px;
+padding:25px;
 text-align:center;
 }
 
 header h1{
-font-size:32px;
+font-size:28px;
+line-height:1.3;
 margin-bottom:10px;
 }
 
 header p{
-font-size:14px;
+font-size:15px;
 }
 
 .search-box{
 padding:15px;
-max-width:700px;
+max-width:600px;
 margin:auto;
 }
 
 .search-box input{
 width:100%;
-padding:14px 18px;
-border-radius:15px;
-border:2px solid #444;
+padding:15px 20px;
+border-radius:30px;
+border:none;
 font-size:16px;
-outline:none;
-background:#fff;
+box-shadow:0 0 15px rgba(255,255,255,.1);
 }
 
 .products{
-display:grid;
-grid-template-columns:1fr;
-gap:20px;
-padding:20px;
-max-width:500px;
-margin:auto;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:20px;
+    padding:20px;
+    max-width:1200px;
+    margin:auto;
 }
 
 .card{
-background:#1a1a1a;
-border-radius:20px;
-overflow:hidden;
-box-shadow:0 0 20px rgba(255,0,0,.25);
-transition:.3s;
+    background:#1a1a1a;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 4px 15px rgba(255,0,0,.2);
+    transition:.3s;
 }
 
 .card:hover{
-transform:translateY(-5px);
+    transform:translateY(-4px);
 }
 
 .card img{
-width:100%;
-aspect-ratio:1/1;
-object-fit:contain;
-background:white;
-padding:10px;
+    width:100%;
+    height:320px;
+    object-fit:contain;
+    background:#fff;
 }
 
 .card-content{
-padding:12px;
+    padding:15px;
 }
 
 .card h3{
-font-size:15px;
-margin-bottom:8px;
+    font-size:18px;
+    margin-bottom:8px;
 }
 
 .price{
-color:#00ff88;
-font-weight:bold;
-margin-bottom:10px;
+    color:#00ff88;
+    font-size:22px;
+    font-weight:bold;
+    margin-bottom:12px;
 }
 
 .btn{
-background:#ff0000;
-color:white;
-border:none;
-padding:10px;
-width:100%;
-border-radius:10px;
-cursor:pointer;
-font-weight:bold;
+    background:#ff0000;
+    color:#fff;
+    border:none;
+    padding:12px;
+    width:100%;
+    border-radius:12px;
+    font-weight:bold;
+}
+
+@media(max-width:768px){
+
+.products{
+    grid-template-columns:1fr;
+    max-width:550px;
+}
+
+.card img{
+    height:280px;
+}
+
 }
 
 .btn:hover{
@@ -178,256 +190,295 @@ margin-bottom:10px;
 </div>
 
 <div class="products" id="productList">
-
-<div class="card">
-<img src="images/kaos_nami.jpg">
-<div class="card-content">
-<h3>Nami</h3>
-<div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Naruto Hokage')">Pesan</button>
-</div>
-</div>
+  
 
 <div class="card">
 <img src="images/kaos_sanji.jpg">
+  alt="Sanji">
 <div class="card-content">
 <h3>Sanji</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Naruto Akatsuki')">Pesan</button>
+<button class="btn" onclick="orderProduct('Sanji')">Pesan</button>
 </div>
 </div>
 
 <div class="card">
 <img src="images/kaos_zoro.jpg">
+  alt="Zoro">
 <div class="card-content">
 <h3>Zoro</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Itachi Uchiha')">Pesan</button>
+<button class="btn" onclick="orderProduct('Zoro')">Pesan</button>
 </div>
 </div>
 
 <div class="card">
 <img src="images/kaos_nico.jpg">
+  alt="Nico Robin">
 <div class="card-content">
 <h3>Nico Robin</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Luffy Gear 5')">Pesan</button>
+<button class="btn" onclick="orderProduct('Nico Robin')">Pesan</button>
 </div>
 </div>
 
 <div class="card">
 <img src="images/kaos_usopp.jpg">
+  alt="Usopp">
 <div class="card-content">
 <h3>Usopp</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Zoro Wano')">Pesan</button>
+<button class="btn" onclick="orderProduct('Usopp')">Pesan</button>
 </div>
 </div>
 
 <div class="card">
 <img src="images/kaos_luffy.jpg">
+  alt="Luffy">
 <div class="card-content">
 <h3>Luffy</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Trafalgar Law')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy')">Pesan</button>
 </div>
 </div>
 
+<div class="card"> 
 <img src="images/kaos_chopper.jpg">
+  alt="Chopper">
 <div class="card-content">
 <h3>Chopper</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Chopper')">Pesan</button>
 </div>
 </div>
 
+<div class="card"> 
 <img src="images/franky.jpg">
+  alt="Franky">
 <div class="card-content">
 <h3>Franky</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Franky')">Pesan</button>
 </div>
 </div>
 
+<div class="card">  
 <img src="images/brook.jpg">
+  alt="Brook">
 <div class="card-content">
 <h3>Brook</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Brook')">Pesan</button>
 </div>
 </div>
 
+<div class="card">  
 <img src="images/jinbe.jpg">
+  alt="Jinbe">
 <div class="card-content">
 <h3>Jinbe</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Jinbe')">Pesan</button>
 </div>
 </div>
 
+<div class="card">  
 <img src="images/boahancock.jpg">
+  alt="Boa Hancock">
 <div class="card-content">
 <h3>Boa Hancock</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Boa Hancock')">Pesan</button>
 </div>
 </div>
 
+<div class="card">  
 <img src="images/ace.jpg">
+  alt="Ace">
 <div class="card-content">
 <h3>Ace</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Boa Hancock')">Pesan</button>
 </div>
 </div>
 
+<div class="card">
 <img src="images/garp.jpg">
+  alt="Garp">
 <div class="card-content">
 <h3>Garp</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Garp')">Pesan</button>
 </div>
 </div>
 
+<div class="card">  
 <img src="images/goldroger.jpg">
+  alt="Gold D. Roger">
 <div class="card-content">
 <h3>Gol D. Roger</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Gold D. Roger')">Pesan</button>
 </div>
 </div>
   
 <div class="card">
 <img src="images/goldroger2.jpg">
+  alt="Gold D. Roger 2">
 <div class="card-content">
 <h3>Gol D. Roger 2</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Gojo Satoru')">Pesan</button>
+<button class="btn" onclick="orderProduct('Gold D. Roger 2')">Pesan</button>
 </div>
 </div>
 
+<div class="card">  
 <img src="images/gunko.jpg">
+  alt="Gunko">
 <div class="card-content">
 <h3>Gunko</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Gunko')">Pesan</button>
 </div>
 </div>
 
+<div class="card">
 <img src="images/gunko2.jpg">
+  alt="Gunko 2">
 <div class="card-content">
 <h3>Gunko 2</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Gunko 2')">Pesan</button>
 </div>
 </div>
 
+<div class="card">  
 <img src="images/gunko3.jpg">
+  alt="Gunko 3">
 <div class="card-content">
 <h3>Gunko 3</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Gunko 3')">Pesan</button>
 </div>
 </div>
 
+<div class="card"> 
 <img src="images/kaos_luffy7.jpg">
+   alt="Luffy 7">
 <div class="card-content">
 <h3>Luffy 7</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 7')">Pesan</button>
 </div>
 </div>
   
-<div class="card">
+<div class="card"> 
 <img src="images/kaos_luffy3.jpg">
+   alt="Luffy 3">
 <div class="card-content">
 <h3>Luffy 3</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Sukuna')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 3')">Pesan</button>
 </div>
 </div>
 
-<div class="card">
+<div class="card"> 
 <img src="images/kaos_luffy4.jpg">
+   alt="Luffy 4">
 <div class="card-content">
-<h3>Luffy 4</h3></h3>
+<h3>Luffy 4</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Tanjiro')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 4')">Pesan</button>
 </div>
 </div>
 
-<div class="card">
+<div class="card"> 
 <img src="images/kaos_luffy5.jpg">
+   alt="Luffy 5">
 <div class="card-content">
 <h3>Luffy 5</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Nezuko')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 5')">Pesan</button>
 </div>
 </div>
 
-<div class="card">
+<div class="card"> 
 <img src="images/kaos_luffy6.jpg">
+   alt="Luffy 6">
 <div class="card-content">
 <h3>Luffy 6</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Sung Jin-Woo')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 6')">Pesan</button>
 </div>
 </div>
 
-<div class="card">
+<div class="card"> 
 <img src="images/kaos_luffy7.jpg">
+   alt="Luffy 7">
 <div class="card-content">
 <h3>Luffy 7</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 7')">Pesan</button>
 </div>
 </div>
 
+<div class="card"> 
 <img src="images/kaos_luffy8.jpg">
+   alt="Luffy 8">
 <div class="card-content">
 <h3>Luffy 8</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 8')">Pesan</button>
 </div>
 </div>
 
+<div class="card"> 
 <img src="images/kaos_luffy9.jpg">
+   alt="Luffy 9">
 <div class="card-content">
 <h3>Luffy 9</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 9')">Pesan</button>
 </div>
 </div>
 
+<div class="card"> 
 <img src="images/kaos_luffy10.jpg">
+   alt="Luffy 10">
 <div class="card-content">
 <h3>Luffy 10</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 10')">Pesan</button>
 </div>
 </div>
 
+<div class="card"> 
 <img src="images/kaos_luffy11.jpg">
+   alt="Luffy 11">
 <div class="card-content">
 <h3>Luffy 11</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 11')">Pesan</button>
 </div>
 </div>
 
+<div class="card"> 
 <img src="images/kaos_luffy12.jpg">
+   alt="Luffy 12">
 <div class="card-content">
 <h3>Luffy 12</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 12')">Pesan</button>
 </div>
 </div>
 
+<div class="card"> 
 <img src="images/kaos_luffy13.jpg">
+   alt="Luffy 13">
 <div class="card-content">
 <h3>Luffy 13</h3>
 <div class="price">Rp75.000</div>
-<button class="btn" onclick="orderProduct('Levi Ackerman')">Pesan</button>
+<button class="btn" onclick="orderProduct('Luffy 13')">Pesan</button>
 </div>
 </div>
   

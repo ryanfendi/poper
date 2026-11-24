@@ -1,11 +1,29 @@
 
-/* =================================
-   POPER APP — CORE V1
-================================= */
+import {
+  auth,
+  db,
+  onAuthStateChanged,
+  signInWithPhoneNumber,
+  RecaptchaVerifier,
+  signOut,
+  doc,
+  getDoc,
+  setDoc
+} from "./firebase.js";
+
+/* =========================
+   POPER AUTH & APP
+========================= */
+
+const $ = (id) => document.getElementById(id);
+
+let confirmationResult = null;
+let recaptchaVerifier = null;
+let currentUser = null;
 
 const STORAGE_KEY = "poper_v1";
 
-let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+let data = {
   profile: {
     name: "",
     username: "",
@@ -17,10 +35,239 @@ let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   notes: []
 };
 
-/* SAVE DATA */
+/* LOCAL CACHE */
 
-function saveData() {
+function loadLocalData() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (saved) data = saved;
+  } catch (e) {
+    console.warn("Cache lokal tidak terbaca.");
+  }
+}
+
+function saveLocalData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+/* SCREEN */
+
+function showLogin() {
+  $("authScreen").hidden = false;
+  $("mainApp").hidden = true;
+}
+
+function showApp() {
+  $("authScreen").hidden = true;
+  $("mainApp").hidden = false;
+}
+
+/* MESSAGE */
+
+function message(text, error = true) {
+  const el = $("authMessage");
+  el.textContent = text;
+  el.style.color = error ? "#ff8797" : "#64d9ff";
+}
+
+/* PHONE FORMAT */
+
+function normalizePhone(raw) {
+  let phone = raw.replace(/[^\d]/g, "");
+
+  if (phone.startsWith("0")) {
+    phone = "62" + phone.slice(1);
+  } else if (phone.startsWith("8")) {
+    phone = "62" + phone;
+  } else if (!phone.startsWith("62")) {
+    return null;
+  }
+
+  if (phone.length < 10 || phone.length > 15) {
+    return null;
+  }
+
+  return "+" + phone;
+}
+
+/* RECAPTCHA */
+
+function setupRecaptcha() {
+  if (recaptchaVerifier) return;
+
+  recaptchaVerifier = new RecaptchaVerifier(
+    auth,
+    "recaptcha-container",
+    {
+      size: "normal",
+          callback: () => {
+        console.log("reCAPTCHA berhasil");
+      },
+      "expired-callback": () => {
+        message("Verifikasi kedaluwarsa. Silakan ulangi.");
+      }
+    }
+  );
+
+  recaptchaVerifier.render();
+}
+
+/* SEND OTP */
+
+async function sendOTP() {
+  const phone = normalizePhone($("phoneNumber").value);
+
+  if (!phone) {
+    message("Nomor HP tidak valid. Contoh: 81234567890");
+    return;
+  }
+
+  $("sendOtpBtn").disabled = true;
+  $("sendOtpBtn").textContent = "Mengirim OTP...";
+  message("Menyiapkan verifikasi...", false);
+
+  try {
+    setupRecaptcha();
+
+    confirmationResult = await signInWithPhoneNumber(
+      auth,
+      phone,
+      recaptchaVerifier
+    );
+
+    $("phoneStep").hidden = true;
+    $("otpStep").hidden = false;
+
+    message("Kode OTP telah dikirim. Periksa SMS.", false);
+  } catch (error) {
+    console.error(error);
+    message(getErrorMessage(error));
+
+    if (recaptchaVerifier) {
+      try {
+        recaptchaVerifier.clear();
+      } catch {}
+      recaptchaVerifier = null;
+    }
+  } finally {
+    $("sendOtpBtn").disabled = false;
+    $("sendOtpBtn").textContent = "Kirim kode OTP";
+  }
+}
+
+/* VERIFY OTP */
+
+async function verifyOTP() {
+  const code = $("otpCode").value.trim();
+
+  if (!/^\d{6}$/.test(code)) {
+    message("Masukkan OTP 6 digit.");
+    return;
+  }
+
+  $("verifyOtpBtn").disabled = true;
+  $("verifyOtpBtn").textContent = "Memverifikasi...";
+
+  try {
+    if (!confirmationResult) {
+      message("Silakan kirim OTP terlebih dahulu.");
+      return;
+    }
+
+    await confirmationResult.confirm(code);
+    message("Verifikasi berhasil.", false);
+  } catch (error) {
+    console.error(error);
+    message("OTP salah atau sudah kedaluwarsa.");
+  } finally {
+    $("verifyOtpBtn").disabled = false;
+    $("verifyOtpBtn").textContent = "Verifikasi & Masuk";
+  }
+}
+
+/* ERROR MESSAGES */
+
+function getErrorMessage(error) {
+  const code = error?.code || "";
+
+  if (code.includes("invalid-phone-number"))
+    return "Format nomor HP tidak valid.";
+
+  if (code.includes("too-many-requests"))
+    return "Terlalu banyak percobaan. Coba lagi nanti.";
+
+  if (code.includes("captcha"))
+    return "Verifikasi keamanan gagal. Muat ulang halaman.";
+
+  if (code.includes("quota-exceeded"))
+    return "Kuota SMS Firebase tercapai.";
+
+  if (code.includes("operation-not-allowed"))
+    return "Login Phone belum diaktifkan di Firebase.";
+
+  return error?.message || "Gagal mengirim OTP.";
+}
+
+/* FIRESTORE USER */
+
+async function loadUserData(user) {
+  const userRef = doc(db, "users", user.uid);
+  const snapshot = await getDoc(userRef);
+
+  if (snapshot.exists()) {
+    const remote = snapshot.data();
+
+    data.profile = {
+      ...data.profile,
+      ...remote.profile,
+      phone: user.phoneNumber || ""
+    };
+
+    data.links = remote.links || [];
+    data.pages = remote.pages || [];
+    data.notes = remote.notes || [];
+  } else {
+    data.profile.phone = user.phoneNumber || "";
+
+    await setDoc(userRef, {
+      uid: user.uid,
+      phone: user.phoneNumber || "",
+      profile: data.profile,
+      links: [],
+      pages: [],
+      notes: [],
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  saveLocalData();
+  initApp();
+}
+
+/* SAVE TO CLOUD */
+
+async function saveCloud() {
+  if (!currentUser) return;
+
+  try {
+    await setDoc(doc(db, "users", currentUser.uid), {
+      uid: currentUser.uid,
+      phone: currentUser.phoneNumber || "",
+      profile: data.profile,
+      links: data.links,
+      pages: data.pages,
+      notes: data.notes,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (error) {
+    console.error("Cloud save error:", error);
+    alert("Gagal menyimpan ke cloud. Periksa koneksi internet.");
+  }
+}
+
+async function saveAll() {
+  saveLocalData();
+  await saveCloud();
 }
 
 /* NAVIGATION */
@@ -30,7 +277,7 @@ function navigate(pageId) {
     page.classList.remove("active");
   });
 
-  const target = document.getElementById(pageId);
+  const target = $(pageId);
   if (target) target.classList.add("active");
 
   document.querySelectorAll(".nav-item").forEach(btn => {
@@ -48,62 +295,48 @@ function navigate(pageId) {
 
 /* PROFILE */
 
-function saveProfile() {
-  data.profile.name =
-    document.getElementById("nameInput").value.trim();
+async function saveProfile() {
+  data.profile.name = $("nameInput").value.trim();
+  data.profile.username = $("usernameInput").value.trim().replace(/^@/, "");
+  data.profile.bio = $("bioInput").value.trim();
+  data.profile.phone = currentUser?.phoneNumber || "";
 
-  data.profile.username =
-    document.getElementById("usernameInput").value
-      .trim()
-      .replace(/^@/, "");
-
-  data.profile.bio =
-    document.getElementById("bioInput").value.trim();
-
-  saveData();
+  await saveAll();
   renderProfile();
 
   alert("Profil berhasil disimpan!");
 }
 
 function renderProfile() {
-  const profile = data.profile;
+  $("nameInput").value = data.profile.name || "";
+  $("usernameInput").value = data.profile.username || "";
+  $("bioInput").value = data.profile.bio || "";
 
-  document.getElementById("nameInput").value = profile.name || "";
-  document.getElementById("usernameInput").value = profile.username || "";
-  document.getElementById("bioInput").value = profile.bio || "";
+  $("displayNumber").textContent =
+    currentUser?.phoneNumber ||
+    data.profile.username ||
+    data.profile.name ||
+    "POPER ID";
 
-  const display = document.getElementById("displayNumber");
-
-  if (profile.phone) {
-    display.textContent = profile.phone;
-  } else if (profile.username) {
-    display.textContent = "@" + profile.username;
-  } else if (profile.name) {
-    display.textContent = profile.name;
-  } else {
-    display.textContent = "Belum terdaftar";
-  }
+  $("accountPhone").textContent =
+    currentUser?.phoneNumber || "Nomor belum tersedia";
 }
 
-/* BIOLINK */
+/* LINKS */
 
-function addLink() {
-  const title = document.getElementById("linkTitle").value.trim();
-  let url = document.getElementById("linkUrl").value.trim();
+async function addLink() {
+  const title = $("linkTitle").value.trim();
+  let url = $("linkUrl").value.trim();
 
   if (!title || !url) {
-    alert("Isi nama link dan URL terlebih dahulu.");
+    alert("Isi nama link dan URL.");
     return;
   }
 
-  if (!/^https?:\/\//i.test(url)) {
-    url = "https://" + url;
-  }
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
 
   try {
     const parsed = new URL(url);
-
     if (!["http:", "https:"].includes(parsed.protocol)) {
       alert("URL tidak valid.");
       return;
@@ -113,28 +346,23 @@ function addLink() {
     return;
   }
 
-  data.links.push({
-    id: Date.now(),
-    title,
-    url
-  });
+  data.links.push({ id: Date.now(), title, url });
 
-  saveData();
+  $("linkTitle").value = "";
+  $("linkUrl").value = "";
 
-  document.getElementById("linkTitle").value = "";
-  document.getElementById("linkUrl").value = "";
-
+  await saveAll();
   renderLinks();
 }
 
-function deleteLink(id) {
-  data.links = data.links.filter(link => link.id !== id);
-  saveData();
+async function deleteLink(id) {
+  data.links = data.links.filter(x => x.id !== id);
+  await saveAll();
   renderLinks();
 }
 
 function renderLinks() {
-  const container = document.getElementById("linksList");
+  const container = $("linksList");
   container.innerHTML = "";
 
   data.links.forEach(link => {
@@ -156,44 +384,38 @@ function renderLinks() {
     remove.onclick = () => deleteLink(link.id);
 
     item.append(title, anchor, remove);
-    container.appendChild(item);
+    container.append(item);
   });
 }
 
 /* PAGES */
 
-function addPage() {
-  const title = document.getElementById("pageTitle").value.trim();
-  const description =
-    document.getElementById("pageDescription").value.trim();
+async function addPage() {
+  const title = $("pageTitle").value.trim();
+  const description = $("pageDescription").value.trim();
 
   if (!title || !description) {
     alert("Isi judul dan konten halaman.");
     return;
   }
 
-  data.pages.push({
-    id: Date.now(),
-    title,
-    description
-  });
+  data.pages.push({ id: Date.now(), title, description });
 
-  saveData();
+  $("pageTitle").value = "";
+  $("pageDescription").value = "";
 
-  document.getElementById("pageTitle").value = "";
-  document.getElementById("pageDescription").value = "";
-
+  await saveAll();
   renderPages();
 }
 
-function deletePage(id) {
-  data.pages = data.pages.filter(page => page.id !== id);
-  saveData();
+async function deletePage(id) {
+  data.pages = data.pages.filter(x => x.id !== id);
+  await saveAll();
   renderPages();
 }
 
 function renderPages() {
-  const container = document.getElementById("pagesList");
+  const container = $("pagesList");
   container.innerHTML = "";
 
   data.pages.forEach(page => {
@@ -212,18 +434,18 @@ function renderPages() {
     remove.onclick = () => deletePage(page.id);
 
     item.append(title, description, remove);
-    container.appendChild(item);
+    container.append(item);
   });
 }
 
 /* NOTES */
 
-function addNote() {
-  const title = document.getElementById("noteTitle").value.trim();
-  const content = document.getElementById("noteContent").value.trim();
+async function addNote() {
+  const title = $("noteTitle").value.trim();
+  const content = $("noteContent").value.trim();
 
   if (!title || !content) {
-    alert("Isi judul dan catatan terlebih dahulu.");
+    alert("Isi judul dan catatan.");
     return;
   }
 
@@ -234,22 +456,21 @@ function addNote() {
     date: new Date().toLocaleDateString("id-ID")
   });
 
-  saveData();
+  $("noteTitle").value = "";
+  $("noteContent").value = "";
 
-  document.getElementById("noteTitle").value = "";
-  document.getElementById("noteContent").value = "";
-
+  await saveAll();
   renderNotes();
 }
 
-function deleteNote(id) {
-  data.notes = data.notes.filter(note => note.id !== id);
-  saveData();
+async function deleteNote(id) {
+  data.notes = data.notes.filter(x => x.id !== id);
+  await saveAll();
   renderNotes();
 }
 
 function renderNotes() {
-  const container = document.getElementById("notesList");
+  const container = $("notesList");
   container.innerHTML = "";
 
   data.notes.forEach(note => {
@@ -260,7 +481,7 @@ function renderNotes() {
     title.textContent = note.title;
 
     const date = document.createElement("p");
-    date.textContent = note.date;
+    date.textContent = note.date || "";
 
     const content = document.createElement("p");
     content.textContent = note.content;
@@ -271,17 +492,22 @@ function renderNotes() {
     remove.onclick = () => deleteNote(note.id);
 
     item.append(title, date, content, remove);
-    container.appendChild(item);
+    container.append(item);
   });
 }
 
-/* PROFILE BUTTON */
+/* LOGOUT */
 
-document.getElementById("profileBtn").onclick = () => {
-  navigate("profile");
-};
+async function logout() {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    alert("Gagal logout.");
+    console.error(error);
+  }
+}
 
-/* INITIALIZATION */
+/* INIT */
 
 function initApp() {
   renderProfile();
@@ -290,4 +516,51 @@ function initApp() {
   renderNotes();
 }
 
-initApp();
+/* BUTTON EVENTS */
+
+$("sendOtpBtn").addEventListener("click", sendOTP);
+$("verifyOtpBtn").addEventListener("click", verifyOTP);
+
+$("backPhoneBtn").addEventListener("click", () => {
+  $("otpStep").hidden = true;
+  $("phoneStep").hidden = false;
+  $("otpCode").value = "";
+  message("");
+});
+
+$("logoutBtn").addEventListener("click", logout);
+
+$("profileBtn").addEventListener("click", () => navigate("profile"));
+
+/* FIREBASE AUTH STATE */
+
+loadLocalData();
+showLogin();
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    showApp();
+
+    try {
+      await loadUserData(user);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal memuat data akun. Periksa koneksi.");
+    }
+  } else {
+    currentUser = null;
+    showLogin();
+  }
+});
+
+/* GLOBAL FUNCTIONS FOR HTML BUTTONS */
+
+window.navigate = navigate;
+window.saveProfile = saveProfile;
+window.addLink = addLink;
+window.deleteLink = deleteLink;
+window.addPage = addPage;
+window.deletePage = deletePage;
+window.addNote = addNote;
+window.deleteNote = deleteNote;

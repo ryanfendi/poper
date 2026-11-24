@@ -4,19 +4,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090d18">
   <title>POPER — Digital Identity</title>
-  <meta name="theme-color" content="#0b1020">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div id="app">
+<div id="app">
+
+  <!-- LOGIN -->
+  <section id="authScreen" class="auth-screen">
+    <div class="auth-brand">
+      <div class="brand-icon">P</div>
+      <h1>POPER</h1>
+      <p>Scan · Connect · Create</p>
+    </div>
+
+    <div class="auth-card">
+      <div id="phoneStep">
+        <span class="tag">YOUR DIGITAL IDENTITY</span>
+        <h2>One number.<br>Infinite possibilities.</h2>
+        <p class="auth-desc">
+          Masuk menggunakan nomor HP untuk membuat identitas digitalmu.
+        </p>
+
+        <label class="auth-label">Nomor HP</label>
+        <div class="phone-input">
+          <span class="country-code">🇮🇩 +62</span>
+          <input
+            id="phoneNumber"
+            type="tel"
+            inputmode="tel"
+            autocomplete="tel-national"
+            placeholder="81234567890"
+          >
+        </div>
+
+        <div id="recaptcha-container"></div>
+
+        <button id="sendOtpBtn" class="primary-btn">
+          Kirim kode OTP
+        </button>
+
+        <p class="auth-terms">
+          Dengan melanjutkan, kamu menyetujui penggunaan POPER.
+          Nomor HP digunakan sebagai identitas akun.
+        </p>
+      </div>
+
+      <div id="otpStep" hidden>
+        <div class="otp-icon">✉️</div>
+        <h2>Verifikasi nomor</h2>
+        <p class="auth-desc">
+          Masukkan 6 digit kode verifikasi yang dikirim melalui SMS.
+        </p>
+
+        <label class="auth-label">Kode OTP</label>
+        <input
+          id="otpCode"
+          class="otp-input"
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="6"
+          placeholder="000000"
+        >
+
+        <button id="verifyOtpBtn" class="primary-btn">
+          Verifikasi & Masuk
+        </button>
+
+        <button id="backPhoneBtn" class="secondary-btn">
+          ← Ganti nomor HP
+        </button>
+      </div>
+
+      <p id="authMessage" class="auth-message"></p>
+    </div>
+
+    <div class="auth-footer">
+      <span>SECURE DIGITAL IDENTITY</span>
+      <span>POPER © 2026</span>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <div id="mainApp" hidden>
+
     <header class="topbar">
       <div class="brand">
         <div class="brand-icon">P</div>
         <div>
           <h1>POPER</h1>
-          <small>Scan • Connect • Create</small>
+          <small>Scan · Connect · Create</small>
         </div>
       </div>
       <button class="avatar" id="profileBtn">👤</button>
@@ -24,13 +104,13 @@
 
     <main id="mainContent">
 
-      <section class="home-page page active" id="home">
+      <section class="page home-page active" id="home">
         <div class="hero">
           <span class="tag">YOUR DIGITAL IDENTITY</span>
           <h2>One Number.<br>Infinite Possibilities.</h2>
           <p>Nomor HP menjadi pintu menuju identitas digital, link, halaman, dan catatanmu.</p>
           <button class="primary-btn" onclick="navigate('scanner')">
-            <span>⌕</span> Scan Nomor HP
+            ⌕ Scan Nomor HP
           </button>
         </div>
 
@@ -39,7 +119,7 @@
             <span>POPER DIGITAL ID</span>
             <span>✦ VERIFIED ID</span>
           </div>
-          <div class="id-number" id="displayNumber">Belum terdaftar</div>
+          <div class="id-number" id="displayNumber">-</div>
           <div class="id-bottom">
             <span>SCAN TO DISCOVER</span>
             <span>POPER ID</span>
@@ -65,6 +145,12 @@
             <b>My Notes</b><small>Catatan digital</small>
           </button>
         </div>
+
+        <div class="panel account-panel">
+          <h3>Account</h3>
+          <p id="accountPhone"></p>
+          <button class="secondary-btn" id="logoutBtn">Keluar</button>
+        </div>
       </section>
 
       <section class="page" id="scanner">
@@ -75,8 +161,8 @@
         <div class="scanner-box">
           <div class="scan-symbol">⌕</div>
           <h3>Phone Number Scanner</h3>
-          <p>Fitur kamera OCR akan kita aktifkan pada tahap selanjutnya.</p>
-          <button class="primary-btn" onclick="alert('Scanner akan diaktifkan pada tahap berikutnya')">
+          <p>Scanner kamera OCR akan segera diaktifkan.</p>
+          <button class="primary-btn" onclick="alert('Scanner akan diaktifkan pada tahap selanjutnya')">
             Aktifkan Scanner
           </button>
         </div>
@@ -162,8 +248,10 @@
         <span>☰</span><small>Notes</small>
       </button>
     </nav>
-  </div>
 
-  <script src="app.js"></script>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>

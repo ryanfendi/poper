@@ -1,33 +1,169 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#101827"><title>POPER — Digital Identity</title>
-<style>
-:root{--bg:#0b1220;--panel:#141f31;--panel2:#1b2940;--text:#eef4ff;--muted:#94a6c4;--blue:#4d8dff;--cyan:#55d8e9;--line:#263650;--radius:20px}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% -10%,#1b3762 0,transparent 38%),var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}.app{max-width:720px;margin:auto;padding:18px 16px 100px}.top{display:flex;align-items:center;justify-content:space-between;margin:4px 0 22px}.brand{display:flex;gap:10px;align-items:center;font-size:22px;font-weight:900;letter-spacing:1px}.logo{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:grid;place-items:center;color:#061323;font-weight:1000}.avatar{border:1px solid var(--line);background:var(--panel2);border-radius:50%;width:38px;height:38px;display:grid;place-items:center}.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:1.5px}.h1{font-size:27px;line-height:1.15;margin:8px 0}.sub{color:var(--muted);line-height:1.5}.card{background:linear-gradient(145deg,#18263b,#121d2e);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin:14px 0}.hero{background:linear-gradient(135deg,#214c91,#19325b 58%,#153b4d);border:1px solid #3767a4;position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;background:#61d8ee12;right:-55px;top:-65px}.hero h2{margin:7px 0;font-size:23px}.hero p{color:#c8d9f5;max-width:330px}.pill{display:inline-flex;padding:6px 10px;background:#0c1930aa;border:1px solid #4a78ac;border-radius:999px;color:#d8f7ff;font-size:12px}.btn{border:0;border-radius:13px;padding:12px 15px;background:var(--blue);color:#fff;font-weight:750}.btn.secondary{background:var(--panel2);border:1px solid var(--line)}.btn.ghost{background:transparent;border:1px solid #476991;color:#eaf3ff}.btn.full{width:100%}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}.sectionhead{display:flex;justify-content:space-between;align-items:center;margin:22px 2px 8px}.sectionhead h3{margin:0;font-size:17px}.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}.tile{border:1px solid var(--line);border-radius:17px;background:var(--panel);padding:15px;min-height:118px;text-align:left;color:var(--text)}.tile .ico{font-size:24px;margin-bottom:9px}.tile b{display:block;margin-bottom:4px}.tile small{color:var(--muted);line-height:1.35}.field{width:100%;background:#0d1728;color:var(--text);border:1px solid #2c3d58;border-radius:12px;padding:12px;outline:none;margin:7px 0}.field:focus{border-color:var(--blue)}textarea.field{min-height:100px;resize:vertical}.profilecard{text-align:center}.profilepic{width:76px;height:76px;border-radius:24px;background:linear-gradient(140deg,#5798ff,#5ce0e8);display:grid;place-items:center;font-size:30px;margin:3px auto 12px;color:#08162b;font-weight:900}.linkitem,.noteitem{padding:12px;border:1px solid var(--line);border-radius:13px;background:#101a2a;margin:9px 0;overflow-wrap:anywhere}.linkitem a{color:#8fc6ff;text-decoration:none}.linkitem .smallbtn,.noteitem .smallbtn{margin-left:5px}.smallbtn{border:1px solid var(--line);background:#20304a;color:#dbeaff;border-radius:9px;padding:7px 9px;font-size:12px}.hidden{display:none!important}.page{display:none}.page.active{display:block}.bottomnav{position:fixed;bottom:0;left:0;right:0;background:#0d1524f2;backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:9px max(10px,calc((100vw - 700px)/2)) calc(9px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;z-index:10}.navbtn{background:none;border:0;color:#8395b2;display:grid;gap:3px;place-items:center;font-size:11px;min-width:53px;padding:5px}.navbtn span{font-size:19px}.navbtn.active{color:#72c9ff}.scanbox{border:1px dashed #4b6a92;border-radius:18px;padding:15px;text-align:center}.video{width:100%;border-radius:14px;background:#05080d;max-height:350px}.idnumber{font-size:26px;font-weight:900;letter-spacing:1px;text-align:center;padding:20px 8px;overflow-wrap:anywhere}.muted{color:var(--muted)}.row{display:flex;gap:9px}.row>*{flex:1;min-width:0}.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#d8f7e7;color:#06351d;padding:11px 16px;border-radius:12px;z-index:50;box-shadow:0 6px 25px #0005}.footer{text-align:center;color:#6f82a0;font-size:12px;margin:30px 0 5px}
-</style></head><body>
-<div class="app">
-<header class="top"><div class="brand"><div class="logo">P</div>POPER</div><button class="avatar" onclick="go('profile')" title="Profil">👤</button></header>
-<section id="home" class="page active">
-<div class="eyebrow">YOUR DIGITAL IDENTITY</div><h1 class="h1">Satu nomor.<br>Satu dunia digital.</h1><p class="sub">Buat identitas, bagikan link, bangun halaman, dan simpan catatanmu dalam satu tempat.</p>
-<div class="card hero"><span class="pill">✦ POPER ID</span><h2>Mulai buat ruang digitalmu</h2><p>Siapkan profil agar orang bisa mengenal dan menemukan halamanmu.</p><button class="btn" onclick="go('profile')">Buat profil →</button></div>
-<div class="sectionhead"><h3>Ruang POPER</h3></div><div class="tiles">
-<button class="tile" onclick="go('scan')"><div class="ico">📷</div><b>Scan Number</b><small>Kenali nomor HP lewat kamera</small></button>
-<button class="tile" onclick="go('myid')"><div class="ico">🪪</div><b>My ID</b><small>Tampilkan nomor untuk dipindai</small></button>
-<button class="tile" onclick="go('biolink')"><div class="ico">🔗</div><b>BioLink</b><small>Atur link dan kontak</small></button>
-<button class="tile" onclick="go('pages')"><div class="ico">🌐</div><b>My Pages</b><small>Buat halaman mini milikmu</small></button>
-<button class="tile" onclick="go('notes')"><div class="ico">📝</div><b>Notes</b><small>Catatan pribadi di perangkat</small></button>
-<button class="tile" onclick="go('profile')"><div class="ico">⚙️</div><b>Profile</b><small>Atur nama dan nomor</small></button></div>
-<div class="footer">POPER • Prototype — data tersimpan di browser ini</div></section>
-<section id="profile" class="page"><div class="eyebrow">ACCOUNT</div><h1 class="h1">Profil Saya</h1><p class="sub">Lengkapi identitas dasar untuk halaman POPER.</p><div class="card"><label>Nama</label><input class="field" id="name" placeholder="Nama kamu"><label>Username (tanpa @)</label><input class="field" id="username" placeholder="username"><label>Nomor HP</label><input class="field" id="phone" placeholder="08xxxxxxxxxx" inputmode="tel"><label>Bio singkat</label><textarea class="field" id="bio" placeholder="Ceritakan sedikit tentang kamu"></textarea><button class="btn full" onclick="saveProfile()">Simpan profil</button></div><div class="card"><b>Verifikasi nomor</b><p class="sub">Verifikasi SMS belum diaktifkan. Versi ini belum membuktikan kepemilikan nomor.</p></div></section>
-<section id="myid" class="page"><div class="eyebrow">MY PHONE ID</div><h1 class="h1">Nomor siap dipindai</h1><div class="card profilecard"><div class="profilepic" id="idAvatar">P</div><h2 id="idName">Nama kamu</h2><div class="muted" id="idBio">Bio kamu tampil di sini</div><div class="idnumber" id="idPhone">Isi nomor HP di Profil</div><p class="muted">Arahkan kamera POPER Scan ke angka ini</p><button class="btn secondary" onclick="copyPhone()">Salin nomor</button></div><p class="sub">Scanner membaca nomor dengan OCR. Nomor perlu didaftarkan pada akun online agar pencarian lintas perangkat dapat berfungsi. Saat ini data masih lokal.</p></section>
-<section id="scan" class="page"><div class="eyebrow">PHONE SCANNER</div><h1 class="h1">Scan nomor HP</h1><p class="sub">Arahkan kamera ke nomor yang terlihat di layar HP lain, kertas, atau kartu. OCR mencoba membaca angka secara otomatis.</p><div class="card scanbox"><video id="video" class="video" playsinline autoplay muted></video><div class="actions"><button class="btn full" onclick="startScan()">Aktifkan kamera</button><button class="btn secondary full" onclick="stopScan()">Matikan kamera</button></div><p id="scanStatus" class="muted">Kamera belum aktif</p><div id="scanResult"></div></div><p class="sub">Kamera memerlukan izin dan koneksi internet untuk memuat OCR. Hasil deteksi mungkin keliru; periksa nomor sebelum menghubungi.</p></section>
-<section id="biolink" class="page"><div class="eyebrow">BIOLINK EDITOR</div><h1 class="h1">Link kamu</h1><p class="sub">Tambahkan tautan yang ingin dibagikan di profil.</p><div class="card"><input id="linkTitle" class="field" placeholder="Nama link (contoh: WhatsApp)"><input id="linkUrl" class="field" placeholder="https:// atau wa.me/..."><button class="btn full" onclick="addLink()">＋ Tambahkan link</button></div><div id="linkList"></div><button class="btn secondary full" onclick="shareProfile()">Bagikan BioLink</button></section>
-<section id="pages" class="page"><div class="eyebrow">PAGE BUILDER</div><h1 class="h1">Buat halaman</h1><p class="sub">Buat halaman sederhana berisi judul, teks, dan tombol tautan.</p><div class="card"><input class="field" id="pageTitle" placeholder="Judul halaman"><textarea class="field" id="pageText" placeholder="Tulis deskripsi atau isi halaman"></textarea><input class="field" id="pageButton" placeholder="Label tombol (opsional)"><input class="field" id="pageButtonUrl" placeholder="URL tombol (opsional)"><button class="btn full" onclick="savePage()">Simpan halaman</button></div><div class="card" id="pagePreview"><h3>Preview</h3><p class="muted">Halaman yang disimpan muncul di sini.</p></div></section>
-<section id="notes" class="page"><div class="eyebrow">NOTES</div><h1 class="h1">Catatan</h1><p class="sub">Catatan disimpan lokal pada browser perangkat ini.</p><div class="card"><input class="field" id="noteTitle" placeholder="Judul catatan"><textarea class="field" id="noteBody" placeholder="Tulis catatan..." rows="5"></textarea><button class="btn full" onclick="addNote()">Simpan catatan</button></div><div id="noteList"></div></section>
-</div>
-<nav class="bottomnav"><button class="navbtn active" data-page="home" onclick="go('home')"><span>⌂</span>Home</button><button class="navbtn" data-page="scan" onclick="go('scan')"><span>⌕</span>Scan</button><button class="navbtn" data-page="myid" onclick="go('myid')"><span>▣</span>My ID</button><button class="navbtn" data-page="biolink" onclick="go('biolink')"><span>↗</span>BioLink</button><button class="navbtn" data-page="notes" onclick="go('notes')"><span>▤</span>Notes</button></nav>
-<script>
-const KEY='poper-v1';let data=JSON.parse(localStorage.getItem(KEY)||'{}');data.profile=data.profile||{};data.links=data.links||[];data.notes=data.notes||[];data.page=data.page||{};function persist(){localStorage.setItem(KEY,JSON.stringify(data))}function go(page){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===page));document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));if(page==='myid')renderId();if(page==='profile')loadProfile();if(page==='biolink')renderLinks();if(page==='notes')renderNotes();if(page==='pages')renderPage();window.scrollTo(0,0)}function loadProfile(){name.value=data.profile.name||'';username.value=data.profile.username||'';phone.value=data.profile.phone||'';bio.value=data.profile.bio||''}function saveProfile(){data.profile={name:name.value.trim(),username:username.value.trim().replace(/^@/,''),phone:phone.value.trim(),bio:bio.value.trim()};persist();toast('Profil disimpan');renderId()}function renderId(){idName.textContent=data.profile.name||'Nama kamu';idAvatar.textContent=(data.profile.name||'P').slice(0,1).toUpperCase();idBio.textContent=data.profile.bio||'Bio kamu tampil di sini';idPhone.textContent=data.profile.phone||'Isi nomor HP di Profil'}function copyPhone(){if(!data.profile.phone)return toast('Isi nomor HP di Profil dahulu');navigator.clipboard?.writeText(data.profile.phone);toast('Nomor disalin')}function addLink(){let t=linkTitle.value.trim(),u=linkUrl.value.trim();if(!t||!u)return toast('Isi nama link dan URL');if(!/^https?:\/\//i.test(u)&& !/^wa\.me\//i.test(u))u='https://'+u;data.links.push({t,u});persist();linkTitle.value='';linkUrl.value='';renderLinks()}function renderLinks(){linkList.innerHTML=data.links.map((l,i)=>`<div class="linkitem"><b>${esc(l.t)}</b><br><a href="${escAttr(l.u)}" target="_blank" rel="noopener">${esc(l.u)}</a><button class="smallbtn" onclick="delLink(${i})">Hapus</button></div>`).join('')||'<p class="muted">Belum ada link.</p>'}function delLink(i){data.links.splice(i,1);persist();renderLinks()}function shareProfile(){let user=data.profile.username;let shareUrl=user?location.origin+location.pathname+'?u='+encodeURIComponent(user):location.href; if(navigator.share)navigator.share({title:'POPER BioLink',url:shareUrl}).catch(()=>{});else{navigator.clipboard?.writeText(shareUrl);toast('Link disalin')}}function savePage(){data.page={title:pageTitle.value.trim(),text:pageText.value.trim(),button:pageButton.value.trim(),url:pageButtonUrl.value.trim()};persist();renderPage();toast('Halaman disimpan')}function renderPage(){pageTitle.value=data.page.title||'';pageText.value=data.page.text||'';pageButton.value=data.page.button||'';pageButtonUrl.value=data.page.url||'';pagePreview.innerHTML='<h3>'+esc(data.page.title||'Preview halaman')+'</h3><p>'+esc(data.page.text||'Belum ada konten.')+'</p>'+(data.page.button&&data.page.url?`<a class="btn" href="${escAttr(data.page.url)}" target="_blank" rel="noopener">${esc(data.page.button)}</a>`:'')}function addNote(){let t=noteTitle.value.trim(),b=noteBody.value.trim();if(!t&&!b)return toast('Isi catatan terlebih dahulu');data.notes.unshift({t,b,created:Date.now()});persist();noteTitle.value='';noteBody.value='';renderNotes()}function renderNotes(){noteList.innerHTML=data.notes.map((n,i)=>`<div class="noteitem"><b>${esc(n.t||'Catatan')}</b><p>${esc(n.b).replace(/\n/g,'<br>')}</p><button class="smallbtn" onclick="editNote(${i})">Edit</button><button class="smallbtn" onclick="delNote(${i})">Hapus</button></div>`).join('')||'<p class="muted">Belum ada catatan.</p>'}function editNote(i){let n=data.notes[i],t=prompt('Edit judul',n.t);if(t===null)return;let b=prompt('Edit isi catatan',n.b);if(b===null)return;n.t=t;n.b=b;persist();renderNotes()}function delNote(i){data.notes.splice(i,1);persist();renderNotes()}function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function escAttr(s){return esc(s)}function toast(m){let x=document.createElement('div');x.className='toast';x.textContent=m;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
-let stream=null,ocrBusy=false,ocrLoaded=false;async function startScan(){try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});video.srcObject=stream;scanStatus.textContent='Kamera aktif — arahkan ke nomor HP';if(!ocrLoaded){scanStatus.textContent='Memuat OCR…';await loadOCR();ocrLoaded=true}scanStatus.textContent='Kamera aktif — mendeteksi nomor…';scanLoop()}catch(e){scanStatus.textContent='Kamera gagal dibuka. Pastikan izin kamera diberikan dan halaman menggunakan HTTPS.'}}async function loadOCR(){await new Promise((resolve,reject)=>{let s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s)})}async function scanLoop(){if(!stream||ocrBusy)return;ocrBusy=true;try{if(video.readyState>=2){let result=await Tesseract.recognize(video,'eng',{logger:()=>{}});let text=result.data.text;let candidates=text.match(/(?:\+?\d[\d\s().-]{7,}\d)/g)||[];let nums=candidates.map(s=>s.replace(/\D/g,'')).filter(s=>s.length>=9&&s.length<=15);let n=nums[0];if(n){scanResult.innerHTML=`<div class="card"><b>Nomor terdeteksi:</b><div class="idnumber">${esc(n)}</div><button class="btn full" onclick="lookupLocal('${escAttr(n)}')">Cari POPER ID</button></div>`;scanStatus.textContent='Nomor terdeteksi — periksa digitnya';}}}catch(e){}ocrBusy=false;if(stream)setTimeout(scanLoop,1800)}function lookupLocal(n){let own=(data.profile.phone||'').replace(/\D/g,'');let normalized=x=>x.replace(/^0/,'62');if(normalized(n)===normalized(own)){scanResult.innerHTML=`<div class="card"><b>Profil cocok ✓</b><h3>${esc(data.profile.name||'POPER user')}</h3><p>${esc(data.profile.bio||'')}</p><button class="btn full" onclick="go('biolink')">Lihat BioLink</button></div>`;return}scanResult.innerHTML=`<div class="card"><b>Nomor terbaca</b><p>${esc(n)}</p><p class="muted">Profil online belum dapat dicari di versi lokal.</p><a class="btn" href="tel:${escAttr(n)}">Telepon</a> <a class="btn secondary" href="https://wa.me/${escAttr(n)}" target="_blank">WhatsApp</a></div>`}function stopScan(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;scanStatus.textContent='Kamera dimatikan'}}renderId();renderLinks();renderNotes();renderPage();
-</script></body></html>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POPER — Digital Identity</title>
+  <meta name="theme-color" content="#0b1020">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">P</div>
+        <div>
+          <h1>POPER</h1>
+          <small>Scan • Connect • Create</small>
+        </div>
+      </div>
+      <button class="avatar" id="profileBtn">👤</button>
+    </header>
+
+    <main id="mainContent">
+
+      <section class="home-page page active" id="home">
+        <div class="hero">
+          <span class="tag">YOUR DIGITAL IDENTITY</span>
+          <h2>One Number.<br>Infinite Possibilities.</h2>
+          <p>Nomor HP menjadi pintu menuju identitas digital, link, halaman, dan catatanmu.</p>
+          <button class="primary-btn" onclick="navigate('scanner')">
+            <span>⌕</span> Scan Nomor HP
+          </button>
+        </div>
+
+        <div class="id-card">
+          <div class="id-top">
+            <span>POPER DIGITAL ID</span>
+            <span>✦ VERIFIED ID</span>
+          </div>
+          <div class="id-number" id="displayNumber">Belum terdaftar</div>
+          <div class="id-bottom">
+            <span>SCAN TO DISCOVER</span>
+            <span>POPER ID</span>
+          </div>
+        </div>
+
+        <h3 class="section-title">Your Space</h3>
+        <div class="feature-grid">
+          <button class="feature" onclick="navigate('profile')">
+            <span class="feature-icon blue">👤</span>
+            <b>Profile</b><small>Identitas kamu</small>
+          </button>
+          <button class="feature" onclick="navigate('biolink')">
+            <span class="feature-icon purple">🔗</span>
+            <b>BioLink</b><small>Semua link</small>
+          </button>
+          <button class="feature" onclick="navigate('pages')">
+            <span class="feature-icon orange">▣</span>
+            <b>My Pages</b><small>Landing page</small>
+          </button>
+          <button class="feature" onclick="navigate('notes')">
+            <span class="feature-icon green">📝</span>
+            <b>My Notes</b><small>Catatan digital</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="page" id="scanner">
+        <div class="page-heading">
+          <h2>Number Scanner</h2>
+          <p>Scan nomor HP dari layar atau kertas.</p>
+        </div>
+        <div class="scanner-box">
+          <div class="scan-symbol">⌕</div>
+          <h3>Phone Number Scanner</h3>
+          <p>Fitur kamera OCR akan kita aktifkan pada tahap selanjutnya.</p>
+          <button class="primary-btn" onclick="alert('Scanner akan diaktifkan pada tahap berikutnya')">
+            Aktifkan Scanner
+          </button>
+        </div>
+      </section>
+
+      <section class="page" id="profile">
+        <div class="page-heading">
+          <h2>My Profile</h2>
+          <p>Identitas digital POPER kamu.</p>
+        </div>
+        <div class="panel">
+          <label>Nama</label>
+          <input id="nameInput" placeholder="Nama kamu">
+          <label>Username</label>
+          <input id="usernameInput" placeholder="username">
+          <label>Bio</label>
+          <textarea id="bioInput" placeholder="Ceritakan tentang dirimu"></textarea>
+          <button class="primary-btn" onclick="saveProfile()">Simpan Profil</button>
+        </div>
+      </section>
+
+      <section class="page" id="biolink">
+        <div class="page-heading">
+          <h2>My BioLink</h2>
+          <p>Kumpulkan link penting dalam satu tempat.</p>
+        </div>
+        <div class="panel">
+          <label>Nama link</label>
+          <input id="linkTitle" placeholder="Contoh: Instagram">
+          <label>URL</label>
+          <input id="linkUrl" placeholder="https://...">
+          <button class="primary-btn" onclick="addLink()">+ Tambah Link</button>
+          <div id="linksList"></div>
+        </div>
+      </section>
+
+      <section class="page" id="pages">
+        <div class="page-heading">
+          <h2>My Pages</h2>
+          <p>Buat halaman digital milikmu.</p>
+        </div>
+        <div class="panel">
+          <label>Judul halaman</label>
+          <input id="pageTitle" placeholder="Judul halaman">
+          <label>Isi halaman</label>
+          <textarea id="pageDescription" placeholder="Tulis isi halamanmu"></textarea>
+          <button class="primary-btn" onclick="addPage()">+ Buat Halaman</button>
+          <div id="pagesList"></div>
+        </div>
+      </section>
+
+      <section class="page" id="notes">
+        <div class="page-heading">
+          <h2>My Notes</h2>
+          <p>Simpan catatan dan ide kamu.</p>
+        </div>
+        <div class="panel">
+          <label>Judul catatan</label>
+          <input id="noteTitle" placeholder="Judul">
+          <label>Isi catatan</label>
+          <textarea id="noteContent" placeholder="Tulis catatan di sini..."></textarea>
+          <button class="primary-btn" onclick="addNote()">+ Simpan Catatan</button>
+          <div id="notesList"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="navigate('home')">
+        <span>⌂</span><small>Home</small>
+      </button>
+      <button class="nav-item" onclick="navigate('scanner')">
+        <span>⌕</span><small>Scan</small>
+      </button>
+      <button class="nav-item" onclick="navigate('biolink')">
+        <span>↗</span><small>Links</small>
+      </button>
+      <button class="nav-item" onclick="navigate('pages')">
+        <span>▣</span><small>Pages</small>
+      </button>
+      <button class="nav-item" onclick="navigate('notes')">
+        <span>☰</span><small>Notes</small>
+      </button>
+    </nav>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

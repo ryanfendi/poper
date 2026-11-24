@@ -27,12 +27,12 @@ import {
 /* FIREBASE CONFIG */
 
 const firebaseConfig = {
-apiKey: "AIzaSyD4eRul_asozC7eT15z2tcMaRO-gNJ7Us8",
-authDomain: "poperweb.firebaseapp.com",
-projectId: "poperweb",
-storageBucket: "poperweb.firebasestorage.app",
-messagingSenderId: "91901111544",
-appId: "1:91901111544:web:a2f1c0a418e16f6ee45f0d"
+  apiKey: "AIzaSyD4eRul_asozC7eT15z2tcMaRO-gNJ7Us8",
+  authDomain: "poperweb.firebaseapp.com",
+  projectId: "poperweb",
+  storageBucket: "poperweb.firebasestorage.app",
+  messagingSenderId: "91901111544",
+  appId: "1:91901111544:web:a2f1c0a418e16f6ee45f0d"
 };
 
 /* INITIALIZE FIREBASE */

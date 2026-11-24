@@ -4,11 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#080f1d">
   <title>POPER - Phone Identity</title>
+  <meta name="theme-color" content="#0b1120">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css">
@@ -18,16 +17,16 @@
 <!-- LOGIN -->
 <section id="authScreen" class="auth-screen">
   <div class="auth-card">
-    <div class="logo">P<span>O</span>PER</div>
-    <p class="subtitle">Your phone. Your digital identity.</p>
+    <div class="logo">POPER<span>.</span></div>
+    <p class="tagline">Your phone. Your identity. Your space.</p>
 
     <div id="phoneStep">
-      <h2>Masuk ke POPER</h2>
-      <p>Gunakan nomor HP untuk mengakses identitas digital.</p>
+      <h2>Welcome to POPER</h2>
+      <p>Login menggunakan nomor telepon.</p>
 
       <input
-        type="tel"
         id="phoneNumber"
+        type="tel"
         placeholder="+62 81234567890"
       >
 
@@ -39,15 +38,13 @@
     </div>
 
     <div id="otpStep" style="display:none">
-      <h2>Verifikasi nomor</h2>
-      <p>Masukkan kode OTP yang dikirim ke HP kamu.</p>
+      <h2>Verifikasi OTP</h2>
+      <p>Masukkan kode verifikasi SMS.</p>
 
       <input
-        type="text"
         id="otpCode"
+        type="number"
         placeholder="6 digit OTP"
-        maxlength="6"
-        inputmode="numeric"
       >
 
       <button id="verifyOtpBtn" class="primary-btn">
@@ -59,19 +56,20 @@
       </button>
     </div>
 
-    <p id="authMessage"></p>
+    <div id="authMessage"></div>
   </div>
 </section>
 
 <!-- MAIN APP -->
-<div id="mainApp" style="display:none">
+<section id="mainApp" style="display:none">
 
   <!-- HEADER -->
   <header class="app-header">
-    <div class="logo">P<span>O</span>PER</div>
-    <div class="account-info">
+    <div class="logo">POPER<span>.</span></div>
+
+    <div class="header-user">
       <span id="displayNumber"></span>
-      <button id="profileBtn" class="profile-avatar">👤</button>
+      <button id="profileBtn" class="profile-btn">👤</button>
     </div>
   </header>
 
@@ -80,19 +78,24 @@
 
     <!-- HOME -->
     <section id="home" class="page home-page active">
-      <div class="welcome-card">
-        <span class="eyebrow">PHONE IDENTITY PLATFORM</span>
-        <h1>Satu nomor.<br>Banyak kemungkinan.</h1>
-        <p>Nomor HP kamu menjadi pintu menuju profil, website, catatan, dan identitas digital.</p>
+      <div class="hero">
+        <div class="hero-badge">PHONE IDENTITY PLATFORM</div>
 
-        <button class="primary-btn" onclick="navigate('scanner')">
-          📷 Scan nomor HP
+        <h1>Your number.<br>Your digital world.</h1>
+
+        <p>
+          Satu nomor telepon untuk membuka identitas,
+          link, halaman, catatan, dan koneksi digital.
+        </p>
+
+        <button onclick="navigate('scanner')" class="primary-btn">
+          Scan nomor HP →
         </button>
       </div>
 
-      <div class="section-heading">
+      <div class="section-title">
         <h2>Explore POPER</h2>
-        <p>Semua kebutuhan digital dalam satu tempat.</p>
+        <p>Semua kebutuhan digital dalam satu identitas.</p>
       </div>
 
       <div class="menu-grid">
@@ -100,85 +103,80 @@
         <button class="menu-card" onclick="navigate('scanner')">
           <div class="menu-icon">📷</div>
           <h3>Scanner</h3>
-          <p>Scan nomor HP</p>
+          <p>Scan nomor HP langsung dari kamera.</p>
         </button>
 
         <button class="menu-card" onclick="navigate('profile')">
-          <div class="menu-icon">👤</div>
+          <div class="menu-icon">🪪</div>
           <h3>My ID</h3>
-          <p>Identitas pribadi</p>
+          <p>Atur identitas digital kamu.</p>
         </button>
 
         <button class="menu-card" onclick="navigate('biolink')">
           <div class="menu-icon">🔗</div>
           <h3>BioLink</h3>
-          <p>Kumpulan link</p>
+          <p>Kumpulkan semua link dalam satu halaman.</p>
         </button>
 
         <button class="menu-card" onclick="navigate('pages')">
           <div class="menu-icon">🌐</div>
-          <h3>My Pages</h3>
-          <p>Landing page</p>
+          <h3>Pages</h3>
+          <p>Buat halaman landing page milikmu.</p>
         </button>
 
         <button class="menu-card" onclick="navigate('notes')">
           <div class="menu-icon">📝</div>
           <h3>Notes</h3>
-          <p>Catatan digital</p>
+          <p>Simpan catatan digital.</p>
         </button>
 
       </div>
 
-      <div class="section-heading">
-        <h2>Account</h2>
-      </div>
-
-      <div class="account-card">
-        <p>Nomor HP terhubung</p>
-        <strong id="accountPhone"></strong>
-        <button id="logoutBtn" class="secondary-btn">Keluar akun</button>
+      <div class="home-footer">
+        <h3>One number. Many possibilities.</h3>
+        <p>POPER — Your digital identity.</p>
       </div>
     </section>
 
     <!-- SCANNER -->
     <section id="scanner" class="page">
-
       <div class="page-heading">
         <button class="back-btn" onclick="navigate('home')">←</button>
         <div>
-          <h2>Phone Scanner</h2>
-          <p>Scan nomor HP langsung dari kamera.</p>
+          <h1>Phone Scanner</h1>
+          <p>Scan nomor telepon dari layar atau kartu.</p>
         </div>
       </div>
 
-      <div class="scanner-box">
+      <div class="scanner-card">
 
         <div class="scanner-preview">
-          <video
-            id="scannerVideo"
-            autoplay
-            playsinline
-            muted
-          ></video>
+          <video id="scannerVideo" autoplay playsinline muted></video>
 
           <div class="scanner-overlay">
             <div class="scan-frame">
+              <span class="corner top-left"></span>
+              <span class="corner top-right"></span>
+              <span class="corner bottom-left"></span>
+              <span class="corner bottom-right"></span>
               <div class="scan-line"></div>
             </div>
           </div>
-        </div>
 
-        <div class="scanner-info">
-          <div class="scanner-status-icon">📷</div>
-          <div>
-            <strong id="scannerStatus">Kamera belum aktif</strong>
-            <p>Arahkan kamera ke nomor HP</p>
+          <div class="scanner-placeholder" id="scannerPlaceholder">
+            <div class="camera-icon">📷</div>
+            <p>Kamera akan muncul di sini</p>
           </div>
         </div>
 
-        <div class="scanner-controls">
+        <div class="scanner-status">
+          <span class="status-dot"></span>
+          <span id="scannerStatus">Kamera belum dimulai</span>
+        </div>
+
+        <div class="scanner-actions">
           <button id="startScannerBtn" class="primary-btn">
-            Mulai Scan
+            📷 Mulai Scan
           </button>
 
           <button id="stopScannerBtn" class="secondary-btn">
@@ -190,10 +188,14 @@
           </button>
         </div>
 
+        <!-- SCAN RESULT -->
         <div id="scanResult" class="scan-result" style="display:none">
-          <span class="result-label">Nomor terdeteksi</span>
+          <div class="result-icon">📱</div>
+          <h3>Nomor terdeteksi</h3>
 
-          <h2 id="detectedPhone">-</h2>
+          <div id="detectedPhone" class="detected-phone">
+            -
+          </div>
 
           <button id="openDetectedProfileBtn" class="primary-btn">
             Buka POPER ID
@@ -206,16 +208,15 @@
 
       </div>
 
-      <div class="scanner-tips">
-        <h3>Tips scanning</h3>
+      <div class="scanner-info">
+        <h3>Tips mendapatkan hasil terbaik</h3>
         <ul>
-          <li>Pastikan nomor HP terlihat jelas.</li>
+          <li>Pastikan nomor terlihat jelas.</li>
+          <li>Jaga kamera agar tidak bergerak.</li>
           <li>Gunakan pencahayaan yang cukup.</li>
-          <li>Jaga kamera tetap stabil.</li>
-          <li>Nomor dapat berasal dari layar HP atau kertas.</li>
+          <li>Scan nomor dengan format 08, 62, atau +62.</li>
         </ul>
       </div>
-
     </section>
 
     <!-- PROFILE -->
@@ -223,12 +224,15 @@
       <div class="page-heading">
         <button class="back-btn" onclick="navigate('home')">←</button>
         <div>
-          <h2>My ID</h2>
-          <p>Identitas digital kamu.</p>
+          <h1>My POPER ID</h1>
+          <p>Identitas digital milikmu.</p>
         </div>
       </div>
 
-      <div class="form-card">
+      <div class="panel">
+        <label>Nomor HP</label>
+        <div id="accountPhone" class="account-phone">-</div>
+
         <label>Nama</label>
         <input id="nameInput" type="text" placeholder="Nama kamu">
 
@@ -236,9 +240,9 @@
         <input id="usernameInput" type="text" placeholder="username">
 
         <label>Bio</label>
-        <textarea id="bioInput" placeholder="Ceritakan tentang kamu"></textarea>
+        <textarea id="bioInput" placeholder="Ceritakan tentang dirimu"></textarea>
 
-        <button class="primary-btn" onclick="saveProfile()">
+        <button onclick="saveProfile()" class="primary-btn">
           Simpan Profil
         </button>
       </div>
@@ -249,24 +253,24 @@
       <div class="page-heading">
         <button class="back-btn" onclick="navigate('home')">←</button>
         <div>
-          <h2>BioLink</h2>
-          <p>Semua link kamu dalam satu halaman.</p>
+          <h1>BioLink</h1>
+          <p>Semua link kamu dalam satu tempat.</p>
         </div>
       </div>
 
-      <div class="form-card">
-        <label>Judul link</label>
-        <input id="linkTitle" type="text" placeholder="Instagram">
+      <div class="panel">
+        <label>Judul Link</label>
+        <input id="linkTitle" type="text" placeholder="Instagram saya">
 
         <label>URL</label>
         <input id="linkUrl" type="url" placeholder="https://">
 
-        <button class="primary-btn" onclick="addLink()">
+        <button onclick="addLink()" class="primary-btn">
           + Tambahkan Link
         </button>
       </div>
 
-      <div id="linksList" class="items-list"></div>
+      <div id="linksList"></div>
     </section>
 
     <!-- PAGES -->
@@ -274,24 +278,24 @@
       <div class="page-heading">
         <button class="back-btn" onclick="navigate('home')">←</button>
         <div>
-          <h2>My Pages</h2>
-          <p>Buat halaman digital milikmu.</p>
+          <h1>My Pages</h1>
+          <p>Buat halaman digital sendiri.</p>
         </div>
       </div>
 
-      <div class="form-card">
+      <div class="panel">
         <label>Judul halaman</label>
-        <input id="pageTitle" type="text" placeholder="Halaman baru">
+        <input id="pageTitle" type="text" placeholder="Nama landing page">
 
         <label>Deskripsi</label>
-        <textarea id="pageDescription" placeholder="Isi deskripsi halaman"></textarea>
+        <textarea id="pageDescription" placeholder="Deskripsi halaman"></textarea>
 
-        <button class="primary-btn" onclick="addPage()">
-          + Buat Halaman
+        <button onclick="addPage()" class="primary-btn">
+          + Buat Page
         </button>
       </div>
 
-      <div id="pagesList" class="items-list"></div>
+      <div id="pagesList"></div>
     </section>
 
     <!-- NOTES -->
@@ -299,37 +303,38 @@
       <div class="page-heading">
         <button class="back-btn" onclick="navigate('home')">←</button>
         <div>
-          <h2>Notes</h2>
-          <p>Simpan catatan digital.</p>
+          <h1>My Notes</h1>
+          <p>Catatan digital kamu.</p>
         </div>
       </div>
 
-      <div class="form-card">
-        <label>Judul catatan</label>
+      <div class="panel">
+        <label>Judul</label>
         <input id="noteTitle" type="text" placeholder="Judul catatan">
 
         <label>Isi catatan</label>
         <textarea id="noteContent" placeholder="Tulis sesuatu..."></textarea>
 
-        <button class="primary-btn" onclick="addNote()">
-          + Simpan Catatan
+        <button onclick="addNote()" class="primary-btn">
+          + Simpan Note
         </button>
       </div>
 
-      <div id="notesList" class="items-list"></div>
+      <div id="notesList"></div>
     </section>
 
   </main>
 
   <!-- BOTTOM NAVIGATION -->
   <nav class="bottom-nav">
+
     <button class="nav-item active" onclick="navigate('home')">
       <span>⌂</span>
       <small>Home</small>
     </button>
 
     <button class="nav-item" onclick="navigate('scanner')">
-      <span>▣</span>
+      <span>⌕</span>
       <small>Scan</small>
     </button>
 
@@ -339,22 +344,28 @@
     </button>
 
     <button class="nav-item" onclick="navigate('pages')">
-      <span>▤</span>
+      <span>▣</span>
       <small>Pages</small>
     </button>
 
     <button class="nav-item" onclick="navigate('notes')">
-      <span>✎</span>
+      <span>▤</span>
       <small>Notes</small>
     </button>
+
   </nav>
 
-</div>
+  <!-- ACCOUNT / LOGOUT -->
+  <div class="account-footer">
+    <button id="logoutBtn" class="secondary-btn">Keluar dari akun</button>
+  </div>
+
+</section>
 
 <!-- OCR LIBRARY -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-<!-- APP -->
+<!-- POPER APP -->
 <script type="module" src="app.js"></script>
 
 </body>

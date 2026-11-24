@@ -1,35 +1,293 @@
-import{auth,db}from"./firebase-config.js";import{uploadImage}from"./cloudinary.js";import{getFunctions,httpsCallable}from"https://www.gstatic.com/firebasejs/12.2.1/firebase-functions.js";import{createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";import{collection,addDoc,getDocs,getDoc,doc,setDoc,updateDoc,deleteDoc,query,where,serverTimestamp,onSnapshot}from"https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-const fn=getFunctions();let user=null,profile=null,products=[],cart=JSON.parse(localStorage.getItem("poper_cart")||"[]"),category="Semua",payment="QRIS",storeId=null,paymentUnsub=null;
-const $=x=>document.getElementById(x),money=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0),esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-function toast(s){let x=$("toast");x.textContent=s;x.classList.add("show");clearTimeout(window.tt);window.tt=setTimeout(()=>x.classList.remove("show"),2500)}
-window.showPage=id=>{document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(id)?.classList.add("active");scrollTo(0,0)};
-window.openSheet=id=>{$(id).classList.add("show");$("overlay").classList.add("show")};window.closeAllSheets=()=>{document.querySelectorAll(".sheet").forEach(x=>x.classList.remove("show"));$("overlay").classList.remove("show")};
-const image=u=>u||"data:image/svg+xml;charset=utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="100%" height="100%" fill="#ddd"/><text x="50%" y="50%" text-anchor="middle">POPER</text></svg>');
-function saveCart(){localStorage.setItem("poper_cart",JSON.stringify(cart));$("cartCount").textContent=cart.reduce((a,x)=>a+x.qty,0)}
-async function loadProducts(){let s=await getDocs(query(collection(db,"products"),where("active","==",true)));products=s.docs.map(d=>({id:d.id,...d.data()}));let c=["Semua",...new Set(products.map(x=>x.category).filter(Boolean))];$("categories").innerHTML=c.map(x=>`<button class="chip ${x==category?"selected":""}" onclick="setCategory('${esc(x)}')">${esc(x)}</button>`).join("");renderProducts()}
-window.setCategory=x=>{category=x;loadProducts()};window.renderProducts=()=>{let q=($("searchInput").value||"").toLowerCase(),a=products.filter(p=>(category=="Semua"||p.category==category)&&(!q||(`${p.name} ${p.storeName||""}`).toLowerCase().includes(q)));$("productGrid").innerHTML=a.map(card).join("")||"<p>Produk belum tersedia.</p>"};
-function card(p){return`<article class="card"><img src="${image(p.imageUrl)}"><div><h3>${esc(p.name)}</h3><div class="price">${money(p.price)}</div><small onclick="openStore('${p.storeId}')">🏪 ${esc(p.storeName||"Toko")}</small><button class="primary full" onclick="addCart('${p.id}')">+ Keranjang</button></div></article>`}
-window.addCart=id=>{let p=products.find(x=>x.id==id);if(!p)return;let x=cart.find(x=>x.productId==id);if(x)x.qty++;else cart.push({productId:id,qty:1,name:p.name,price:p.price,imageUrl:p.imageUrl||"",storeId:p.storeId,storeName:p.storeName,sellerId:p.sellerId});saveCart();toast("Masuk keranjang")};
-window.renderCart=()=>{$("cartList").innerHTML=cart.length?cart.map(x=>`<div class="order"><div class="orderHead"><b>${esc(x.name)}</b><span>${money(x.price*x.qty)}</span></div><p>Qty ${x.qty}</p></div>`).join(""):"<p>Keranjang kosong.</p>";$("cartTotal").textContent=money(cart.reduce((a,x)=>a+x.price*x.qty,0))};
-window.openCheckout=()=>{if(!user)return openAuth();if(!cart.length)return toast("Keranjang kosong");closeAllSheets();$("checkoutTotal").textContent=money(cart.reduce((a,x)=>a+x.price*x.qty,0));getDoc(doc(db,"addresses",user.uid)).then(s=>{if(s.exists()){$("address").value=s.data().address||"";$("phone").value=s.data().phone||""}});openSheet("checkoutSheet")};
-window.setPayment=(x,b)=>{payment=x;document.querySelectorAll(".payments button").forEach(y=>y.classList.remove("selected"));b.classList.add("selected")};
-window.submitOrder=async()=>{if(!user)return openAuth();if(!$("address").value.trim()||!$("phone").value.trim())return toast("Alamat dan nomor wajib");try{let r=await httpsCallable(fn,"createOrder")({items:cart.map(x=>({productId:x.productId,qty:x.qty})),address:$("address").value.trim(),phone:$("phone").value.trim(),payment});cart=[];saveCart();closeAllSheets();showPage("ordersPage");await loadOrders();if(payment!="COD")await createPayment(r.data.orderId);else toast("Pesanan dibuat")}catch(e){toast(e.message)}};
-async function createPayment(id){try{let r=await httpsCallable(fn,"createPayment")({orderId:id});let d=r.data;$("paymentAmount").textContent=money(d.amount);$("qrBlock").classList.toggle("hidden",!d.qrUrl);if(d.qrUrl)$("qrImage").src=d.qrUrl;$("vaBlock").classList.toggle("hidden",!d.vaNumber);if(d.vaNumber){$("vaBank").textContent=d.bank||"";$("vaNumber").textContent=d.vaNumber}$("deeplink").classList.toggle("hidden",!d.deeplink);$("deeplink").onclick=()=>open(d.deeplink,"_blank");showPage("paymentPage");listenPayment(id)}catch(e){toast(e.message)}}
-function listenPayment(id){paymentUnsub?.();paymentUnsub=onSnapshot(doc(db,"payments",id),s=>{if(!s.exists())return;let d=s.data();if(d.status=="paid"){$("paymentIcon").textContent="✅";$("paymentTitle").textContent="Pembayaran Berhasil";$("paymentMessage").textContent="Pesanan sedang diproses."}else if(["expire","expired"].includes(d.status)){$("paymentIcon").textContent="⌛";$("paymentTitle").textContent="Kedaluwarsa"}else if(["failed","deny","cancel"].includes(d.status)){$("paymentIcon").textContent="❌";$("paymentTitle").textContent="Gagal"}})}
-window.loadOrders=async()=>{if(!user)return;$("ordersList").innerHTML="Memuat...";let s=await getDocs(query(collection(db,"orders"),where("buyerId","==",user.uid)));$("ordersList").innerHTML=s.docs.map(d=>{let o={id:d.id,...d.data()};return`<div class="order"><div class="orderHead"><b>#${d.id.slice(0,8)}</b><b>${esc(o.status)}</b></div><p>${money(o.total)} · ${esc(o.payment)}</p>${o.status=="shipped"?`<button class="primary" onclick="confirmDelivery('${d.id}')">Pesanan Diterima</button>`:""}${o.paymentStatus=="pending"?`<button class="secondary" onclick="createPayment('${d.id}')">Bayar</button>`:""}</div>`}).join("")||"<p>Belum ada pesanan.</p>"};
-window.confirmDelivery=async id=>{try{await httpsCallable(fn,"confirmDelivery")({orderId:id});toast("Pesanan selesai");loadOrders()}catch(e){toast(e.message)}};
-window.openStore=async id=>{storeId=id;let s=await getDoc(doc(db,"stores",id));if(!s.exists())return toast("Toko tidak ditemukan");let d=s.data();$("storeName").textContent=d.name||"Toko";$("storeRating").textContent=`⭐ ${Number(d.rating||0).toFixed(1)} (${d.ratingCount||0})`;$("storeDesc").textContent=d.description||"";$("storeLogo").src=image(d.logoUrl);$("storeBanner").src=image(d.bannerUrl);let p=await getDocs(query(collection(db,"products"),where("storeId","==",id),where("active","==",true)));$("storeProducts").innerHTML=p.docs.map(d=>card({id:d.id,...d.data()})).join("");if(user){let f=await getDoc(doc(db,"followers",`${user.uid}_${id}`));$("followBtn").textContent=f.exists()?"💔 Berhenti Mengikuti":"❤️ Ikuti"}showPage("storePage")};
-window.toggleFollowStore=async()=>{if(!user)return openAuth();let r=doc(db,"followers",`${user.uid}_${storeId}`),s=await getDoc(r);if(s.exists())await deleteDoc(r);else await setDoc(r,{userId:user.uid,storeId,createdAt:serverTimestamp()});openStore(storeId)};
-async function myStore(){if(!user)return null;let s=await getDocs(query(collection(db,"stores"),where("ownerId","==",user.uid)));return s.empty?null:{id:s.docs[0].id,...s.docs[0].data()}}
-window.createStore=async()=>{try{await httpsCallable(fn,"createStore")({name:`${profile?.name||"Saya"}'s Store`});closeAllSheets();loadSeller()}catch(e){toast(e.message)}};
-window.loadSeller=async()=>{if(!user)return openAuth();showPage("sellerPage");let s=await myStore();if(!s)return toast("Aktifkan toko dahulu");storeId=s.id;$("sellerName").textContent=s.name;$("sellerAddress").textContent=s.address||"";$("sellerLogo").src=image(s.logoUrl);$("sellerBanner").src=image(s.bannerUrl);let p=await getDocs(query(collection(db,"products"),where("sellerId","==",user.uid)));$("sellerProducts").innerHTML=p.docs.map(d=>{let x={id:d.id,...d.data()};return`<article class="card"><img src="${image(x.imageUrl)}"><div><b>${esc(x.name)}</b><p>${money(x.price)} · stok ${x.stock}</p><button class="secondary full" onclick="editProduct('${x.id}')">Edit</button></div></article>`}).join("");let w=await getDoc(doc(db,"wallets",user.uid));let wd=w.exists()?w.data():{};$("available").textContent=money(wd.availableBalance);$("pending").textContent=money(wd.pendingBalance);let o=await getDocs(query(collection(db,"orders"),where("sellerId","==",user.uid)));$("sellerOrders").innerHTML=o.docs.map(d=>`<div class="order">#${d.id.slice(0,8)} · ${money(d.data().total)} · ${d.data().status}</div>`).join("")};
-window.openMyStore=async()=>{let s=await myStore();if(s)openStore(s.id)};
-window.openEditStore=async()=>{let s=await myStore();if(!s)return; $("storeEditName").value=s.name||"";$("storeEditPhone").value=s.phone||"";$("storeEditAddress").value=s.address||"";$("storeEditDesc").value=s.description||"";openSheet("storeEditSheet")};
-window.saveStore=async()=>{let s=await myStore();try{let l=s.logoUrl||"",b=s.bannerUrl||"";if($("storeEditLogo").files[0])l=await uploadImage($("storeEditLogo").files[0],"poper/stores");if($("storeEditBanner").files[0])b=await uploadImage($("storeEditBanner").files[0],"poper/stores");await updateDoc(doc(db,"stores",s.id),{name:$("storeEditName").value.trim(),phone:$("storeEditPhone").value.trim(),address:$("storeEditAddress").value.trim(),description:$("storeEditDesc").value.trim(),logoUrl:l,bannerUrl:b,updatedAt:serverTimestamp()});closeAllSheets();loadSeller()}catch(e){toast(e.message)}};
-window.openProductForm=()=>{$("productId").value="";$("productTitle").textContent="Tambah Produk";$("productName").value="";$("productPrice").value="";$("productStock").value=1;$("productDesc").value="";openSheet("productSheet")};
-window.editProduct=async id=>{let s=await getDoc(doc(db,"products",id));if(!s.exists())return;let p=s.data();$("productId").value=id;$("productTitle").textContent="Edit Produk";$("productName").value=p.name||"";$("productPrice").value=p.price;$("productStock").value=p.stock;$("productCategory").value=p.category||"Lainnya";$("productDesc").value=p.description||"";openSheet("productSheet")};
-window.saveProduct=async()=>{let s=await myStore();if(!s)return;try{let id=$("productId").value,old=id?(await getDoc(doc(db,"products",id))).data():{},imageUrl=old.imageUrl||"";if($("productImage").files[0])imageUrl=await uploadImage($("productImage").files[0],"poper/products");let d={name:$("productName").value.trim(),price:Number($("productPrice").value),stock:Number($("productStock").value),category:$("productCategory").value,description:$("productDesc").value.trim(),imageUrl,active:true,sellerId:user.uid,storeId:s.id,storeName:s.name,updatedAt:serverTimestamp()};if(id)await updateDoc(doc(db,"products",id),d);else await addDoc(collection(db,"products"),{...d,createdAt:serverTimestamp()});closeAllSheets();loadProducts();loadSeller()}catch(e){toast(e.message)}};
-window.openPayoutSheet=()=>{if(!user)return openAuth();openSheet("payoutSheet")};window.payout=async()=>{try{await httpsCallable(fn,"requestPayout")({amount:Number($("payoutAmount").value),bank:$("payoutBank").value,accountNumber:$("payoutAccount").value,accountHolder:$("payoutHolder").value});closeAllSheets();toast("Payout diajukan");loadSeller()}catch(e){toast(e.message)}};
-window.openAuth=()=>openSheet("authSheet");window.register=async()=>{try{let c=await createUserWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);await setDoc(doc(db,"users",c.user.uid),{uid:c.user.uid,name:$("name").value.trim(),email:c.user.email,role:"buyer",createdAt:serverTimestamp()});closeAllSheets()}catch(e){toast(e.message)}};window.login=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);closeAllSheets()}catch(e){toast(e.message)}};window.logout=()=>signOut(auth);
-window.openAddressSheet=async()=>{if(!user)return openAuth();let s=await getDoc(doc(db,"addresses",user.uid));if(s.exists()){$("savedAddress").value=s.data().address||"";$("savedPhone").value=s.data().phone||""}openSheet("addressSheet")};window.saveAddress=async()=>{await setDoc(doc(db,"addresses",user.uid),{address:$("savedAddress").value.trim(),phone:$("savedPhone").value.trim(),updatedAt:serverTimestamp()});closeAllSheets();toast("Alamat disimpan")};
-onAuthStateChanged(auth,async u=>{user=u;if(u){let s=await getDoc(doc(db,"users",u.uid));profile=s.exists()?s.data():{};$("profileName").textContent=profile.name||u.email;$("profileEmail").textContent=u.email}else{$("profileName").textContent="Tamu";$("profileEmail").textContent="Belum login"}saveCart()});document.addEventListener("DOMContentLoaded",()=>{saveCart();loadProducts()});
+
+/* =================================
+   POPER APP — CORE V1
+================================= */
+
+const STORAGE_KEY = "poper_v1";
+
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+  profile: {
+    name: "",
+    username: "",
+    bio: "",
+    phone: ""
+  },
+  links: [],
+  pages: [],
+  notes: []
+};
+
+/* SAVE DATA */
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+/* NAVIGATION */
+
+function navigate(pageId) {
+  document.querySelectorAll(".page").forEach(page => {
+    page.classList.remove("active");
+  });
+
+  const target = document.getElementById(pageId);
+  if (target) target.classList.add("active");
+
+  document.querySelectorAll(".nav-item").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  const nav = document.querySelector(
+    `.nav-item[onclick="navigate('${pageId}')"]`
+  );
+
+  if (nav) nav.classList.add("active");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* PROFILE */
+
+function saveProfile() {
+  data.profile.name =
+    document.getElementById("nameInput").value.trim();
+
+  data.profile.username =
+    document.getElementById("usernameInput").value
+      .trim()
+      .replace(/^@/, "");
+
+  data.profile.bio =
+    document.getElementById("bioInput").value.trim();
+
+  saveData();
+  renderProfile();
+
+  alert("Profil berhasil disimpan!");
+}
+
+function renderProfile() {
+  const profile = data.profile;
+
+  document.getElementById("nameInput").value = profile.name || "";
+  document.getElementById("usernameInput").value = profile.username || "";
+  document.getElementById("bioInput").value = profile.bio || "";
+
+  const display = document.getElementById("displayNumber");
+
+  if (profile.phone) {
+    display.textContent = profile.phone;
+  } else if (profile.username) {
+    display.textContent = "@" + profile.username;
+  } else if (profile.name) {
+    display.textContent = profile.name;
+  } else {
+    display.textContent = "Belum terdaftar";
+  }
+}
+
+/* BIOLINK */
+
+function addLink() {
+  const title = document.getElementById("linkTitle").value.trim();
+  let url = document.getElementById("linkUrl").value.trim();
+
+  if (!title || !url) {
+    alert("Isi nama link dan URL terlebih dahulu.");
+    return;
+  }
+
+  if (!/^https?:\/\//i.test(url)) {
+    url = "https://" + url;
+  }
+
+  try {
+    const parsed = new URL(url);
+
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      alert("URL tidak valid.");
+      return;
+    }
+  } catch {
+    alert("URL tidak valid.");
+    return;
+  }
+
+  data.links.push({
+    id: Date.now(),
+    title,
+    url
+  });
+
+  saveData();
+
+  document.getElementById("linkTitle").value = "";
+  document.getElementById("linkUrl").value = "";
+
+  renderLinks();
+}
+
+function deleteLink(id) {
+  data.links = data.links.filter(link => link.id !== id);
+  saveData();
+  renderLinks();
+}
+
+function renderLinks() {
+  const container = document.getElementById("linksList");
+  container.innerHTML = "";
+
+  data.links.forEach(link => {
+    const item = document.createElement("div");
+    item.className = "list-item";
+
+    const title = document.createElement("h4");
+    title.textContent = link.title;
+
+    const anchor = document.createElement("a");
+    anchor.href = link.url;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.textContent = link.url;
+
+    const remove = document.createElement("button");
+    remove.className = "delete-btn";
+    remove.textContent = "Hapus link";
+    remove.onclick = () => deleteLink(link.id);
+
+    item.append(title, anchor, remove);
+    container.appendChild(item);
+  });
+}
+
+/* PAGES */
+
+function addPage() {
+  const title = document.getElementById("pageTitle").value.trim();
+  const description =
+    document.getElementById("pageDescription").value.trim();
+
+  if (!title || !description) {
+    alert("Isi judul dan konten halaman.");
+    return;
+  }
+
+  data.pages.push({
+    id: Date.now(),
+    title,
+    description
+  });
+
+  saveData();
+
+  document.getElementById("pageTitle").value = "";
+  document.getElementById("pageDescription").value = "";
+
+  renderPages();
+}
+
+function deletePage(id) {
+  data.pages = data.pages.filter(page => page.id !== id);
+  saveData();
+  renderPages();
+}
+
+function renderPages() {
+  const container = document.getElementById("pagesList");
+  container.innerHTML = "";
+
+  data.pages.forEach(page => {
+    const item = document.createElement("div");
+    item.className = "list-item";
+
+    const title = document.createElement("h4");
+    title.textContent = page.title;
+
+    const description = document.createElement("p");
+    description.textContent = page.description;
+
+    const remove = document.createElement("button");
+    remove.className = "delete-btn";
+    remove.textContent = "Hapus halaman";
+    remove.onclick = () => deletePage(page.id);
+
+    item.append(title, description, remove);
+    container.appendChild(item);
+  });
+}
+
+/* NOTES */
+
+function addNote() {
+  const title = document.getElementById("noteTitle").value.trim();
+  const content = document.getElementById("noteContent").value.trim();
+
+  if (!title || !content) {
+    alert("Isi judul dan catatan terlebih dahulu.");
+    return;
+  }
+
+  data.notes.push({
+    id: Date.now(),
+    title,
+    content,
+    date: new Date().toLocaleDateString("id-ID")
+  });
+
+  saveData();
+
+  document.getElementById("noteTitle").value = "";
+  document.getElementById("noteContent").value = "";
+
+  renderNotes();
+}
+
+function deleteNote(id) {
+  data.notes = data.notes.filter(note => note.id !== id);
+  saveData();
+  renderNotes();
+}
+
+function renderNotes() {
+  const container = document.getElementById("notesList");
+  container.innerHTML = "";
+
+  data.notes.forEach(note => {
+    const item = document.createElement("div");
+    item.className = "list-item";
+
+    const title = document.createElement("h4");
+    title.textContent = note.title;
+
+    const date = document.createElement("p");
+    date.textContent = note.date;
+
+    const content = document.createElement("p");
+    content.textContent = note.content;
+
+    const remove = document.createElement("button");
+    remove.className = "delete-btn";
+    remove.textContent = "Hapus catatan";
+    remove.onclick = () => deleteNote(note.id);
+
+    item.append(title, date, content, remove);
+    container.appendChild(item);
+  });
+}
+
+/* PROFILE BUTTON */
+
+document.getElementById("profileBtn").onclick = () => {
+  navigate("profile");
+};
+
+/* INITIALIZATION */
+
+function initApp() {
+  renderProfile();
+  renderLinks();
+  renderPages();
+  renderNotes();
+}
+
+initApp();

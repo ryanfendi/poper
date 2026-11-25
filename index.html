@@ -12,6 +12,173 @@
   const savedTheme = localStorage.getItem("poper-theme") || "dark";
   document.documentElement.setAttribute("data-theme", savedTheme);
 })();
+
+  /* =========================================
+   POPER LIGHT MODE — FIX
+   Override warna hardcoded lama
+========================================= */
+
+html[data-theme="light"] body {
+  background: #f4f6fb !important;
+  color: #1c2235 !important;
+}
+
+html[data-theme="light"] .app {
+  background: transparent !important;
+  color: #1c2235 !important;
+}
+
+html[data-theme="light"] .card,
+html[data-theme="light"] .theme-setting {
+  background: #ffffff !important;
+  color: #1c2235 !important;
+  border-color: #dfe4ef !important;
+  box-shadow: 0 5px 22px rgba(30, 40, 80, 0.06);
+}
+
+html[data-theme="light"] h1,
+html[data-theme="light"] h2,
+html[data-theme="light"] h3,
+html[data-theme="light"] strong,
+html[data-theme="light"] .logo {
+  color: #1c2235 !important;
+}
+
+html[data-theme="light"] p,
+html[data-theme="light"] small,
+html[data-theme="light"] label {
+  color: #6d758c !important;
+}
+
+html[data-theme="light"] input,
+html[data-theme="light"] textarea,
+html[data-theme="light"] select,
+html[data-theme="light"] #qrType,
+html[data-theme="light"] #qrImageInput {
+  background: #f7f8fc !important;
+  color: #1c2235 !important;
+  border-color: #d6dceb !important;
+}
+
+html[data-theme="light"] input::placeholder,
+html[data-theme="light"] textarea::placeholder {
+  color: #8991a5 !important;
+}
+
+html[data-theme="light"] .tab {
+  background: #e8ebf4 !important;
+  color: #69728b !important;
+}
+
+html[data-theme="light"] .tab.active {
+  background: #7858db !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] button.secondary {
+  background: #e8ebf4 !important;
+  color: #29324a !important;
+}
+
+html[data-theme="light"] .item,
+html[data-theme="light"] .qr-card,
+html[data-theme="light"] .qr-link-card {
+  background: #ffffff !important;
+  color: #1c2235 !important;
+  border-color: #dfe4ef !important;
+}
+
+html[data-theme="light"] .item a,
+html[data-theme="light"] .qr-link-card a {
+  color: #6552d9 !important;
+}
+
+html[data-theme="light"] .vault-page {
+  --vault-bg: #f4f6fb;
+  --vault-card: #ffffff;
+  --vault-card-2: #eef1f8;
+  --vault-border: #dfe4ef;
+  --vault-text: #1c2235;
+  --vault-muted: #737b91;
+  color: #1c2235 !important;
+}
+
+html[data-theme="light"] .vault-hero {
+  background: #ffffff !important;
+  border-color: #dfe4ef !important;
+  box-shadow: 0 8px 28px rgba(30, 40, 80, .06) !important;
+}
+
+html[data-theme="light"] .vault-hero-top h3,
+html[data-theme="light"] .vault-brand h2,
+html[data-theme="light"] .vault-list-header h3,
+html[data-theme="light"] .qr-link-card strong {
+  color: #1c2235 !important;
+}
+
+html[data-theme="light"] .vault-brand p,
+html[data-theme="light"] .vault-hero-top p,
+html[data-theme="light"] .vault-status,
+html[data-theme="light"] .qr-link-meta {
+  color: #737b91 !important;
+}
+
+html[data-theme="light"] .vault-upload {
+  background: #f7f8fc !important;
+  border-color: #cfd6e8 !important;
+  color: #1c2235 !important;
+}
+
+html[data-theme="light"] .vault-upload strong {
+  color: #29324a !important;
+}
+
+html[data-theme="light"] .vault-result {
+  background: #f0faf6 !important;
+  border-color: #d2eee1 !important;
+}
+
+html[data-theme="light"] .vault-result input,
+html[data-theme="light"] .vault-result textarea {
+  background: #ffffff !important;
+  color: #1c2235 !important;
+  border-color: #d6dceb !important;
+}
+
+html[data-theme="light"] .qr-empty {
+  background: #ffffff !important;
+  color: #737b91 !important;
+  border-color: #d6dceb !important;
+}
+
+html[data-theme="light"] .qr-link-card button.secondary {
+  background: #eef1f8 !important;
+  color: #29324a !important;
+  border-color: #d6dceb !important;
+}
+
+html[data-theme="light"] .theme-choice {
+  background: #eef1f8 !important;
+  color: #29324a !important;
+  border-color: #d6dceb !important;
+}
+
+html[data-theme="light"] .theme-choice.active {
+  background: #ffffff !important;
+  border-color: #7858db !important;
+  color: #6048ce !important;
+}
+
+html[data-theme="light"] .vault-list-icon,
+html[data-theme="light"] .vault-hero-symbol {
+  background: #eee9ff !important;
+  color: #7357df !important;
+}
+
+html[data-theme="light"] .qr-badge {
+  background: #eee9ff !important;
+  color: #7357df !important;
+}
 </script>
   
 <style>

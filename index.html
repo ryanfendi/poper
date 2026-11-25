@@ -7,6 +7,13 @@
 <meta name="theme-color" content="#111426">
 <title>POPER — Phone Identity</title>
 
+<script>
+(function () {
+  const savedTheme = localStorage.getItem("poper-theme") || "dark";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+})();
+</script>
+  
 <style>
 *{box-sizing:border-box}
 body{
@@ -795,6 +802,26 @@ background:#2d3653;margin-bottom:10px
 
   <!-- BIO -->
   <section class="section active" id="bio">
+
+    <!-- POPER THEME SETTINGS -->
+<div class="theme-setting" id="themeSettings">
+  <h3>🎨 Tampilan POPER</h3>
+  <p>Pilih tampilan yang nyaman untukmu.</p>
+
+  <div class="theme-buttons">
+    <button class="theme-choice" data-theme-choice="light">
+      ☀️ Terang
+    </button>
+
+    <button class="theme-choice" data-theme-choice="dark">
+      🌙 Gelap
+    </button>
+  </div>
+
+  <p id="themeStatus" style="font-size:13px;margin-top:12px">
+    Tema tersimpan otomatis.
+  </p>
+</div>
     <div class="card">
       <h2>Profil Bio Saya</h2>
       <input id="bioName" placeholder="Nama">

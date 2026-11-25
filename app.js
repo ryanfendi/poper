@@ -5,982 +5,966 @@ const $ = id => document.getElementById(id);
 const auth = window.POPER.auth;
 
 let confirmation = null;
+let currentUser = null;
 let links = [];
-let landingPages = [];
-let selectedBioImage = "";
-let editingPageId = null;
+let pages = [];
+let notes = [];
+let qrItems = [];
 
-/* =========================================
-   HELPERS
-========================================= */
+let bioImageData = "";
+let cameraStream = null;
+let ocrBusy = false;
+let loadingUser = false;
+let lastLoadedUID = "";
 
-function msg(id, text){
+function status(id, text, color) {
   const el = $(id);
-  if(el) el.textContent = text || "";
+  if (!el) return;
+  el.textContent = text || "";
+  if (color) el.style.color = color;
 }
 
-function esc(s=""){
-  return String(s).replace(/[&<>"']/g,c=>({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
+function esc(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",
+    '"':"&quot;","'":"&#39;"
   }[c]));
 }
 
-function validURL(value){
-  try{
-    const u = new URL(value);
-    if(["https:","http:"].includes(u.protocol)) return u.href;
-  }catch{}
-  return "";
+function uid() {
+  return currentUser?.uid;
 }
 
-function phoneKey(phone=""){
-  return window.POPER.normalizePhone(phone).replace(/\D/g,"");
+function phone() {
+  return currentUser?.phoneNumber || "";
 }
 
-function makeId(){
-  return "p" + Date.now().toString(36) +
-    Math.random().toString(36).slice(2,7);
+function phoneKey(p) {
+  return String(p || "").replace(/\D/g, "");
 }
 
-function slugify(value=""){
-  return value.toLowerCase()
+function userPath(path="") {
+  return `users/${uid()}/${path}`;
+}
+
+function slugify(text) {
+  return String(text || "")
+    .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9 -]/g,"")
-    .replace(/\s+/g,"-")
-    .replace(/-+/g,"-")
-    .slice(0,50);
+    .replace(/[^a-z0-9]+/g,"-")
+    .replace(/^-|-$/g,"");
 }
 
-function baseURL(){
-  return location.href.split("?")[0].split("#")[0];
+function toast(id, text) {
+  status(id, text);
 }
 
-function pageURL(slug){
-  return baseURL() + "?page=" + encodeURIComponent(slug);
-}
-
-function setTheme(theme){
-  document.documentElement.dataset.theme = theme;
-  localStorage.setItem("poper-theme",theme);
-}
-
-/* =========================================
-   PUBLIC PAGE MODE
-========================================= */
-
-async function openPublicPage(slug){
-  $("mainApp").hidden = true;
-  $("publicPageView").hidden = false;
-  $("publicPageError").textContent = "";
-  $("publicPageContent").innerHTML = "Memuat halaman...";
-
-  try{
-    const page = await window.POPER.getData(`publicPages/${slug}`);
-
-    if(!page || !page.published){
-      $("publicPageContent").innerHTML = "";
-      $("publicPageError").textContent = "Landing Page tidak ditemukan atau belum dipublikasikan.";
-      return;
-    }
-
-    renderPublicHTML(page.content || "", $("publicPageContent"));
-    document.title = page.title || "POPER Landing Page";
-  }catch(error){
-    $("publicPageContent").innerHTML = "";
-    $("publicPageError").textContent =
-      error.message || "Gagal membuka halaman.";
-  }
-}
-
-function renderPublicHTML(html,container){
-  container.innerHTML = html;
-
-  // Link external open in new tab
-  container.querySelectorAll("a").forEach(a=>{
-    const url = validURL(a.href);
-    if(url){
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-    }
-  });
-}
-
-$("publicBack")?.addEventListener("click",()=>{
-  location.href = baseURL();
-});
-
-const publicSlug = new URLSearchParams(location.search).get("page");
-
-if(publicSlug){
-  openPublicPage(publicSlug);
-}
-
-/* =========================================
-   NAVIGATION
-========================================= */
-
-function showTab(name){
-  if(publicSlug) return;
-
-  document.querySelectorAll(".section").forEach(section=>{
-    section.classList.toggle("active",section.id===name);
-  });
-
-  document.querySelectorAll(".nav-btn").forEach(button=>{
-    button.classList.toggle("active",button.dataset.tab===name);
-  });
-
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-
-document.querySelectorAll("[data-tab]").forEach(button=>{
-  button.addEventListener("click",()=>{
-    showTab(button.dataset.tab);
-  });
-});
-
-document.querySelectorAll("[data-open-tab]").forEach(button=>{
-  button.addEventListener("click",()=>{
-    showTab(button.dataset.openTab);
-  });
-});
-
-
-/* =========================================
-   AUTH FIX
-========================================= */
-
-let authReady = false;
-let loadingUser = false;
+/* =================================
+   LOGIN
+================================= */
 
 function loginUI(user) {
-  if (publicSlug) return;
+  $("loginPanel").classList.toggle("hidden", !!user);
+  $("dashboard").classList.toggle("hidden", !user);
+  $("bottomNav").classList.toggle("hidden", !user);
+  $("logoutBtn").classList.toggle("hidden", !user);
 
-  const loggedIn = !!user;
-
-  $("loginPanel").hidden = loggedIn;
-  $("dashboard").hidden = !loggedIn;
-  $("bottomNav").hidden = !loggedIn;
-  $("logoutBtn").hidden = !loggedIn;
-
-  if (loggedIn) {
-    $("welcome").textContent = "Halo, pengguna POPER!";
-    $("myPhone").textContent = user.phoneNumber || "";
+  if (user) {
+    $("welcome").textContent = "👋 Selamat datang di POPER";
+    $("myPhone").textContent = user.phoneNumber || "-";
   }
 }
 
-$("sendOtpBtn")?.addEventListener("click", async () => {
-  const phone = $("phoneInput").value.trim();
+$("sendOtpBtn").onclick = async () => {
+  const phoneValue = $("phoneInput").value.trim();
 
-  if (!phone) {
-    msg("authStatus", "Masukkan nomor HP.");
+  if (!phoneValue) {
+    status("authStatus", "Masukkan nomor HP terlebih dahulu.");
     return;
   }
 
+  $("sendOtpBtn").disabled = true;
+  status("authStatus", "Menyiapkan verifikasi...");
+
   try {
-    $("sendOtpBtn").disabled = true;
-    msg("authStatus", "Mengirim OTP...");
+    window.POPER.resetRecaptcha();
 
-    confirmation = await window.POPER.sendOTP(phone);
+    confirmation = await window.POPER.sendOTP(phoneValue);
 
-    $("otpSection").hidden = false;
-    msg("authStatus", "OTP berhasil dikirim. Masukkan kode.");
-
-  } catch (error) {
-    console.error("Send OTP:", error);
-
-    msg("authStatus", error.message || "OTP gagal dikirim.");
-
-    await window.POPER.resetRecaptcha();
-
-  } finally {
-    $("sendOtpBtn").disabled = false;
+    $("otpSection").classList.remove("hidden");
+    status("authStatus", "Kode OTP telah dikirim. Periksa SMS.");
+  } catch(e) {
+    console.error(e);
+    status("authStatus", "Gagal mengirim OTP: " + (e.message || e.code));
+    window.POPER.resetRecaptcha();
   }
-});
 
-$("verifyOtpBtn")?.addEventListener("click", async () => {
+  $("sendOtpBtn").disabled = false;
+};
+
+$("verifyOtpBtn").onclick = async () => {
   const code = $("otpInput").value.trim();
 
   if (!confirmation) {
-    msg("authStatus", "Kirim OTP terlebih dahulu.");
+    status("authStatus", "Kirim OTP terlebih dahulu.");
     return;
   }
 
   if (!code) {
-    msg("authStatus", "Masukkan kode OTP.");
+    status("authStatus", "Masukkan kode OTP.");
     return;
   }
 
+  $("verifyOtpBtn").disabled = true;
+  status("authStatus", "Memverifikasi kode...");
+
   try {
-    $("verifyOtpBtn").disabled = true;
-    msg("authStatus", "Memverifikasi kode...");
+    const result = await confirmation.confirm(code);
 
-    await confirmation.confirm(code);
+    // Fallback: langsung pindah dashboard
+    currentUser = result.user;
+    loginUI(result.user);
+    status("authStatus", "Login berhasil!");
 
-    // Tidak perlu loginUI manual.
-    // onAuthStateChanged akan menampilkan dashboard.
-
-    msg("authStatus", "Verifikasi berhasil.");
-
-  } catch (error) {
-    console.error("Verify OTP:", error);
-    msg("authStatus", error.message || "Kode OTP salah.");
-  } finally {
-    $("verifyOtpBtn").disabled = false;
+    // Load data
+    await loadAll();
+  } catch(e) {
+    console.error(e);
+    status("authStatus", "OTP salah atau gagal: " + (e.message || e.code));
   }
-});
 
-$("logoutBtn")?.addEventListener("click", async () => {
+  $("verifyOtpBtn").disabled = false;
+};
+
+$("logoutBtn").onclick = async () => {
+  stopCamera();
+
   try {
     await window.POPER.logout();
-  } catch (error) {
-    alert(error.message || "Logout gagal.");
+    currentUser = null;
+    lastLoadedUID = "";
+    loginUI(null);
+  } catch(e) {
+    alert(e.message);
   }
-});
+};
 
 window.POPER.onAuth(async user => {
-  console.log("Firebase Auth State:", user);
-
+  currentUser = user;
   loginUI(user);
 
-  if (user && !loadingUser) {
+  if (user && user.uid !== lastLoadedUID && !loadingUser) {
     loadingUser = true;
-
     try {
       await loadAll();
-    } finally {
-      loadingUser = false;
+      lastLoadedUID = user.uid;
+    } catch(e) {
+      console.error(e);
     }
+    loadingUser = false;
   }
-
-  authReady = true;
 });
 
+/* =================================
+   NAVIGATION
+================================= */
 
-/* =========================================
-   BIO LINKS - MULTI
-========================================= */
+function openTab(tab) {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll("[data-tab]").forEach(x => x.classList.remove("active"));
 
-$("bioImage")?.addEventListener("change",async e=>{
-  const file = e.target.files?.[0];
-  if(!file) return;
+  const target = $(tab);
+  if (target) target.classList.add("active");
 
-  if(file.size > 1024*1024*2){
-    msg("bioStatus","Gambar maksimal 2MB.");
-    e.target.value="";
+  document.querySelectorAll(`[data-tab="${tab}"]`).forEach(x => x.classList.add("active"));
+}
+
+document.querySelectorAll("[data-tab]").forEach(btn => {
+  btn.onclick = () => openTab(btn.dataset.tab);
+});
+
+/* =================================
+   LOAD DATA
+================================= */
+
+async function loadAll() {
+  if (!uid()) return;
+
+  await Promise.allSettled([
+    loadBio(),
+    loadPages(),
+    loadNotes(),
+    loadQR()
+  ]);
+
+  renderBioLinks();
+  renderPages();
+  renderNotes();
+  renderQR();
+  renderBioLandingList();
+}
+
+async function loadBio() {
+  const data = await window.POPER.getData(userPath("publicBio"));
+
+  if (!data) {
+    links = [];
+    $("bioTitle").value = "";
+    $("bioDesc").value = "";
+    renderBioLinks();
     return;
   }
 
-  selectedBioImage = await imageToDataURL(file);
+  $("bioTitle").value = data.title || "";
+  $("bioDesc").value = data.description || "";
+  links = Array.isArray(data.links) ? data.links : [];
 
-  $("bioImagePreview").src = selectedBioImage;
-  $("bioImagePreview").hidden = false;
-});
+  renderBioLinks();
+}
 
-$("clearBioImage")?.addEventListener("click",()=>{
-  selectedBioImage = "";
+async function loadPages() {
+  const data = await window.POPER.getData(userPath("landingPages"));
+  pages = data ? Object.values(data) : [];
+  renderPages();
+  renderBioLandingList();
+}
+
+async function loadNotes() {
+  const data = await window.POPER.getData(userPath("notes"));
+  notes = data ? Object.values(data) : [];
+  renderNotes();
+}
+
+async function loadQR() {
+  const data = await window.POPER.getData(userPath("qrVault"));
+  qrItems = data ? Object.values(data) : [];
+  renderQR();
+}
+
+/* =================================
+   BIO LINK
+================================= */
+
+$("bioImage").onchange = async () => {
+  const file = $("bioImage").files?.[0];
+  if (!file) return;
+
+  if (file.size > 1.5 * 1024 * 1024) {
+    alert("Gambar maksimal 1.5 MB agar bisa disimpan.");
+    $("bioImage").value = "";
+    return;
+  }
+
+  bioImageData = await fileToDataURL(file);
+  $("bioImagePreview").src = bioImageData;
+  $("bioImagePreview").classList.remove("hidden");
+};
+
+$("clearBioImage").onclick = () => {
+  bioImageData = "";
   $("bioImage").value = "";
-  $("bioImagePreview").hidden = true;
   $("bioImagePreview").src = "";
-});
+  $("bioImagePreview").classList.add("hidden");
+};
 
-function imageToDataURL(file){
-  return new Promise((resolve,reject)=>{
+function fileToDataURL(file) {
+  return new Promise((resolve,reject) => {
     const reader = new FileReader();
-    reader.onload = ()=>resolve(reader.result);
+    reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
-$("addBioLink")?.addEventListener("click",()=>{
-  const title = $("bioTitle").value.trim();
-  const url = validURL($("bioUrl").value.trim());
+$("addBioLink").onclick = () => {
+  const name = $("bioName").value.trim();
+  const url = $("bioUrl").value.trim();
 
-  if(!title || !url){
-    msg("bioStatus","Isi nama tombol dan URL valid.");
+  if (!name || !url) {
+    alert("Isi nama tombol dan URL.");
     return;
   }
 
   links.push({
-    id:makeId(),
-    title,
+    id: Date.now().toString(),
+    name,
     url,
-    image:selectedBioImage,
-    wiggle:$("bioWiggle").checked
+    image: bioImageData,
+    wiggle: $("bioWiggle").value === "true"
   });
 
-  $("bioTitle").value="";
-  $("bioUrl").value="";
-  $("bioWiggle").checked=false;
-  selectedBioImage="";
-  $("bioImage").value="";
-  $("bioImagePreview").hidden=true;
+  $("bioName").value = "";
+  $("bioUrl").value = "";
+  bioImageData = "";
+  $("bioImage").value = "";
+  $("bioImagePreview").src = "";
+  $("bioImagePreview").classList.add("hidden");
 
   renderBioLinks();
-});
+};
 
-function renderBioLinks(){
+function renderBioLinks() {
   const container = $("bioLinks");
-  if(!container) return;
+  if (!container) return;
 
-  container.innerHTML = links.map((link,i)=>`
-    <div class="item">
-      <div class="link-preview">
-        ${link.image ? `<img src="${link.image}" alt="">` : ""}
-        <div class="link-preview-info">
-          <strong>${esc(link.title)}</strong>
-          <small>${esc(link.url)}</small>
-          <small>${link.wiggle?"✨ Goyang":"◻ Diam"}</small>
-        </div>
-      </div>
-      <div class="item-actions" style="margin-top:10px">
-        <button class="secondary" data-up="${i}">↑</button>
-        <button class="secondary" data-down="${i}">↓</button>
-        <button class="secondary" data-toggle="${i}">
-          ${link.wiggle?"Matikan Goyang":"Aktifkan Goyang"}
-        </button>
-        <button class="secondary danger" data-del="${i}">Hapus</button>
-      </div>
-    </div>
-  `).join("");
+  container.innerHTML = "";
 
-  container.querySelectorAll("[data-del]").forEach(b=>{
-    b.onclick=()=>{
-      links.splice(Number(b.dataset.del),1);
-      renderBioLinks();
-    };
-  });
+  links.forEach((item,index) => {
+    const div = document.createElement("div");
+    div.className = "bioItem";
 
-  container.querySelectorAll("[data-up]").forEach(b=>{
-    b.onclick=()=>{
-      const i=Number(b.dataset.up);
-      if(i>0){
-        [links[i-1],links[i]]=[links[i],links[i-1]];
-        renderBioLinks();
-      }
-    };
-  });
-
-  container.querySelectorAll("[data-down]").forEach(b=>{
-    b.onclick=()=>{
-      const i=Number(b.dataset.down);
-      if(i<links.length-1){
-        [links[i+1],links[i]]=[links[i],links[i+1]];
-        renderBioLinks();
-      }
-    };
-  });
-
-  container.querySelectorAll("[data-toggle]").forEach(b=>{
-    b.onclick=()=>{
-      links[Number(b.dataset.toggle)].wiggle =
-        !links[Number(b.dataset.toggle)].wiggle;
-      renderBioLinks();
-    };
-  });
-}
-
-/* =========================================
-   LANDING PAGE BIO DISPLAY SETTINGS
-========================================= */
-
-function renderBioLandingList(){
-  const container = $("bioLandingList");
-  if(!container) return;
-
-  const visiblePages = landingPages.filter(p=>p.published);
-
-  if(!visiblePages.length){
-    container.innerHTML="<p>Belum ada Landing Page yang dipublikasikan.</p>";
-    return;
-  }
-
-  container.innerHTML = visiblePages.map(p=>`
-    <label class="check-row">
-      <input type="checkbox"
-        data-page-bio="${esc(p.id)}"
-        ${p.showInBio?"checked":""}>
-      ${esc(p.title)}
-    </label>
-  `).join("");
-
-  container.querySelectorAll("[data-page-bio]").forEach(c=>{
-    c.onchange=()=>{
-      const page=landingPages.find(p=>p.id===c.dataset.pageBio);
-      if(page) page.showInBio=c.checked;
-    };
-  });
-}
-
-/* =========================================
-   SAVE BIO
-========================================= */
-
-$("saveBio")?.addEventListener("click",async()=>{
-  const user=auth.currentUser;
-  if(!user) return;
-
-  try{
-    const bio={
-      name:$("bioName").value.trim(),
-      description:$("bioDesc").value.trim(),
-      phone:user.phoneNumber||"",
-      links,
-      landingPages:landingPages
-        .filter(p=>p.published && p.showInBio)
-        .map(p=>({
-          id:p.id,
-          title:p.title,
-          slug:p.slug,
-          wiggle:p.wiggle||false
-        })),
-      updatedAt:Date.now()
-    };
-
-    await window.POPER.saveData(`users/${user.uid}/publicBio`,bio);
-    await window.POPER.saveData(
-      `phoneLookup/${phoneKey(user.phoneNumber)}`,
-      {uid:user.uid,phone:user.phoneNumber}
-    );
-
-    msg("bioStatus","Bio berhasil disimpan!");
-  }catch(e){
-    msg("bioStatus",e.message||"Gagal menyimpan Bio.");
-  }
-});
-
-async function loadBio(){
-  const user = auth.currentUser;
-  if(!user) return;
-
-  try {
-    const data = await window.POPER.getData(
-      `users/${user.uid}/publicBio`
-    );
-
-    if(!data) {
-      links = [];
-      renderBioLinks();
-      return;
+    if (item.image) {
+      const img = document.createElement("img");
+      img.src = item.image;
+      div.appendChild(img);
     }
 
-    $("bioName").value = data.name || "";
-    $("bioDesc").value = data.description || "";
+    const text = document.createElement("div");
+    text.className = "itemText";
+    text.innerHTML = `<strong>${esc(item.name)}</strong>
+      <small>${esc(item.url)}</small>
+      ${item.wiggle ? "<small>✨ Animasi goyang</small>" : ""}`;
 
-    links = Array.isArray(data.links) ? data.links : [];
+    div.appendChild(text);
 
-    links = links.map(link => ({
-      id: link.id || makeId(),
-      title: link.title || "",
-      url: link.url || "",
-      image: link.image || "",
-      wiggle: !!link.wiggle
-    }));
+    const actions = document.createElement("div");
+    actions.className = "actions";
 
-    renderBioLinks();
+    const del = document.createElement("button");
+    del.textContent = "🗑";
+    del.onclick = () => {
+      links.splice(index,1);
+      renderBioLinks();
+    };
 
-  } catch(error) {
-    console.error("Load Bio error:", error);
-  }
-}
-
-/* =========================================
-   LANDING PAGE EDITOR
-========================================= */
-
-$("pageTitle")?.addEventListener("input",()=>{
-  if(!$("pageSlug").dataset.manual){
-    $("pageSlug").value=slugify($("pageTitle").value);
-  }
-});
-
-$("pageSlug")?.addEventListener("input",()=>{
-  $("pageSlug").dataset.manual="1";
-});
-
-$("pageMode")?.addEventListener("change",()=>{
-  const visual=$("pageMode").value==="visual";
-  $("visualEditorArea").hidden=!visual;
-  $("htmlEditorArea").hidden=visual;
-});
-
-document.querySelectorAll("[data-format]").forEach(button=>{
-  button.addEventListener("click",()=>{
-    $("visualEditor").focus();
-    document.execCommand(button.dataset.format,false,null);
+    actions.appendChild(del);
+    div.appendChild(actions);
+    container.appendChild(div);
   });
-});
-
-$("insertLink")?.addEventListener("click",()=>{
-  const url=prompt("Masukkan URL link:");
-  if(url && validURL(url)){
-    $("visualEditor").focus();
-    document.execCommand("createLink",false,url);
-  }
-});
-
-function getEditorContent(){
-  if($("pageMode").value==="html"){
-    return $("htmlEditor").value;
-  }
-  return $("visualEditor").innerHTML;
 }
 
-function setEditorContent(mode,content){
-  $("pageMode").value=mode;
-  $("visualEditorArea").hidden=mode!=="visual";
-  $("htmlEditorArea").hidden=mode!=="html";
+$("saveBio").onclick = async () => {
+  if (!uid()) return;
 
-  if(mode==="html"){
-    $("htmlEditor").value=content||"";
-  }else{
-    $("visualEditor").innerHTML=content||"";
-  }
-}
-
-function previewHTML(html){
-  const frame=$("pagePreview");
-  const doc=frame.contentDocument;
-
-  doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      <style>
-        body{font-family:Arial,sans-serif;padding:16px;margin:0;color:#222}
-        img{max-width:100%;height:auto}
-        a{color:#6655dd}
-      </style>
-    </head>
-    <body>${html}</body>
-    </html>
-  `);
-  doc.close();
-}
-
-$("previewPage")?.addEventListener("click",()=>{
-  previewHTML(getEditorContent());
-});
-
-/* =========================================
-   SAVE LANDING PAGE
-========================================= */
-
-$("savePage")?.addEventListener("click",async()=>{
-  const user=auth.currentUser;
-  if(!user) return;
-
-  const title=$("pageTitle").value.trim();
-  const slug=slugify($("pageSlug").value.trim()||title);
-  const content=getEditorContent();
-
-  if(!title || !slug || !content.trim()){
-    msg("pageStatus","Isi judul, slug, dan konten halaman.");
-    return;
-  }
-
-  if(landingPages.some(p=>p.slug===slug && p.id!==editingPageId)){
-    msg("pageStatus","Slug sudah digunakan. Buat nama link yang berbeda.");
-    return;
-  }
-
-  const page={
-    id:editingPageId||makeId(),
-    title,
-    slug,
-    mode:$("pageMode").value,
-    content,
-    showInBio:$("pageShowInBio").checked,
-    wiggle:false,
-    published:true,
-    updatedAt:Date.now()
+  const data = {
+    title: $("bioTitle").value.trim(),
+    description: $("bioDesc").value.trim(),
+    links,
+    phone: phone(),
+    updatedAt: Date.now()
   };
 
-  try{
-    // Save private owner's page collection
-    const index=landingPages.findIndex(p=>p.id===page.id);
-    if(index>=0) landingPages[index]=page;
-    else landingPages.push(page);
+  try {
+    await window.POPER.saveData(userPath("publicBio"), data);
 
-    await window.POPER.saveData(
-      `users/${user.uid}/landingPages/${page.id}`,
-      page
-    );
+    // Public phone lookup index
+    const key = phoneKey(phone());
+    await window.POPER.saveData(`phoneLookup/${key}`, uid());
 
-    // Public page entry
-    await window.POPER.saveData(
-      `publicPages/${page.slug}`,
-      {
-        title:page.title,
-        content:page.content,
-        owner: user.uid,
-        published:true,
-        updatedAt:page.updatedAt
-      }
-    );
-
-    renderPages();
-    renderBioLandingList();
-    msg("pageStatus","Landing Page berhasil disimpan!");
-
-    resetPageEditor();
-  }catch(error){
-    msg("pageStatus",
-      "Gagal menyimpan. Periksa Firebase Rules: "+(error.message||""));
+    status("bioStatus", "Bio berhasil disimpan!");
+  } catch(e) {
+    console.error(e);
+    status("bioStatus", "Gagal simpan: " + e.message);
   }
+};
+
+$("openMyPublicBio").onclick = () => {
+  if (!uid()) return;
+  const url = location.origin + location.pathname + "?bio=" + uid();
+  window.open(url,"_blank");
+};
+
+/* =================================
+   LANDING PAGE
+================================= */
+
+$("pageMode").onchange = () => {
+  const isHTML = $("pageMode").value === "html";
+  $("htmlEditorArea").classList.toggle("hidden", !isHTML);
+  $("visualEditorArea").classList.toggle("hidden", isHTML);
+};
+
+document.querySelectorAll("[data-format]").forEach(btn => {
+  btn.onclick = () => {
+    document.execCommand(btn.dataset.format,false,null);
+    $("visualEditor").focus();
+  };
 });
 
-function resetPageEditor(){
-  editingPageId=null;
-  $("pageTitle").value="";
-  $("pageSlug").value="";
-  delete $("pageSlug").dataset.manual;
-  $("pageMode").value="visual";
-  $("visualEditor").innerHTML="";
-  $("htmlEditor").value="";
-  $("pageShowInBio").checked=true;
-  $("visualEditorArea").hidden=false;
-  $("htmlEditorArea").hidden=true;
+$("previewPage").onclick = () => {
+  const html = getPageContent();
+  $("pagePreviewFrame").srcdoc = html;
+};
+
+function getPageContent() {
+  return $("pageMode").value === "html"
+    ? $("htmlEditor").value
+    : $("visualEditor").innerHTML;
 }
 
-/* =========================================
-   PAGE COLLECTION
-========================================= */
+$("savePage").onclick = async () => {
+  const title = $("pageTitle").value.trim();
+  let slug = slugify($("pageSlug").value || title);
+  const content = getPageContent();
 
-function renderPages(){
-  const container=$("pagesList");
-  if(!container) return;
-
-  if(!landingPages.length){
-    container.innerHTML="<p>Belum ada Landing Page.</p>";
+  if (!title || !slug || !content) {
+    status("pageStatus", "Isi judul dan konten halaman.");
     return;
   }
 
-  container.innerHTML=landingPages.map(page=>`
-    <div class="page-card">
-      <h3>${esc(page.title)}</h3>
-      <small>Link: ${esc(page.slug)}</small>
-      <small>Status: ${page.published?"Publik":"Draft"}</small>
-      <small>Bio: ${page.showInBio?"Ditampilkan":"Disembunyikan"}</small>
+  const id = slug;
 
-      <div class="page-actions">
-        <button class="secondary" data-copy="${esc(page.slug)}">Copy Link</button>
-        <button class="secondary" data-open="${esc(page.slug)}">Buka</button>
-        <button class="secondary" data-edit="${esc(page.id)}">Edit</button>
-        <button class="secondary danger" data-delete="${esc(page.id)}">Hapus</button>
-      </div>
-    </div>
-  `).join("");
+  const page = {
+    id,
+    title,
+    slug,
+    content,
+    mode: $("pageMode").value,
+    showInBio: $("pageShowInBio").checked,
+    owner: uid(),
+    updatedAt: Date.now()
+  };
 
-  container.querySelectorAll("[data-copy]").forEach(b=>{
-    b.onclick=()=>{
-      const link=pageURL(b.dataset.copy);
-      navigator.clipboard.writeText(link)
-        .then(()=>alert("Link disalin:\n"+link))
-        .catch(()=>prompt("Salin link ini:",link));
-    };
-  });
+  try {
+    await window.POPER.saveData(userPath("landingPages/" + id), page);
 
-  container.querySelectorAll("[data-open]").forEach(b=>{
-    b.onclick=()=>window.open(pageURL(b.dataset.open),"_blank");
-  });
-
-  container.querySelectorAll("[data-edit]").forEach(b=>{
-    b.onclick=()=>{
-      const p=landingPages.find(x=>x.id===b.dataset.edit);
-      if(!p) return;
-
-      editingPageId=p.id;
-      $("pageTitle").value=p.title;
-      $("pageSlug").value=p.slug;
-      delete $("pageSlug").dataset.manual;
-      $("pageMode").value=p.mode||"visual";
-      $("pageShowInBio").checked=!!p.showInBio;
-
-      setEditorContent(p.mode||"visual",p.content||"");
-      showTab("pages");
-      previewHTML(p.content||"");
-    };
-  });
-
-  container.querySelectorAll("[data-delete]").forEach(b=>{
-    b.onclick=async()=>{
-      if(!confirm("Hapus Landing Page ini?")) return;
-
-      const user=auth.currentUser;
-      const p=landingPages.find(x=>x.id===b.dataset.delete);
-      if(!p) return;
-
-      try{
-        await window.POPER.deleteData(`users/${user.uid}/landingPages/${p.id}`);
-        await window.POPER.deleteData(`publicPages/${p.slug}`);
-
-        landingPages=landingPages.filter(x=>x.id!==p.id);
-        renderPages();
-        renderBioLandingList();
-      }catch(e){
-        alert("Gagal menghapus: "+e.message);
-      }
-    };
-  });
-}
-
-/* =========================================
-   PUBLIC BIO VIEW
-========================================= */
-
-function publicBioHTML(bio){
-  const bioLinks=(bio.links||[]).map(link=>{
-    const url=validURL(link.url);
-    if(!url) return "";
-    return `
-      <a class="bio-button ${link.wiggle?"wiggle":""}"
-         href="${esc(url)}" target="_blank" rel="noopener">
-         ${link.image?`<img src="${link.image}" alt="">`:""}
-         ${esc(link.title)}
-      </a>
-    `;
-  }).join("");
-
-  const pages=(bio.landingPages||[]).map(page=>`
-    <a class="bio-button ${page.wiggle?"wiggle":""}"
-       href="${pageURL(page.slug)}">
-       🌐 ${esc(page.title)}
-    </a>
-  `).join("");
-
-  return `
-    <div style="max-width:550px;margin:20px auto;padding:18px">
-      <div style="text-align:center">
-        <h1>${esc(bio.name||"POPER User")}</h1>
-        <p>${esc(bio.description||"")}</p>
-      </div>
-      ${bioLinks}
-      ${pages}
-    </div>
-  `;
-}
-
-$("openMyPublicBio")?.addEventListener("click",async()=>{
-  const user=auth.currentUser;
-  if(!user) return;
-
-  try{
-    const bio=await window.POPER.getData(`users/${user.uid}/publicBio`);
-    if(!bio){
-      alert("Simpan Bio terlebih dahulu.");
-      return;
-    }
-
-    const win=window.open("","_blank");
-    if(!win){
-      alert("Browser memblokir popup. Izinkan popup untuk preview.");
-      return;
-    }
-
-    win.document.write(`
-      <!DOCTYPE html>
-      <html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-      <title>${esc(bio.name)}</title>
-      <style>
-      body{margin:0;font-family:Arial;background:#f3f4f8;color:#222}
-      .bio-button{display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;padding:15px;margin:10px 0;background:#7357ef;color:#fff;border-radius:15px;font-weight:bold}
-      .bio-button img{max-width:60px;max-height:40px;object-fit:contain}
-      .wiggle{animation:w .8s infinite}
-      @keyframes w{0%,100%{transform:rotate(0)}25%{transform:rotate(-2deg)}75%{transform:rotate(2deg)}}
-      </style></head><body>${publicBioHTML(bio)}</body></html>
-    `);
-    win.document.close();
-  }catch(e){
-    alert(e.message||"Gagal membuka bio.");
-  }
-});
-
-/* =========================================
-   FIND BIO BY PHONE
-========================================= */
-
-$("findBio")?.addEventListener("click",async()=>{
-  const phone=$("findPhone").value.trim();
-  const container=$("findResult");
-  container.innerHTML="Mencari...";
-
-  if(!phone){
-    container.textContent="Masukkan nomor HP.";
-    return;
-  }
-
-  try{
-    const lookup=await window.POPER.getData(`phoneLookup/${phoneKey(phone)}`);
-    if(!lookup?.uid){
-      container.innerHTML="<div class='item'>Bio tidak ditemukan.</div>";
-      return;
-    }
-
-    const bio=await window.POPER.getData(`users/${lookup.uid}/publicBio`);
-    if(!bio){
-      container.textContent="Bio belum tersedia.";
-      return;
-    }
-
-    container.innerHTML=publicBioHTML(bio);
-  }catch(e){
-    container.textContent=e.message||"Gagal mencari Bio.";
-  }
-});
-
-/* =========================================
-   QR VAULT
-========================================= */
-
-$("saveQR")?.addEventListener("click",async()=>{
-  const user=auth.currentUser;
-  if(!user) return;
-
-  const name=$("qrName").value.trim()||"QR Link";
-  const url=validURL($("qrUrl").value.trim());
-
-  if(!url){
-    msg("qrScanStatus","Masukkan URL valid.");
-    return;
-  }
-
-  try{
-    await window.POPER.pushData(`qrVault/${user.uid}`,{
-      name,url,createdAt:Date.now()
+    // public copy
+    await window.POPER.saveData("publicPages/" + slug, {
+      title,
+      content,
+      owner: uid(),
+      published: true,
+      updatedAt: Date.now()
     });
-    $("qrName").value="";
-    $("qrUrl").value="";
-    msg("qrScanStatus","QR Link berhasil disimpan.");
-    loadQR();
-  }catch(e){
-    msg("qrScanStatus",e.message||"Gagal.");
+
+    status("pageStatus", "Landing page tersimpan!");
+
+    await loadPages();
+    renderBioLandingList();
+  } catch(e) {
+    console.error(e);
+    status("pageStatus", "Gagal menyimpan: " + e.message);
   }
-});
+};
 
-async function loadQR(){
-  const user=auth.currentUser;
-  if(!user) return;
+function renderPages() {
+  const box = $("pagesList");
+  if (!box) return;
+  box.innerHTML = "";
 
-  const data=await window.POPER.getData(`qrVault/${user.uid}`);
-  const container=$("qrList");
-  if(!container) return;
+  pages.forEach((p,index) => {
+    const div = document.createElement("div");
+    div.className = "listItem";
+    div.innerHTML = `
+      <div style="flex:1">
+        <strong>${esc(p.title)}</strong>
+        <p class="muted">/${esc(p.slug)}</p>
+        <small>${p.showInBio ? "Tampil di Bio" : "Halaman mandiri"}</small>
+      </div>
+      <div class="actions">
+        <button data-open="${index}">✏️</button>
+        <button data-delete="${index}">🗑</button>
+        <button data-link="${index}">🔗</button>
+      </div>
+    `;
 
-  if(!data){
-    container.innerHTML="<p>Vault kosong.</p>";
-    return;
-  }
+    div.querySelector("[data-open]").onclick = () => {
+      $("pageTitle").value = p.title;
+      $("pageSlug").value = p.slug;
+      $("pageMode").value = p.mode || "html";
+      $("pageShowInBio").checked = !!p.showInBio;
 
-  container.innerHTML=Object.entries(data).map(([key,item])=>`
-    <div class="item">
-      <strong>${esc(item.name)}</strong>
-      <p>${esc(item.url)}</p>
-      <a href="${esc(validURL(item.url))}" target="_blank">Buka</a>
-      <button class="secondary danger" data-qr-del="${esc(key)}">Hapus</button>
-    </div>
-  `).join("");
+      if (p.mode === "html") {
+        $("htmlEditor").value = p.content || "";
+      } else {
+        $("visualEditor").innerHTML = p.content || "";
+      }
 
-  container.querySelectorAll("[data-qr-del]").forEach(b=>{
-    b.onclick=async()=>{
-      await window.POPER.deleteData(`qrVault/${user.uid}/${b.dataset.qrDel}`);
-      loadQR();
+      $("pageMode").dispatchEvent(new Event("change"));
+      openTab("pages");
     };
+
+    div.querySelector("[data-delete]").onclick = async () => {
+      if (!confirm("Hapus landing page ini?")) return;
+      await window.POPER.deleteData(userPath("landingPages/" + p.id));
+      await window.POPER.deleteData("publicPages/" + p.slug);
+      await loadPages();
+    };
+
+    div.querySelector("[data-link]").onclick = () => {
+      const url = location.origin + location.pathname + "?page=" + encodeURIComponent(p.slug);
+      window.POPER.copy(url);
+      alert("Link halaman disalin.");
+    };
+
+    box.appendChild(div);
   });
 }
 
-/* =========================================
+function renderBioLandingList() {
+  const box = $("bioLandingList");
+  if (!box) return;
+
+  box.innerHTML = "";
+  pages.filter(p => p.showInBio).forEach(p => {
+    const a = document.createElement("a");
+    a.className = "bioPublicLink";
+    a.textContent = "📄 " + p.title;
+    a.href = location.origin + location.pathname + "?page=" + encodeURIComponent(p.slug);
+    a.target = "_blank";
+    box.appendChild(a);
+  });
+}
+
+/* =================================
+   FIND BIO
+================================= */
+
+$("findBio").onclick = async () => {
+  const p = $("findPhone").value.trim();
+  if (!p) {
+    status("findResult", "Masukkan nomor HP.");
+    return;
+  }
+
+  status("findResult", "Mencari...");
+
+  try {
+    const key = phoneKey(p);
+    const ownerUID = await window.POPER.getData("phoneLookup/" + key);
+
+    if (!ownerUID) {
+      status("findResult", "Bio Link tidak ditemukan.");
+      return;
+    }
+
+    const data = await window.POPER.getData("users/" + ownerUID + "/publicBio");
+
+    if (!data) {
+      status("findResult", "Bio belum tersedia.");
+      return;
+    }
+
+    renderFoundBio(data);
+  } catch(e) {
+    status("findResult", "Error: " + e.message);
+  }
+};
+
+function renderFoundBio(data) {
+  const box = $("findResult");
+  box.innerHTML = "";
+
+  const div = document.createElement("div");
+  div.className = "card";
+
+  let html = `<h3>${esc(data.title || "Bio Link")}</h3>
+    <p>${esc(data.description || "")}</p>`;
+
+  (data.links || []).forEach(link => {
+    html += `<a class="bioPublicLink ${link.wiggle ? "wiggle" : ""}"
+      href="${esc(link.url)}" target="_blank" rel="noopener">
+      ${link.image ? `<img src="${link.image}">` : ""}
+      ${esc(link.name)}</a>`;
+  });
+
+  div.innerHTML = html;
+  box.appendChild(div);
+}
+
+$("searchScannedPhone").onclick = () => {
+  const p = $("scanPhoneResult").value.trim();
+  $("findPhone").value = p;
+  openTab("find");
+  $("findBio").click();
+};
+
+/* =================================
+   PUBLIC BIO
+================================= */
+
+async function loadPublicBio() {
+  const params = new URLSearchParams(location.search);
+  const publicUID = params.get("bio");
+  if (!publicUID) return false;
+
+  $("mainApp").classList.add("hidden");
+  $("bottomNav").classList.add("hidden");
+  $("logoutBtn").classList.add("hidden");
+  $("publicPageView").classList.remove("hidden");
+
+  try {
+    const data = await window.POPER.getData(`users/${publicUID}/publicBio`);
+    if (!data) {
+      $("publicPageError").textContent = "Bio belum ditemukan.";
+      return true;
+    }
+
+    const box = $("publicPageContent");
+    box.innerHTML = "";
+
+    const bio = document.createElement("div");
+    bio.className = "publicBio";
+
+    bio.innerHTML = `<h1>${esc(data.title || "Bio Link")}</h1>
+      <p>${esc(data.description || "")}</p>`;
+
+    (data.links || []).forEach(link => {
+      const a = document.createElement("a");
+      a.className = "bioPublicLink" + (link.wiggle ? " wiggle" : "");
+      a.href = link.url;
+      a.target = "_blank";
+      a.rel = "noopener";
+
+      if (link.image) {
+        const img = document.createElement("img");
+        img.src = link.image;
+        a.appendChild(img);
+      }
+
+      a.appendChild(document.createTextNode(link.name));
+      bio.appendChild(a);
+    });
+
+    // landing page links
+    const publicPages = await window.POPER.getData(`users/${publicUID}/landingPages`);
+
+    if (publicPages) {
+      Object.values(publicPages).filter(p => p.showInBio).forEach(p => {
+        const a = document.createElement("a");
+        a.className = "bioPublicLink";
+        a.href = "?page=" + encodeURIComponent(p.slug);
+        a.textContent = "📄 " + p.title;
+        bio.appendChild(a);
+      });
+    }
+
+    box.appendChild(bio);
+  } catch(e) {
+    $("publicPageError").textContent = "Gagal membuka Bio: " + e.message;
+  }
+
+  return true;
+}
+
+/* =================================
+   PUBLIC LANDING PAGE
+================================= */
+
+async function loadPublicPage() {
+  const params = new URLSearchParams(location.search);
+  const slug = params.get("page");
+  if (!slug) return false;
+
+  $("mainApp").classList.add("hidden");
+  $("bottomNav").classList.add("hidden");
+  $("logoutBtn").classList.add("hidden");
+  $("publicPageView").classList.remove("hidden");
+
+  try {
+    const data = await window.POPER.getData("publicPages/" + slug);
+    if (!data || !data.published) {
+      $("publicPageError").textContent = "Halaman tidak ditemukan.";
+      return true;
+    }
+
+    $("publicPageContent").innerHTML = "";
+    const frame = document.createElement("iframe");
+    frame.style.width = "100%";
+    frame.style.height = "85vh";
+    frame.style.border = "0";
+    frame.sandbox = "";
+    frame.srcdoc = data.content || "";
+    $("publicPageContent").appendChild(frame);
+  } catch(e) {
+    $("publicPageError").textContent = "Gagal membuka halaman: " + e.message;
+  }
+
+  return true;
+}
+
+$("publicBack").onclick = () => {
+  location.href = location.pathname;
+};
+
+/* =================================
+   QR VAULT
+================================= */
+
+$("saveQR").onclick = async () => {
+  const name = $("qrName").value.trim();
+  const url = $("qrUrl").value.trim();
+
+  if (!name || !url) {
+    status("qrScanStatus", "Isi nama dan URL QR.");
+    return;
+  }
+
+  try {
+    await window.POPER.pushData(userPath("qrVault"), {
+      name,
+      url,
+      createdAt: Date.now()
+    });
+
+    $("qrName").value = "";
+    $("qrUrl").value = "";
+    await loadQR();
+    status("qrScanStatus", "QR berhasil disimpan.");
+  } catch(e) {
+    status("qrScanStatus", e.message);
+  }
+};
+
+function renderQR() {
+  const box = $("qrList");
+  if (!box) return;
+  box.innerHTML = "";
+
+  qrItems.forEach(q => {
+    const div = document.createElement("div");
+    div.className = "listItem";
+    div.innerHTML = `<div style="flex:1">
+      <strong>${esc(q.name)}</strong><p>${esc(q.url)}</p></div>
+      <button class="btn small" data-copy>Copy</button>
+      <button class="btn danger small" data-del>🗑</button>`;
+
+    div.querySelector("[data-copy]").onclick = () => {
+      window.POPER.copy(q.url);
+      alert("Link disalin.");
+    };
+
+    div.querySelector("[data-del]").onclick = async () => {
+      await window.POPER.deleteData(userPath("qrVault/" + q.id));
+      await loadQR();
+    };
+
+    box.appendChild(div);
+  });
+}
+
+/* =================================
    NOTES
-========================================= */
+================================= */
 
-$("saveNote")?.addEventListener("click",async()=>{
-  const user=auth.currentUser;
-  if(!user) return;
+$("saveNote").onclick = async () => {
+  const title = $("noteTitle").value.trim();
+  const content = $("noteContent").value.trim();
 
-  const title=$("noteTitle").value.trim();
-  const content=$("noteContent").value.trim();
-
-  if(!title||!content){
+  if (!title || !content) {
     alert("Isi judul dan catatan.");
     return;
   }
 
-  try{
-    await window.POPER.pushData(`notes/${user.uid}`,{
-      title,content,createdAt:Date.now()
+  try {
+    await window.POPER.pushData(userPath("notes"), {
+      title,
+      content,
+      createdAt: Date.now()
     });
-    $("noteTitle").value="";
-    $("noteContent").value="";
-    loadNotes();
-  }catch(e){
-    alert(e.message||"Gagal menyimpan.");
+
+    $("noteTitle").value = "";
+    $("noteContent").value = "";
+    await loadNotes();
+  } catch(e) {
+    alert(e.message);
   }
-});
+};
 
-async function loadNotes(){
-  const user=auth.currentUser;
-  if(!user) return;
+function renderNotes() {
+  const box = $("notesList");
+  if (!box) return;
+  box.innerHTML = "";
 
-  const data=await window.POPER.getData(`notes/${user.uid}`);
-  const container=$("notesList");
+  notes.forEach(n => {
+    const div = document.createElement("div");
+    div.className = "listItem";
+    div.innerHTML = `<div style="flex:1">
+      <strong>${esc(n.title)}</strong>
+      <p>${esc(n.content)}</p></div>
+      <button class="btn danger small" data-del>🗑</button>`;
 
-  if(!data){
-    container.innerHTML="<p>Belum ada catatan.</p>";
-    return;
-  }
-
-  container.innerHTML=Object.entries(data).map(([key,note])=>`
-    <div class="item">
-      <strong>${esc(note.title)}</strong>
-      <p>${esc(note.content)}</p>
-      <button class="secondary danger" data-note-del="${esc(key)}">Hapus</button>
-    </div>
-  `).join("");
-
-  container.querySelectorAll("[data-note-del]").forEach(b=>{
-    b.onclick=async()=>{
-      await window.POPER.deleteData(`notes/${user.uid}/${b.dataset.noteDel}`);
-      loadNotes();
+    div.querySelector("[data-del]").onclick = async () => {
+      await window.POPER.deleteData(userPath("notes/" + n.id));
+      await loadNotes();
     };
+
+    box.appendChild(div);
   });
 }
 
-/* =========================================
-   LOAD ALL
-========================================= */
+/* =================================
+   CAMERA SCANNER
+================================= */
 
-async function loadPages(){
-  const user=auth.currentUser;
-  if(!user) return;
+$("startCameraBtn").onclick = async () => {
+  try {
+    stopCamera();
 
-  const data=await window.POPER.getData(`users/${user.uid}/landingPages`);
-  landingPages=data?Object.values(data):[];
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
 
-  renderPages();
-  renderBioLandingList();
-}
+    $("cameraVideo").srcObject = cameraStream;
+    $("cameraVideo").classList.remove("hidden");
+    status("scanStatus", "Kamera aktif. Arahkan ke nomor HP.");
+  } catch(e) {
+    status("scanStatus", "Kamera gagal dibuka. Gunakan upload gambar.");
+  }
+};
 
-async function loadAll(){
-  const user=auth.currentUser;
-  if(!user) return;
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
 
-  try{
-    await Promise.allSettled([
-      loadBio(),
-      loadQR(),
-      loadNotes(),
-      loadPages()
-    ]);
-  }catch(e){
-    console.error(e);
+  if ($("cameraVideo")) {
+    $("cameraVideo").srcObject = null;
+    $("cameraVideo").classList.add("hidden");
   }
 }
 
-console.log("POPER Bio Link & Landing Page Studio siap.");
+$("stopCameraBtn").onclick = stopCamera;
+
+$("captureBtn").onclick = async () => {
+  const video = $("cameraVideo");
+
+  if (!cameraStream || !video.videoWidth) {
+    status("scanStatus", "Buka kamera terlebih dahulu.");
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
+
+  const blob = await new Promise(resolve => canvas.toBlob(resolve,"image/jpeg",0.95));
+  if (blob) await performOCR(blob);
+};
+
+$("uploadScanBtn").onclick = () => {
+  $("scanImageInput").click();
+};
+
+$("scanImageInput").onchange = async () => {
+  const file = $("scanImageInput").files?.[0];
+  if (!file) return;
+
+  if (file.size > 15 * 1024 * 1024) {
+    status("scanStatus", "Gambar terlalu besar. Maksimal 15 MB.");
+    return;
+  }
+
+  await performOCR(file);
+};
+
+async function performOCR(image) {
+  if (ocrBusy) return;
+
+  if (!window.Tesseract) {
+    status("scanStatus", "OCR belum termuat. Periksa koneksi internet.");
+    return;
+  }
+
+  ocrBusy = true;
+  $("uploadScanBtn").disabled = true;
+  $("captureBtn").disabled = true;
+  status("scanStatus", "🔄 Membaca gambar... Mohon tunggu.");
+
+  try {
+    const result = await Tesseract.recognize(image,"eng",{
+      logger: info => {
+        if (info.status === "recognizing text") {
+          status("scanStatus", "OCR: " + Math.round((info.progress || 0) * 100) + "%");
+        }
+      }
+    });
+
+    const text = result.data.text || "";
+    const detected = extractPhones(text);
+
+    displayOCRResults(text,detected);
+
+    if (detected.length) {
+      $("scanPhoneResult").value = detected[0];
+      status("scanStatus", "✅ Ditemukan " + detected.length + " nomor. Pilih nomor yang ingin dicari.");
+    } else {
+      status("scanStatus", "Nomor HP belum terdeteksi. Coba foto lebih dekat, lebih terang, atau crop gambar.");
+    }
+  } catch(e) {
+    console.error(e);
+    status("scanStatus", "OCR gagal: " + e.message);
+  }
+
+  ocrBusy = false;
+  $("uploadScanBtn").disabled = false;
+  $("captureBtn").disabled = false;
+}
+
+function extractPhones(text) {
+  // Cari berbagai format nomor Indonesia
+  const candidates = text.match(/(?:\+?62|0|8)[\s\-().]*[\d\s\-().]{7,18}/g) || [];
+  const output = [];
+
+  candidates.forEach(raw => {
+    let n = raw.replace(/\D/g,"");
+
+    if (n.startsWith("62")) n = "0" + n.slice(2);
+    if (n.startsWith("8")) n = "0" + n;
+
+    // Bersihkan OCR noise di ujung
+    n = n.replace(/^0+/,"0");
+
+    if (n.length >= 9 && n.length <= 15 && n.startsWith("0")) {
+      if (!output.includes(n)) output.push(n);
+    }
+  });
+
+  return output;
+}
+
+function displayOCRResults(text,phones) {
+  const box = $("ocrResults");
+  box.innerHTML = "";
+
+  if (phones.length) {
+    phones.forEach(p => {
+      const btn = document.createElement("button");
+      btn.className = "btn secondary full";
+      btn.textContent = "📞 " + p + " — Gunakan nomor ini";
+      btn.onclick = () => {
+        $("scanPhoneResult").value = p;
+        $("findPhone").value = p;
+      };
+      box.appendChild(btn);
+    });
+  }
+
+  const details = document.createElement("details");
+  details.innerHTML = `<summary>Hasil teks OCR</summary>
+    <pre style="white-space:pre-wrap;overflow-wrap:anywhere;color:#b8c2dc"></pre>`;
+  details.querySelector("pre").textContent = text;
+  box.appendChild(details);
+}
+
+/* =================================
+   INIT
+================================= */
+
+async function init() {
+  // Public links have priority
+  if (await loadPublicPage()) return;
+  if (await loadPublicBio()) return;
+
+  // Auto refresh on sign-in listener
+  if (currentUser) {
+    loginUI(currentUser);
+    await loadAll();
+  }
+}
+
+init();

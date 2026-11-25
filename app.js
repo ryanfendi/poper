@@ -1,566 +1,803 @@
 
-import {
-  auth,
-  db,
-  onAuthStateChanged,
-  signInWithPhoneNumber,
-  RecaptchaVerifier,
-  signOut,
-  doc,
-  getDoc,
-  setDoc
-} from "./firebase.js";
+/* ==========================================
+   POPER APP ENGINE
+   OCR Phone Scanner + Bio + Vault + Notes
+========================================== */
 
-/* =========================
-   POPER AUTH & APP
-========================= */
+const $ = id => document.getElementById(id);
 
-const $ = (id) => document.getElementById(id);
-
-let confirmationResult = null;
-let recaptchaVerifier = null;
-let currentUser = null;
-
-const STORAGE_KEY = "poper_v1";
-
-let data = {
-  profile: {
-    name: "",
-    username: "",
-    bio: "",
-    phone: ""
+const DB = {
+  get(key, fallback = []) {
+    try {
+      const value = localStorage.getItem("poper_" + key);
+      return value ? JSON.parse(value) : fallback;
+    } catch {
+      return fallback;
+    }
   },
-  links: [],
-  pages: [],
-  notes: []
+  set(key, value) {
+    localStorage.setItem("poper_" + key, JSON.stringify(value));
+  }
 };
 
-/* LOCAL CACHE */
+let cameraStream = null;
+let currentNumber = "";
+let currentPage = "homePage";
 
-function loadLocalData() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved) data = saved;
-  } catch (e) {
-    console.warn("Cache lokal tidak terbaca.");
-  }
-}
+let historyData = DB.get("history", []);
+let bioData = DB.get("bio", {
+  name: "",
+  desc: "",
+  phone: "",
+  links: []
+});
+let qrData = DB.get("vault", []);
+let notesData = DB.get("notes", []);
 
-function saveLocalData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
+/* ==========================================
+   NAVIGATION
+========================================== */
 
-/* SCREEN */
-
-function showLogin() {
-  $("authScreen").hidden = false;
-  $("mainApp").hidden = true;
-}
-
-function showApp() {
-  $("authScreen").hidden = true;
-  $("mainApp").hidden = false;
-}
-
-/* MESSAGE */
-
-function message(text, error = true) {
-  const el = $("authMessage");
-  el.textContent = text;
-  el.style.color = error ? "#ff8797" : "#64d9ff";
-}
-
-/* PHONE FORMAT */
-
-function normalizePhone(raw) {
-  let phone = raw.replace(/[^\d]/g, "");
-
-  if (phone.startsWith("0")) {
-    phone = "62" + phone.slice(1);
-  } else if (phone.startsWith("8")) {
-    phone = "62" + phone;
-  } else if (!phone.startsWith("62")) {
-    return null;
-  }
-
-  if (phone.length < 10 || phone.length > 15) {
-    return null;
-  }
-
-  return "+" + phone;
-}
-
-/* RECAPTCHA */
-
-function setupRecaptcha() {
-  if (recaptchaVerifier) return;
-
-  recaptchaVerifier = new RecaptchaVerifier(
-    auth,
-    "recaptcha-container",
-    {
-      size: "normal",
-          callback: () => {
-        console.log("reCAPTCHA berhasil");
-      },
-      "expired-callback": () => {
-        message("Verifikasi kedaluwarsa. Silakan ulangi.");
-      }
-    }
-  );
-
-  recaptchaVerifier.render();
-}
-
-/* SEND OTP */
-
-async function sendOTP() {
-  const phone = normalizePhone($("phoneNumber").value);
-
-  if (!phone) {
-    message("Nomor HP tidak valid. Contoh: 81234567890");
-    return;
-  }
-
-  $("sendOtpBtn").disabled = true;
-  $("sendOtpBtn").textContent = "Mengirim OTP...";
-  message("Menyiapkan verifikasi...", false);
-
-  try {
-    setupRecaptcha();
-
-    confirmationResult = await signInWithPhoneNumber(
-      auth,
-      phone,
-      recaptchaVerifier
-    );
-
-    $("phoneStep").hidden = true;
-    $("otpStep").hidden = false;
-
-    message("Kode OTP telah dikirim. Periksa SMS.", false);
-  } catch (error) {
-    console.error(error);
-    message(getErrorMessage(error));
-
-    if (recaptchaVerifier) {
-      try {
-        recaptchaVerifier.clear();
-      } catch {}
-      recaptchaVerifier = null;
-    }
-  } finally {
-    $("sendOtpBtn").disabled = false;
-    $("sendOtpBtn").textContent = "Kirim kode OTP";
-  }
-}
-
-/* VERIFY OTP */
-
-async function verifyOTP() {
-  const code = $("otpCode").value.trim();
-
-  if (!/^\d{6}$/.test(code)) {
-    message("Masukkan OTP 6 digit.");
-    return;
-  }
-
-  $("verifyOtpBtn").disabled = true;
-  $("verifyOtpBtn").textContent = "Memverifikasi...";
-
-  try {
-    if (!confirmationResult) {
-      message("Silakan kirim OTP terlebih dahulu.");
-      return;
-    }
-
-    await confirmationResult.confirm(code);
-    message("Verifikasi berhasil.", false);
-  } catch (error) {
-    console.error(error);
-    message("OTP salah atau sudah kedaluwarsa.");
-  } finally {
-    $("verifyOtpBtn").disabled = false;
-    $("verifyOtpBtn").textContent = "Verifikasi & Masuk";
-  }
-}
-
-/* ERROR MESSAGES */
-
-function getErrorMessage(error) {
-  const code = error?.code || "";
-
-  if (code.includes("invalid-phone-number"))
-    return "Format nomor HP tidak valid.";
-
-  if (code.includes("too-many-requests"))
-    return "Terlalu banyak percobaan. Coba lagi nanti.";
-
-  if (code.includes("captcha"))
-    return "Verifikasi keamanan gagal. Muat ulang halaman.";
-
-  if (code.includes("quota-exceeded"))
-    return "Kuota SMS Firebase tercapai.";
-
-  if (code.includes("operation-not-allowed"))
-    return "Login Phone belum diaktifkan di Firebase.";
-
-  return error?.message || "Gagal mengirim OTP.";
-}
-
-/* FIRESTORE USER */
-
-async function loadUserData(user) {
-  const userRef = doc(db, "users", user.uid);
-  const snapshot = await getDoc(userRef);
-
-  if (snapshot.exists()) {
-    const remote = snapshot.data();
-
-    data.profile = {
-      ...data.profile,
-      ...remote.profile,
-      phone: user.phoneNumber || ""
-    };
-
-    data.links = remote.links || [];
-    data.pages = remote.pages || [];
-    data.notes = remote.notes || [];
-  } else {
-    data.profile.phone = user.phoneNumber || "";
-
-    await setDoc(userRef, {
-      uid: user.uid,
-      phone: user.phoneNumber || "",
-      profile: data.profile,
-      links: [],
-      pages: [],
-      notes: [],
-      createdAt: new Date().toISOString()
-    });
-  }
-
-  saveLocalData();
-  initApp();
-}
-
-/* SAVE TO CLOUD */
-
-async function saveCloud() {
-  if (!currentUser) return;
-
-  try {
-    await setDoc(doc(db, "users", currentUser.uid), {
-      uid: currentUser.uid,
-      phone: currentUser.phoneNumber || "",
-      profile: data.profile,
-      links: data.links,
-      pages: data.pages,
-      notes: data.notes,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-  } catch (error) {
-    console.error("Cloud save error:", error);
-    alert("Gagal menyimpan ke cloud. Periksa koneksi internet.");
-  }
-}
-
-async function saveAll() {
-  saveLocalData();
-  await saveCloud();
-}
-
-/* NAVIGATION */
-
-function navigate(pageId) {
+function showPage(pageId) {
   document.querySelectorAll(".page").forEach(page => {
     page.classList.remove("active");
   });
 
-  const target = $(pageId);
-  if (target) target.classList.add("active");
+  const page = $(pageId);
+  if (!page) return;
 
-  document.querySelectorAll(".nav-item").forEach(btn => {
-    btn.classList.remove("active");
+  page.classList.add("active");
+  currentPage = pageId;
+
+  const nav = $("bottomNav");
+  nav.style.display = [
+    "scannerPage",
+    "resultPage",
+    "profilePage",
+    "historyPage",
+    "notesPage"
+  ].includes(pageId) ? "none" : "flex";
+
+  document.querySelectorAll(".nav-item").forEach(item => {
+    item.classList.remove("selected");
   });
 
-  const nav = document.querySelector(
-    `.nav-item[onclick="navigate('${pageId}')"]`
+  const navItem = document.querySelector(
+    `.nav-item[data-page="${pageId}"]`
   );
 
-  if (nav) nav.classList.add("active");
+  if (navItem) navItem.classList.add("selected");
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (pageId === "homePage") renderHistory();
+  if (pageId === "bioPage") renderBio();
+  if (pageId === "vaultPage") renderVault();
+  if (pageId === "notesPage") renderNotes();
+  if (pageId === "historyPage") renderFullHistory();
 }
 
-/* PROFILE */
-
-async function saveProfile() {
-  data.profile.name = $("nameInput").value.trim();
-  data.profile.username = $("usernameInput").value.trim().replace(/^@/, "");
-  data.profile.bio = $("bioInput").value.trim();
-  data.profile.phone = currentUser?.phoneNumber || "";
-
-  await saveAll();
-  renderProfile();
-
-  alert("Profil berhasil disimpan!");
+function goHome() {
+  stopCamera();
+  showPage("homePage");
 }
 
-function renderProfile() {
-  $("nameInput").value = data.profile.name || "";
-  $("usernameInput").value = data.profile.username || "";
-  $("bioInput").value = data.profile.bio || "";
+document.querySelectorAll(".nav-item[data-page]").forEach(btn => {
+  btn.addEventListener("click", () => showPage(btn.dataset.page));
+});
 
-  $("displayNumber").textContent =
-    currentUser?.phoneNumber ||
-    data.profile.username ||
-    data.profile.name ||
-    "POPER ID";
+/* ==========================================
+   CAMERA
+========================================== */
 
-  $("accountPhone").textContent =
-    currentUser?.phoneNumber || "Nomor belum tersedia";
-}
+$("openScanner").addEventListener("click", openScanner);
+$("navScan").addEventListener("click", openScanner);
 
-/* LINKS */
-
-async function addLink() {
-  const title = $("linkTitle").value.trim();
-  let url = $("linkUrl").value.trim();
-
-  if (!title || !url) {
-    alert("Isi nama link dan URL.");
-    return;
-  }
-
-  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+async function openScanner() {
+  showPage("scannerPage");
+  $("scanStatus").textContent = "";
+  $("cameraMessage").textContent = "Memulai kamera...";
 
   try {
-    const parsed = new URL(url);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      alert("URL tidak valid.");
+    stopCamera();
+
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+
+    $("camera").srcObject = cameraStream;
+    $("cameraMessage").textContent =
+      "Arahkan kamera ke tulisan nomor HP";
+  } catch (error) {
+    console.error(error);
+    $("cameraMessage").textContent =
+      "Kamera tidak tersedia. Gunakan scan dari gambar.";
+    toast("Izin kamera diperlukan");
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+
+  if ($("camera")) {
+    $("camera").srcObject = null;
+  }
+}
+
+$("closeScanner").addEventListener("click", goHome);
+
+/* ==========================================
+   CAPTURE CAMERA & OCR
+========================================== */
+
+$("captureBtn").addEventListener("click", captureAndScan);
+
+async function captureAndScan() {
+  const video = $("camera");
+
+  if (!video.videoWidth || !video.videoHeight) {
+    toast("Kamera belum siap");
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  canvas.toBlob(async blob => {
+    if (blob) await scanImage(blob);
+  }, "image/jpeg", 0.95);
+}
+
+/* ==========================================
+   IMAGE UPLOAD OCR
+========================================== */
+
+$("uploadImageBtn").addEventListener("click", () => {
+  $("imageInput").click();
+});
+
+$("imageInput").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (file) await scanImage(file);
+  event.target.value = "";
+});
+
+/* ==========================================
+   OCR ENGINE
+========================================== */
+
+async function scanImage(image) {
+  if (!window.Tesseract) {
+    toast("OCR gagal dimuat. Periksa internet.");
+    return;
+  }
+
+  $("scanStatus").textContent = "Membaca gambar...";
+  $("captureBtn").disabled = true;
+  $("captureBtn").textContent = "⏳ Processing OCR...";
+
+  try {
+    const result = await Tesseract.recognize(image, "eng", {
+      logger: info => {
+        if (info.status === "recognizing text") {
+          const progress = Math.round((info.progress || 0) * 100);
+          $("scanStatus").textContent = `Membaca teks ${progress}%`;
+        }
+      }
+    });
+
+    const text = result.data.text || "";
+    console.log("OCR result:", text);
+
+    const numbers = extractPhoneNumbers(text);
+
+    if (!numbers.length) {
+      $("scanStatus").textContent =
+        "Nomor HP tidak ditemukan. Coba lebih dekat atau lebih jelas.";
+      toast("Nomor HP tidak terdeteksi");
       return;
     }
+
+    currentNumber = numbers[0];
+    addHistory(currentNumber);
+    showResult(currentNumber);
+
+  } catch (error) {
+    console.error(error);
+    toast("OCR gagal membaca gambar");
+  } finally {
+    $("captureBtn").disabled = false;
+    $("captureBtn").textContent = "◉ Scan Number";
+  }
+}
+
+/* ==========================================
+   PHONE NUMBER DETECTION
+========================================== */
+
+function extractPhoneNumbers(text) {
+  const cleaned = text
+    .replace(/[Oo]/g, "0")
+    .replace(/[Il|]/g, "1");
+
+  const matches = cleaned.match(
+    /(?:\+?62|0)\s*(?:[\d\s().-]{7,18})/g
+  ) || [];
+
+  const results = [];
+
+  matches.forEach(match => {
+    let digits = match.replace(/\D/g, "");
+
+    if (digits.startsWith("62")) {
+      digits = "0" + digits.slice(2);
+    }
+
+    // Nomor Indonesia umumnya 10-14 digit
+    if (
+      digits.startsWith("0") &&
+      digits.length >= 10 &&
+      digits.length <= 14
+    ) {
+      if (!results.includes(digits)) {
+        results.push(digits);
+      }
+    }
+  });
+
+  return results;
+}
+
+function normalizePhone(phone) {
+  let digits = phone.replace(/\D/g, "");
+
+  if (digits.startsWith("62")) {
+    digits = "0" + digits.slice(2);
+  }
+
+  return digits;
+}
+
+/* ==========================================
+   MANUAL PHONE INPUT
+========================================== */
+
+$("manualSearch").addEventListener("click", () => {
+  const number = normalizePhone($("manualNumber").value);
+
+  if (!validPhone(number)) {
+    toast("Masukkan nomor HP yang valid");
+    return;
+  }
+
+  currentNumber = number;
+  addHistory(number);
+  showResult(number);
+});
+
+$("manualNumber").addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    $("manualSearch").click();
+  }
+});
+
+function validPhone(number) {
+  return /^0\d{9,13}$/.test(number);
+}
+
+/* ==========================================
+   RESULT
+========================================== */
+
+function showResult(number) {
+  stopCamera();
+
+  $("detectedNumber").textContent = formatPhone(number);
+  $("resultMessage").textContent =
+    "Nomor berhasil dibaca. Kamu dapat mencari profil POPER, menyimpan nomor, atau membuka WhatsApp.";
+
+  showPage("resultPage");
+}
+
+$("resultBack").addEventListener("click", openScanner);
+
+$("findBioBtn").addEventListener("click", findBio);
+
+function findBio() {
+  const allUsers = DB.get("users", []);
+  const user = allUsers.find(
+    item => normalizePhone(item.phone) === normalizePhone(currentNumber)
+  );
+
+  if (user && user.bio) {
+    openPublicBio(user.bio, currentNumber);
+    return;
+  }
+
+  // Versi offline belum mempunyai pencarian akun online.
+  const ownBio = bioData;
+
+  if (
+    ownBio.phone &&
+    normalizePhone(ownBio.phone) === normalizePhone(currentNumber)
+  ) {
+    openPublicBio(ownBio, currentNumber);
+    return;
+  }
+
+  $("resultMessage").textContent =
+    "Nomor ini belum ditemukan di database POPER. Kamu dapat menyimpan nomor atau menghubunginya lewat WhatsApp.";
+
+  toast("Bio belum ditemukan");
+}
+
+function openPublicBio(data, phone) {
+  const links = (data.links || [])
+    .map(link => `
+      <a class="public-link" href="${escapeHTML(link.url)}" target="_blank" rel="noopener">
+        ↗ ${escapeHTML(link.title)}
+      </a>
+    `).join("");
+
+  const content = `
+    <div class="public-bio">
+      <div class="bio-avatar">👤</div>
+      <h2>${escapeHTML(data.name || "POPER User")}</h2>
+      <p>${escapeHTML(data.desc || "")}</p>
+      <div class="public-links">${links}</div>
+      <small>${escapeHTML(formatPhone(phone))}</small>
+    </div>
+  `;
+
+  const page = $("resultMessage");
+  page.innerHTML = content;
+  showPage("resultPage");
+}
+
+/* ==========================================
+   SAVE NUMBER
+========================================== */
+
+$("saveNumberBtn").addEventListener("click", () => {
+  let saved = DB.get("contacts", []);
+
+  if (saved.some(n => normalizePhone(n) === normalizePhone(currentNumber))) {
+    toast("Nomor sudah disimpan");
+    return;
+  }
+
+  saved.unshift(currentNumber);
+  DB.set("contacts", saved);
+  toast("Nomor berhasil disimpan");
+});
+
+/* ==========================================
+   WHATSAPP
+========================================== */
+
+$("whatsappBtn").addEventListener("click", () => {
+  let digits = currentNumber.replace(/\D/g, "");
+
+  if (digits.startsWith("0")) {
+    digits = "62" + digits.slice(1);
+  }
+
+  window.open(
+    "https://wa.me/" + digits,
+    "_blank"
+  );
+});
+
+/* ==========================================
+   HISTORY
+========================================== */
+
+function addHistory(number) {
+  historyData = historyData.filter(
+    item => normalizePhone(item.number) !== normalizePhone(number)
+  );
+
+  historyData.unshift({
+    number,
+    time: Date.now()
+  });
+
+  historyData = historyData.slice(0, 100);
+  DB.set("history", historyData);
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = $("recentList");
+
+  if (!historyData.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <span>◉</span>
+        <p>Nomor yang kamu scan akan muncul di sini.</p>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = historyData.slice(0, 5).map(item => `
+    <div class="recent-item">
+      <div class="recent-icon">☎</div>
+      <div class="recent-info">
+        <strong>${escapeHTML(formatPhone(item.number))}</strong>
+        <small>${formatDate(item.time)}</small>
+      </div>
+      <button class="text-btn" onclick="selectNumber('${escapeJS(item.number)}')">›</button>
+    </div>
+  `).join("");
+}
+
+function renderFullHistory() {
+  const list = $("fullHistory");
+
+  if (!historyData.length) {
+    list.innerHTML = `<div class="empty-state">Belum ada history scan.</div>`;
+    return;
+  }
+
+  list.innerHTML = historyData.map(item => `
+    <div class="history-item">
+      <div class="recent-info">
+        <strong>${escapeHTML(formatPhone(item.number))}</strong>
+        <small>${formatDate(item.time)}</small>
+      </div>
+      <button class="text-btn" onclick="selectNumber('${escapeJS(item.number)}')">Buka →</button>
+    </div>
+  `).join("");
+}
+
+window.selectNumber = number => {
+  currentNumber = normalizePhone(number);
+  showResult(currentNumber);
+};
+
+$("historyBtn").addEventListener("click", () => showPage("historyPage"));
+
+$("clearHistory").addEventListener("click", () => {
+  if (!confirm("Hapus semua history scan?")) return;
+  historyData = [];
+  DB.set("history", []);
+  renderHistory();
+  toast("History dibersihkan");
+});
+
+/* ==========================================
+   BIO PROFILE
+========================================== */
+
+$("myBioBtn").addEventListener("click", () => showPage("bioPage"));
+$("bioBack").addEventListener("click", goHome);
+$("profileBtn").addEventListener("click", () => showPage("profilePage"));
+$("profileBack").addEventListener("click", goHome);
+$("editProfileBtn").addEventListener("click", () => showPage("bioPage"));
+
+function renderBio() {
+  $("bioName").value = bioData.name || "";
+  $("bioDesc").value = bioData.desc || "";
+  $("bioPhone").value = bioData.phone || "";
+
+  renderBioLinks();
+  updateBioPreview();
+}
+
+function updateBioPreview() {
+  $("bioPreviewName").textContent = $("bioName").value || "Your Name";
+  $("bioPreviewDesc").textContent =
+    $("bioDesc").value || "Welcome to my POPER page";
+  $("accountName").textContent = $("bioName").value || "Guest User";
+}
+
+["bioName", "bioDesc"].forEach(id => {
+  $(id).addEventListener("input", updateBioPreview);
+});
+
+$("saveBio").addEventListener("click", saveBio);
+
+function saveBio() {
+  bioData.name = $("bioName").value.trim();
+  bioData.desc = $("bioDesc").value.trim();
+  bioData.phone = normalizePhone($("bioPhone").value);
+  bioData.links = collectBioLinks();
+
+  DB.set("bio", bioData);
+
+  toast("Bio berhasil disimpan");
+  updateBioPreview();
+}
+
+function collectBioLinks() {
+  return [...document.querySelectorAll(".bio-link-row")].map(row => ({
+    title: row.querySelector(".link-title").value.trim(),
+    url: row.querySelector(".link-url").value.trim()
+  })).filter(link => link.title && link.url);
+}
+
+function renderBioLinks() {
+  const container = $("bioLinks");
+  container.innerHTML = "";
+
+  (bioData.links || []).forEach(link => {
+    createBioLinkRow(link.title, link.url);
+  });
+}
+
+$("addLinkBtn").addEventListener("click", () => {
+  createBioLinkRow("", "");
+});
+
+function createBioLinkRow(title = "", url = "") {
+  const row = document.createElement("div");
+  row.className = "bio-link-row";
+
+  row.innerHTML = `
+    <input class="link-title" placeholder="Link title" value="${escapeHTML(title)}">
+    <input class="link-url" placeholder="https://example.com" value="${escapeHTML(url)}">
+    <button class="remove-link" type="button">×</button>
+  `;
+
+  row.querySelector(".remove-link").addEventListener("click", () => {
+    row.remove();
+  });
+
+  $("bioLinks").appendChild(row);
+}
+
+$("shareBioBtn").addEventListener("click", async () => {
+  saveBio();
+
+  const url = location.origin + location.pathname +
+    "?bio=" + encodeURIComponent(bioData.phone || "profile");
+
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Link Bio disalin");
   } catch {
-    alert("URL tidak valid.");
+    prompt("Salin link Bio kamu:", url);
+  }
+});
+
+/* ==========================================
+   QR VAULT
+========================================== */
+
+$("vaultBtn").addEventListener("click", () => showPage("vaultPage"));
+$("vaultBack").addEventListener("click", goHome);
+
+$("addQrBtn").addEventListener("click", () => $("qrImageInput").click());
+$("firstQrBtn").addEventListener("click", () => $("qrImageInput").click());
+
+$("qrImageInput").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    toast("Pilih file gambar");
     return;
   }
 
-  data.links.push({ id: Date.now(), title, url });
+  const name = prompt("Nama QR ini:", file.name.replace(/\.[^.]+$/, ""));
+  if (name === null) return;
 
-  $("linkTitle").value = "";
-  $("linkUrl").value = "";
+  const reader = new FileReader();
 
-  await saveAll();
-  renderLinks();
-}
+  reader.onload = () => {
+    qrData.unshift({
+      name: name || "QR Saved",
+      image: reader.result,
+      date: Date.now()
+    });
 
-async function deleteLink(id) {
-  data.links = data.links.filter(x => x.id !== id);
-  await saveAll();
-  renderLinks();
-}
+    DB.set("vault", qrData);
+    renderVault();
+    toast("QR berhasil disimpan");
+  };
 
-function renderLinks() {
-  const container = $("linksList");
-  container.innerHTML = "";
+  reader.readAsDataURL(file);
+  event.target.value = "";
+});
 
-  data.links.forEach(link => {
-    const item = document.createElement("div");
-    item.className = "list-item";
+function renderVault() {
+  const container = $("vaultList");
 
-    const title = document.createElement("h4");
-    title.textContent = link.title;
+  if (!qrData.length) {
+    container.className = "vault-empty";
+    container.innerHTML = `
+      <div class="empty-icon">▦</div>
+      <h3>Your QR collection</h3>
+      <p>QR yang kamu simpan akan muncul di sini.</p>
+      <button class="secondary-btn" id="firstQrBtn">+ Save QR Image</button>
+    `;
 
-    const anchor = document.createElement("a");
-    anchor.href = link.url;
-    anchor.target = "_blank";
-    anchor.rel = "noopener noreferrer";
-    anchor.textContent = link.url;
-
-    const remove = document.createElement("button");
-    remove.className = "delete-btn";
-    remove.textContent = "Hapus link";
-    remove.onclick = () => deleteLink(link.id);
-
-    item.append(title, anchor, remove);
-    container.append(item);
-  });
-}
-
-/* PAGES */
-
-async function addPage() {
-  const title = $("pageTitle").value.trim();
-  const description = $("pageDescription").value.trim();
-
-  if (!title || !description) {
-    alert("Isi judul dan konten halaman.");
+    $("firstQrBtn").addEventListener("click", () => $("qrImageInput").click());
     return;
   }
 
-  data.pages.push({ id: Date.now(), title, description });
+  container.className = "vault-list";
 
-  $("pageTitle").value = "";
-  $("pageDescription").value = "";
-
-  await saveAll();
-  renderPages();
+  container.innerHTML = qrData.map((item, i) => `
+    <div class="qr-item">
+      <h4>${escapeHTML(item.name)}</h4>
+      <img src="${item.image}" alt="Saved QR">
+      <p>${formatDate(item.date)}</p>
+      <button class="secondary-btn" onclick="shareQr(${i})">Share</button>
+      <button class="secondary-btn" onclick="deleteQr(${i})">Delete</button>
+    </div>
+  `).join("");
 }
 
-async function deletePage(id) {
-  data.pages = data.pages.filter(x => x.id !== id);
-  await saveAll();
-  renderPages();
-}
+window.deleteQr = index => {
+  if (!confirm("Hapus QR ini?")) return;
+  qrData.splice(index, 1);
+  DB.set("vault", qrData);
+  renderVault();
+};
 
-function renderPages() {
-  const container = $("pagesList");
-  container.innerHTML = "";
+window.shareQr = async index => {
+  const item = qrData[index];
+  if (!item) return;
 
-  data.pages.forEach(page => {
-    const item = document.createElement("div");
-    item.className = "list-item";
-
-    const title = document.createElement("h4");
-    title.textContent = page.title;
-
-    const description = document.createElement("p");
-    description.textContent = page.description;
-
-    const remove = document.createElement("button");
-    remove.className = "delete-btn";
-    remove.textContent = "Hapus halaman";
-    remove.onclick = () => deletePage(page.id);
-
-    item.append(title, description, remove);
-    container.append(item);
-  });
-}
-
-/* NOTES */
-
-async function addNote() {
-  const title = $("noteTitle").value.trim();
-  const content = $("noteContent").value.trim();
-
-  if (!title || !content) {
-    alert("Isi judul dan catatan.");
-    return;
+  try {
+    await navigator.clipboard.writeText(item.name);
+    toast("Nama QR disalin");
+  } catch {
+    toast(item.name);
   }
+};
 
-  data.notes.push({
+/* ==========================================
+   NOTES
+========================================== */
+
+$("notesBtn").addEventListener("click", () => showPage("notesPage"));
+$("notesBack").addEventListener("click", goHome);
+
+$("addNoteBtn").addEventListener("click", addNote);
+
+function addNote() {
+  const title = prompt("Judul note:");
+  if (title === null) return;
+
+  const text = prompt("Isi note:");
+  if (text === null) return;
+
+  notesData.unshift({
     id: Date.now(),
     title,
-    content,
-    date: new Date().toLocaleDateString("id-ID")
+    text,
+    time: Date.now()
   });
 
-  $("noteTitle").value = "";
-  $("noteContent").value = "";
-
-  await saveAll();
+  DB.set("notes", notesData);
   renderNotes();
-}
-
-async function deleteNote(id) {
-  data.notes = data.notes.filter(x => x.id !== id);
-  await saveAll();
-  renderNotes();
+  toast("Note tersimpan");
 }
 
 function renderNotes() {
   const container = $("notesList");
-  container.innerHTML = "";
 
-  data.notes.forEach(note => {
-    const item = document.createElement("div");
-    item.className = "list-item";
+  if (!notesData.length) {
+    container.innerHTML = `<div class="empty-state">Belum ada catatan.</div>`;
+    return;
+  }
 
-    const title = document.createElement("h4");
-    title.textContent = note.title;
+  container.innerHTML = notesData.map(note => `
+    <div class="note-item">
+      <h4>${escapeHTML(note.title)}</h4>
+      <p>${escapeHTML(note.text)}</p>
+      <small>${formatDate(note.time)}</small>
+      <div class="note-actions">
+        <button onclick="editNote(${note.id})">Edit</button>
+        <button onclick="deleteNote(${note.id})">Delete</button>
+      </div>
+    </div>
+  `).join("");
+}
 
-    const date = document.createElement("p");
-    date.textContent = note.date || "";
+window.editNote = id => {
+  const note = notesData.find(n => n.id === id);
+  if (!note) return;
 
-    const content = document.createElement("p");
-    content.textContent = note.content;
+  const title = prompt("Edit judul:", note.title);
+  if (title === null) return;
 
-    const remove = document.createElement("button");
-    remove.className = "delete-btn";
-    remove.textContent = "Hapus catatan";
-    remove.onclick = () => deleteNote(note.id);
+  const text = prompt("Edit isi:", note.text);
+  if (text === null) return;
 
-    item.append(title, date, content, remove);
-    container.append(item);
+  note.title = title;
+  note.text = text;
+  note.time = Date.now();
+
+  DB.set("notes", notesData);
+  renderNotes();
+};
+
+window.deleteNote = id => {
+  if (!confirm("Hapus note ini?")) return;
+  notesData = notesData.filter(n => n.id !== id);
+  DB.set("notes", notesData);
+  renderNotes();
+};
+
+/* ==========================================
+   UTILITIES
+========================================== */
+
+function formatPhone(number) {
+  const digits = number.replace(/\D/g, "");
+  if (digits.startsWith("0") && digits.length >= 10) {
+    return digits;
+  }
+  return number;
+}
+
+function formatDate(time) {
+  return new Date(time).toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
   });
 }
 
-/* LOGOUT */
-
-async function logout() {
-  try {
-    await signOut(auth);
-  } catch (error) {
-    alert("Gagal logout.");
-    console.error(error);
-  }
+function escapeHTML(str) {
+  return String(str || "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
 }
 
-/* INIT */
+function escapeJS(str) {
+  return String(str || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
 
-function initApp() {
-  renderProfile();
-  renderLinks();
-  renderPages();
+function toast(message) {
+  const old = document.querySelector(".toast");
+  if (old) old.remove();
+
+  const box = document.createElement("div");
+  box.className = "toast";
+  box.textContent = message;
+  document.body.appendChild(box);
+
+  setTimeout(() => box.remove(), 2600);
+}
+
+/* ==========================================
+   INITIALIZATION
+========================================== */
+
+function initialize() {
+  renderHistory();
+  renderBio();
+  renderVault();
   renderNotes();
+  showPage("homePage");
+
+  const params = new URLSearchParams(location.search);
+  const requestedBio = params.get("bio");
+
+  if (requestedBio && bioData.phone) {
+    openPublicBio(bioData, bioData.phone);
+  }
 }
 
-/* BUTTON EVENTS */
-
-$("sendOtpBtn").addEventListener("click", sendOTP);
-$("verifyOtpBtn").addEventListener("click", verifyOTP);
-
-$("backPhoneBtn").addEventListener("click", () => {
-  $("otpStep").hidden = true;
-  $("phoneStep").hidden = false;
-  $("otpCode").value = "";
-  message("");
-});
-
-$("logoutBtn").addEventListener("click", logout);
-
-$("profileBtn").addEventListener("click", () => navigate("profile"));
-
-/* FIREBASE AUTH STATE */
-
-loadLocalData();
-showLogin();
-
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    currentUser = user;
-    showApp();
-
-    try {
-      await loadUserData(user);
-    } catch (error) {
-      console.error(error);
-      alert("Gagal memuat data akun. Periksa koneksi.");
-    }
-  } else {
-    currentUser = null;
-    showLogin();
-  }
-});
-
-/* GLOBAL FUNCTIONS FOR HTML BUTTONS */
-
-window.navigate = navigate;
-window.saveProfile = saveProfile;
-window.addLink = addLink;
-window.deleteLink = deleteLink;
-window.addPage = addPage;
-window.deletePage = deletePage;
-window.addNote = addNote;
-window.deleteNote = deleteNote;
+initialize();

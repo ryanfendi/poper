@@ -100,19 +100,46 @@ function loginUI(user) {
   const loginPanel = $("loginPanel");
   const dashboard = $("dashboard");
   const logoutBtn = $("logoutBtn");
+  const bottomNav = $("appBottomNav");
 
   if (!user) {
-    if (loginPanel) loginPanel.style.display = "";
-    if (dashboard) dashboard.style.display = "none";
-    if (logoutBtn) logoutBtn.style.display = "none";
+    if (loginPanel) {
+      loginPanel.hidden = false;
+      loginPanel.style.display = "";
+    }
+
+    if (dashboard) {
+      dashboard.hidden = true;
+      dashboard.style.display = "none";
+    }
+
+    if (logoutBtn) logoutBtn.hidden = true;
+    if (bottomNav) bottomNav.hidden = true;
+
     stopPhoneScanner();
     stopCameraScanner();
     return;
   }
 
-  if (loginPanel) loginPanel.style.display = "none";
-  if (dashboard) dashboard.style.display = "";
-  if (logoutBtn) logoutBtn.style.display = "";
+  // Tampilkan dashboard secara benar
+  if (loginPanel) {
+    loginPanel.hidden = true;
+    loginPanel.style.display = "none";
+  }
+
+  if (dashboard) {
+    dashboard.hidden = false;
+    dashboard.style.display = "";
+  }
+
+  if (logoutBtn) {
+    logoutBtn.hidden = false;
+    logoutBtn.style.display = "";
+  }
+
+  if (bottomNav) {
+    bottomNav.hidden = false;
+  }
 
   if ($("welcome")) {
     $("welcome").textContent = "Halo, pengguna POPER!";

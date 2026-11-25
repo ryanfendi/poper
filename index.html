@@ -203,6 +203,551 @@ background:#2d3653;margin-bottom:10px
   max-height:350px;
   object-fit:cover;
 }
+
+   
+/* ==========================================
+   POPER QR VAULT — PREMIUM UI
+========================================== */
+
+.vault-page {
+  --vault-bg: #101426;
+  --vault-card: #191e33;
+  --vault-card-2: #202640;
+  --vault-border: rgba(159, 168, 211, .13);
+  --vault-purple: #865bff;
+  --vault-blue: #4f83ff;
+  --vault-text: #f3f4ff;
+  --vault-muted: #959dbb;
+
+  color: var(--vault-text);
+  padding-bottom: 20px;
+}
+
+/* HEADER */
+
+.vault-header {
+  margin-bottom: 22px;
+}
+
+.vault-brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.vault-icon {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  font-size: 26px;
+  background: linear-gradient(135deg, #8a63ff, #4779ff);
+  box-shadow: 0 8px 30px rgba(111, 79, 255, .28);
+}
+
+.vault-eyebrow,
+.vault-label {
+  display: block;
+  color: #a99aff;
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: 800;
+}
+
+.vault-brand h2 {
+  margin: 5px 0;
+  font-size: 27px;
+  letter-spacing: -.7px;
+}
+
+.vault-brand p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--vault-muted);
+  line-height: 1.6;
+}
+
+/* MAIN CARD */
+
+.vault-hero {
+  padding: 20px;
+  border: 1px solid var(--vault-border);
+  border-radius: 25px;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(112, 80, 225, .14),
+      transparent 45%
+    ),
+    linear-gradient(145deg, #1b2036, #15192b);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .14);
+}
+
+.vault-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.vault-hero-top h3 {
+  font-size: 20px;
+  margin: 9px 0;
+}
+
+.vault-hero-top p {
+  color: var(--vault-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.vault-hero-symbol {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 17px;
+  background: #31284e;
+  color: #c0aaff;
+  font-size: 32px;
+}
+
+/* BUTTON SCAN */
+
+.vault-scan-btn {
+  width: 100%;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid rgba(179, 153, 255, .22);
+  border-radius: 18px;
+  background: linear-gradient(120deg, #7653e9, #4d75ef);
+  color: white;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(103, 76, 232, .2);
+  transition: .2s ease;
+}
+
+.vault-scan-btn strong {
+  display: block;
+  font-size: 15px;
+}
+
+.vault-scan-btn small {
+  display: block;
+  color: rgba(255,255,255,.76);
+  margin-top: 5px;
+  font-size: 11px;
+}
+
+.vault-scan-btn .btn-icon {
+  width: 43px;
+  height: 43px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,.17);
+  font-size: 25px;
+}
+
+.vault-scan-btn .btn-arrow {
+  margin-left: auto;
+  font-size: 23px;
+}
+
+.vault-scan-btn:active {
+  transform: scale(.97);
+}
+
+/* UPLOAD */
+
+.vault-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 18px;
+  color: #727c9e;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  font-weight: 700;
+}
+
+.vault-divider::before,
+.vault-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--vault-border);
+}
+
+.vault-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 16px;
+  border: 1.5px dashed rgba(150, 132, 230, .36);
+  border-radius: 19px;
+  background: rgba(111, 86, 194, .055);
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.vault-upload:active {
+  transform: scale(.98);
+  background: rgba(111, 86, 194, .14);
+}
+
+.upload-icon {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #30284c;
+  color: #b9a5ff;
+  font-size: 26px;
+  margin-bottom: 12px;
+}
+
+.vault-upload strong {
+  font-size: 14px;
+}
+
+.vault-upload > span:not(.upload-cta) {
+  color: var(--vault-muted);
+  font-size: 11px;
+  margin-top: 7px;
+}
+
+.upload-cta {
+  color: #b8a5ff;
+  padding: 10px 18px;
+  margin-top: 16px;
+  border: 1px solid rgba(159, 135, 255, .2);
+  border-radius: 11px;
+  background: #2c2546;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* IMAGE PREVIEW */
+
+.vault-preview img {
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: 15px;
+  margin-top: 14px;
+  background: #0d1120;
+}
+
+/* RESULT */
+
+.vault-result {
+  margin-top: 20px;
+  padding: 17px;
+  border-radius: 19px;
+  border: 1px solid rgba(100, 220, 170, .15);
+  background: rgba(39, 117, 88, .08);
+}
+
+.vault-result-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 17px;
+}
+
+.vault-success {
+  color: #70dfb2;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.vault-input-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #b8bfd8;
+  margin: 15px 0 8px;
+}
+
+.vault-result input,
+.vault-result textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #343b58;
+  border-radius: 13px;
+  background: #12172a;
+  color: white;
+  font-size: 14px;
+  padding: 15px;
+  outline: none;
+  transition: .2s ease;
+}
+
+.vault-result input:focus,
+.vault-result textarea:focus {
+  border-color: #8a6aff;
+  box-shadow: 0 0 0 3px rgba(122, 90, 255, .1);
+}
+
+.vault-result textarea {
+  resize: vertical;
+  overflow-wrap: anywhere;
+}
+
+/* PREMIUM SAVE BUTTON */
+
+.vault-save-btn {
+  width: 100%;
+  padding: 16px;
+  margin-top: 17px;
+  border: 0;
+  border-radius: 15px;
+  background: linear-gradient(110deg, #885dff, #4d80ff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 7px 22px rgba(110, 79, 236, .23);
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.vault-save-btn:active {
+  transform: scale(.97);
+}
+
+.vault-save-btn:disabled {
+  opacity: .55;
+  box-shadow: none;
+}
+
+/* STATUS */
+
+.vault-status {
+  margin-top: 13px;
+  color: #aeb6d2;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* SAVED LINKS HEADER */
+
+.vault-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 27px 3px 16px;
+}
+
+.vault-list-header h3 {
+  margin: 7px 0 0;
+  font-size: 21px;
+}
+
+.vault-list-icon {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  background: #242b45;
+  color: #a997ff;
+  border-radius: 14px;
+  font-size: 21px;
+}
+
+/* SAVED LINK CARDS */
+
+.vault-list {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.qr-link-card {
+  padding: 17px;
+  border-radius: 19px;
+  border: 1px solid var(--vault-border);
+  background: linear-gradient(145deg, #1c2239, #171c30);
+  transition: .2s ease;
+  overflow: hidden;
+}
+
+.qr-link-card:active {
+  transform: scale(.99);
+}
+
+.qr-link-card strong {
+  display: block;
+  color: #f3f4ff;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.qr-link-meta {
+  color: #929bb9;
+  font-size: 11px;
+  margin-top: 8px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* OPEN LINK BUTTON */
+
+.qr-link-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 13px;
+  margin-top: 16px;
+  border-radius: 14px;
+  background: linear-gradient(110deg, #8058f6, #4b7df5);
+  color: white !important;
+  text-decoration: none !important;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 5px 16px rgba(99, 74, 218, .18);
+  transition: .2s ease;
+}
+
+.qr-link-button:active {
+  transform: scale(.96);
+  filter: brightness(.9);
+}
+
+/* SECONDARY BUTTONS */
+
+.qr-link-card button.secondary {
+  min-height: 42px;
+  padding: 11px 14px;
+  margin: 10px 5px 0 0;
+  border: 1px solid #39415f;
+  border-radius: 12px;
+  background: #292f49;
+  color: #dce1fa;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.qr-link-card button.secondary:active {
+  transform: scale(.95);
+}
+
+.qr-delete-button {
+  min-height: 42px;
+  padding: 11px 14px;
+  margin-top: 10px;
+  border: 1px solid rgba(255, 112, 143, .13);
+  border-radius: 12px;
+  background: #3a263b;
+  color: #ff9eaf;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qr-delete-button:active {
+  transform: scale(.95);
+}
+
+/* EMPTY STATE */
+
+.qr-empty {
+  text-align: center;
+  padding: 28px 18px;
+  border: 1px dashed #373e5d;
+  border-radius: 18px;
+  background: rgba(25, 30, 48, .5);
+  color: #8993b3;
+  font-size: 13px;
+}
+
+/* CAMERA */
+
+.vault-camera {
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #090c16;
+  border: 1px solid #363e5c;
+  padding: 10px;
+}
+
+.vault-camera video {
+  width: 100%;
+  display: block;
+  max-height: 380px;
+  object-fit: cover;
+  border-radius: 13px;
+}
+
+.vault-stop-btn {
+  width: 100%;
+  padding: 13px;
+  margin-top: 10px;
+  background: #402738;
+  color: #ffb5c1;
+  border: 1px solid #58344a;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+/* MOBILE */
+
+@media (max-width: 420px) {
+  .vault-hero {
+    padding: 15px;
+    border-radius: 21px;
+  }
+
+  .vault-brand h2 {
+    font-size: 24px;
+  }
+
+  .vault-hero-top h3 {
+    font-size: 18px;
+  }
+
+  .qr-link-card {
+    padding: 14px;
+  }
+}
+
+/* BUTTON FEEDBACK */
+
+.vault-page button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-page *,
+  .qr-link-card,
+  .vault-scan-btn,
+  .vault-save-btn {
+    transition: none !important;
+  }
+}
+
 </style>
 </head>
 
@@ -266,71 +811,116 @@ background:#2d3653;margin-bottom:10px
   
 <!-- QR VAULT -->
 
+
 <section class="section" id="qr">
-  <div class="card">
 
-    <h2>QR Vault</h2>
-    <p>Scan atau upload gambar QR, POPER akan membaca dan menyimpan link-nya.</p>
+  <div class="vault-page">
 
-    <!-- KAMERA SCAN -->
-    <button id="startQRScanner" class="primary">
-      📷 Scan QR dengan Kamera
-    </button>
-
-    <div id="qrCameraBox" hidden>
-      <video id="qrVideo" autoplay playsinline
-        style="width:100%;border-radius:15px;background:#000">
-      </video>
-
-      <button id="stopQRScanner" class="secondary">
-        Tutup Kamera
-      </button>
+    <!-- HEADER -->
+    <div class="vault-header">
+      <div class="vault-brand">
+        <div class="vault-icon">✦</div>
+        <div>
+          <span class="vault-eyebrow">POPER PERSONAL VAULT</span>
+          <h2>QR Vault</h2>
+          <p>Simpan QR. Ubah menjadi link. Akses kapan saja.</p>
+        </div>
+      </div>
     </div>
 
-    <!-- UPLOAD QR -->
-    <label for="qrImageInput">Upload Gambar QR Code</label>
+    <!-- SCAN CARD -->
+    <div class="vault-hero">
 
-    <input
-      type="file"
-      id="qrImageInput"
-      accept="image/*"
-    >
+      <div class="vault-hero-top">
+        <div>
+          <span class="vault-label">QUICK ACTION</span>
+          <h3>Masukkan QR kamu</h3>
+          <p>Scan langsung atau ambil gambar QR dari galeri.</p>
+        </div>
+        <div class="vault-hero-symbol">⌗</div>
+      </div>
 
-    <div id="qrPreview"></div>
+      <button id="startQRScanner" class="vault-scan-btn">
+        <span class="btn-icon">⌗</span>
+        <span>
+          <strong>Scan QR Kamera</strong>
+          <small>Arahkan kamera ke kode QR</small>
+        </span>
+        <span class="btn-arrow">→</span>
+      </button>
 
-    <!-- HASIL QR -->
-    <div id="qrResultBox" hidden>
+      <div id="qrCameraBox" hidden class="vault-camera">
+        <video id="qrVideo" autoplay playsinline></video>
 
-      <label>Nama tombol / link</label>
+        <button id="stopQRScanner" class="vault-stop-btn">
+          ✕ Tutup Kamera
+        </button>
+      </div>
+
+      <div class="vault-divider">
+        <span>ATAU UPLOAD GAMBAR</span>
+      </div>
+
+      <label for="qrImageInput" class="vault-upload">
+        <div class="upload-icon">⇧</div>
+        <strong>Pilih gambar QR</strong>
+        <span>JPG, PNG, WEBP dari galeri</span>
+        <span class="upload-cta">Pilih gambar</span>
+      </label>
 
       <input
-        id="qrName"
-        placeholder="Contoh: Instagram Saya"
-      >
+        type="file"
+        id="qrImageInput"
+        accept="image/*"
+        hidden
+      />
 
-      <label>Link hasil scan</label>
+      <div id="qrPreview" class="vault-preview"></div>
 
-      <textarea
-        id="qrUrl"
-        placeholder="Hasil scan QR akan muncul di sini"
-      ></textarea>
+      <!-- RESULT -->
+      <div id="qrResultBox" hidden class="vault-result">
 
-      <button id="saveQR" class="primary">
-        💾 Simpan Link ke Vault
-      </button>
+        <div class="vault-result-heading">
+          <span class="vault-label">QR TERDETEKSI</span>
+          <span class="vault-success">● Berhasil dibaca</span>
+        </div>
 
+        <label class="vault-input-label">Nama tombol</label>
+        <input
+          id="qrName"
+          placeholder="Contoh: Instagram, Toko, Website"
+        />
+
+        <label class="vault-input-label">Link hasil scan</label>
+        <textarea
+          id="qrUrl"
+          placeholder="Link hasil QR akan muncul di sini"
+          rows="3"
+        ></textarea>
+
+        <button id="saveQR" class="vault-save-btn">
+          <span>＋</span> Simpan ke Vault
+        </button>
+      </div>
+
+      <div id="qrScanStatus" class="vault-status"></div>
     </div>
 
-    <div id="qrScanStatus"></div>
+    <!-- SAVED LINKS -->
+    <div class="vault-list-header">
+      <div>
+        <span class="vault-label">YOUR COLLECTION</span>
+        <h3>Link Tersimpan</h3>
+      </div>
+      <div class="vault-list-icon">▤</div>
+    </div>
 
-    <hr style="border-color:#303650;margin:25px 0">
-
-    <h2>Link Tersimpan</h2>
-
-    <div id="qrList"></div>
+    <div id="qrList" class="vault-list"></div>
 
   </div>
+
 </section>
+
 
 
 

@@ -1,1436 +1,862 @@
 
 import "./firebase.js";
 
-/* ============================================
-   POPER APP — FULL INTEGRATED VERSION
-   Firebase helper from existing firebase.js
-============================================ */
-
 const $ = id => document.getElementById(id);
+const auth = window.POPER.auth;
 
-const POPER = window.POPER;
+let confirmation = null;
+let links = [];
+let pages = [];
+let pageBlocks = [];
+let editorMode = "visual";
 
-if (!POPER) {
-  console.error("POPER Firebase belum dimuat. Periksa firebase.js");
-}
-
-let currentUser = null;
-let otpConfirmation = null;
-let currentProfile = {};
-let profileEditorPhoto = "";
-let selectedPhoneNumber = "";
-let detectedPhoneNumbers = [];
-let phoneStream = null;
+let phoneCameraStream = null;
 let phoneOCRWorker = null;
 let phoneOCRBusy = false;
-let phoneLiveTimer = null;
-let lastLiveOCR = 0;
-let qrStream = null;
-let qrFrame = null;
-let qrBusy = false;
-let qrRecords = {};
-let noteRecords = {};
-let cropImage = null;
-let cropScale = 1;
-let cropBaseScale = 1;
-let cropOffsetX = 0;
-let cropOffsetY = 0;
-let cropDragging = false;
-let cropStartX = 0;
-let cropStartY = 0;
-let cropStartOffsetX = 0;
-let cropStartOffsetY = 0;
-let cropImageObjectURL = null;
-let publicProfileUID = null;
+let phoneOCRActive = false;
+let phoneOCRTimer = null;
+let lastDetectedPhone = "";
 
-/* ============================================
+let cameraStream = null;
+let cameraActive = false;
+let cameraFrame = null;
+
+let scannedQRValue = "";
+
+/* ===============================
    UTILITIES
-============================================ */
+================================ */
 
-function setStatus(id, message, type = "") {
+function status(id, message, color) {
   const el = $(id);
   if (!el) return;
-
   el.textContent = message;
-  el.className = "status" + (type ? " " + type : "");
+  if (color) el.style.color = color;
 }
 
-function cleanText(value) {
-  return String(value || "").trim();
-}
-
-function normalizePhone(value) {
-  let phone = String(value || "").replace(/\D/g, "");
-
-  if (phone.startsWith("0062")) phone = phone.slice(2);
-  if (phone.startsWith("62")) phone = "0" + phone.slice(2);
-  if (phone.startsWith("8")) phone = "0" + phone;
-
-  return phone;
-}
-
-function phoneKey(value) {
-  return normalizePhone(value).replace(/\D/g, "");
-}
-
-function normalizePhoneForWhatsApp(value) {
-  let n = normalizePhone(value);
-  if (n.startsWith("0")) n = "62" + n.slice(1);
-  return n;
+function escapeHTML(value = "") {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[c]);
 }
 
 function safeURL(value) {
   try {
-    const url = new URL(String(value || "").trim());
-    if (url.protocol === "http:" || url.protocol === "https:") {
-      return url.href;
-    }
+    const u = new URL(String(value).trim());
+    if (["http:", "https:"].includes(u.protocol)) return u.href;
   } catch {}
   return "";
 }
 
-function showSection(id) {
-  const targetId = id === "scanner" ? "phoneScanner" : id;
+function phoneKey(phone) {
+  return window.POPER.normalizePhone(phone).replace(/\D/g, "");
+}
+
+function uid() {
+  return auth.currentUser?.uid || "";
+}
+
+function basePath() {
+  return `users/${uid()}`;
+}
+
+function animationClass(animation) {
+  const allowed = ["shake", "pulse", "bounce", "glow"];
+  return allowed.includes(animation) ? `anim-${animation}` : "";
+}
+
+function makeSlug(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9 -]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+function escapeAttr(value) {
+  return escapeHTML(value);
+}
+
+/* ===============================
+   NAVIGATION
+================================ */
+
+function showSection(name) {
+  const target = name === "scanner" ? "phoneScanner" : name;
 
   document.querySelectorAll(".section").forEach(section => {
-    section.classList.remove("active");
+    section.classList.toggle("active", section.id === target);
   });
 
-  const target = $(targetId);
-  if (target) target.classList.add("active");
-
-  const navTarget = targetId === "phoneScanner" ? "phoneScanner" : targetId;
-
-  document.querySelectorAll(".nav-item").forEach(button => {
-    button.classList.toggle(
-      "active",
-      button.dataset.openTab === navTarget
-    );
+  document.querySelectorAll(".nav-btn").forEach(button => {
+    button.classList.toggle("active", button.dataset.tab === name);
   });
 
-  if (targetId !== "phoneScanner") stopPhoneCamera();
-  if (targetId !== "qr") stopQRScanner();
-
-  if (targetId === "identity" && currentUser) {
-    renderIdentity(currentUser);
+  if (name !== "scanner") {
+    stopPhoneScanner();
   }
 
-  if (targetId === "profileEditor" && currentUser) {
-    loadMyProfileEditor();
-  }
+  if (name !== "qr") stopCameraScanner();
 
-  if (targetId === "notes" && currentUser) {
-    loadNotes();
-  }
-
-  if (targetId === "qr" && currentUser) {
-    loadQRVault();
-  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+document.querySelectorAll("[data-tab]").forEach(button => {
+  button.addEventListener("click", () => showSection(button.dataset.tab));
+});
 
 document.querySelectorAll("[data-open-tab]").forEach(button => {
-  button.addEventListener("click", () => {
-    showSection(button.dataset.openTab);
-  });
+  button.addEventListener("click", () => showSection(button.dataset.openTab));
 });
 
-/* ============================================
-   THEME
-============================================ */
+$("mainScanButton")?.addEventListener("click", () => showSection("scanner"));
 
-function applyTheme(theme) {
-  document.body.classList.toggle("dark", theme === "dark");
-  localStorage.setItem("poper_theme", theme);
+$("backFromScanner")?.addEventListener("click", () => showSection("scan"));
 
-  const btn = $("themeToggle");
-  if (btn) btn.textContent = theme === "dark" ? "🌙" : "☀️";
-}
+/* ===============================
+   AUTH
+================================ */
 
-applyTheme(localStorage.getItem("poper_theme") || "light");
-
-$("themeToggle")?.addEventListener("click", () => {
-  const dark = document.body.classList.contains("dark");
-  applyTheme(dark ? "light" : "dark");
-});
-
-/* ============================================
-   AUTH OTP
-============================================ */
-
-function authStatus(message, error = false) {
-  setStatus("authStatus", message, error ? "error" : "");
-}
-
-$("sendOtpBtn")?.addEventListener("click", async () => {
-  const phone = cleanText($("phoneInput").value);
-
-  if (!phone) {
-    authStatus("Masukkan nomor HP terlebih dahulu.", true);
+function loginUI(user) {
+  if (!user) {
+    $("loginPanel").hidden = false;
+    $("dashboard").hidden = true;
+    $("appBottomNav").hidden = true;
+    $("logoutBtn").hidden = true;
+    stopPhoneScanner();
+    stopCameraScanner();
     return;
   }
 
-  if (!POPER?.sendOTP) {
-    authStatus("Fungsi OTP tidak ditemukan di firebase.js", true);
+  $("loginPanel").hidden = true;
+  $("dashboard").hidden = false;
+  $("appBottomNav").hidden = false;
+  $("logoutBtn").hidden = false;
+
+  $("welcome").textContent = "Halo, pengguna POPER!";
+  $("myPhone").textContent = user.phoneNumber || "";
+
+  loadAll();
+}
+
+$("sendOtpBtn")?.addEventListener("click", async () => {
+  const phone = $("phoneInput")?.value.trim();
+
+  if (!phone) {
+    status("authStatus", "Masukkan nomor HP.");
     return;
   }
 
   try {
-    $("sendOtpBtn").disabled = true;
-    authStatus("Mengirim OTP...");
-
-    otpConfirmation = await POPER.sendOTP(phone);
-
-    $("otpSection").classList.remove("hidden");
-    authStatus("OTP berhasil dikirim. Periksa SMS.");
-
+    status("authStatus", "Mengirim OTP...");
+    confirmation = await window.POPER.sendOTP(phone);
+    $("otpSection").hidden = false;
+    status("authStatus", "OTP terkirim. Periksa SMS.");
   } catch (error) {
-    console.error(error);
-    authStatus(error.message || "Gagal mengirim OTP.", true);
-    POPER.resetRecaptcha?.();
-
-  } finally {
-    $("sendOtpBtn").disabled = false;
+    status("authStatus", error.message || "Gagal mengirim OTP.");
+    try { window.POPER.resetRecaptcha(); } catch {}
   }
 });
 
 $("verifyOtpBtn")?.addEventListener("click", async () => {
-  const code = cleanText($("otpInput").value);
+  const code = $("otpInput")?.value.trim();
 
-  if (!code || !otpConfirmation) {
-    authStatus("Kirim OTP terlebih dahulu.", true);
+  if (!confirmation || !code) {
+    status("authStatus", "Masukkan OTP.");
     return;
   }
 
   try {
-    $("verifyOtpBtn").disabled = true;
-    authStatus("Memverifikasi OTP...");
-
-    const result = await otpConfirmation.confirm(code);
-
-    if (result?.user) {
-      currentUser = result.user;
-    }
-
-    authStatus("Login berhasil.");
-
+    status("authStatus", "Memverifikasi...");
+    const result = await confirmation.confirm(code);
+    loginUI(result.user);
+    status("authStatus", "Login berhasil.");
   } catch (error) {
-    console.error(error);
-    authStatus(error.message || "Kode OTP salah.", true);
-
-  } finally {
-    $("verifyOtpBtn").disabled = false;
+    status("authStatus", error.message || "OTP salah.");
   }
 });
 
 $("logoutBtn")?.addEventListener("click", async () => {
-  try {
-    await POPER.logout();
-  } catch (error) {
-    console.error(error);
-  }
+  stopPhoneScanner();
+  stopCameraScanner();
+  await window.POPER.logout();
 });
 
-POPER?.onAuth?.(user => {
-  currentUser = user || null;
-
-  if (user) {
-    $("loginPanel")?.classList.add("hidden");
-    $("dashboard")?.classList.remove("hidden");
-    $("bottomNav")?.classList.remove("hidden");
-
-    loadBio();
-    loadQRVault();
-    loadNotes();
-    loadMyProfileEditor();
-    renderIdentity(user);
-
-  } else {
-    $("loginPanel")?.classList.remove("hidden");
-    $("dashboard")?.classList.add("hidden");
-    $("bottomNav")?.classList.add("hidden");
-
-    stopPhoneCamera();
-    stopQRScanner();
-  }
-});
-
-/* ============================================
-   BIO LINK
-============================================ */
-
-async function loadBio() {
-  if (!currentUser) return;
-
-  try {
-    const profile = await POPER.getData(
-      `users/${currentUser.uid}/publicBio`
-    );
-
-    currentProfile = profile || {};
-
-    $("bioName").value = profile?.name || "";
-    $("bioDesc").value = profile?.description || profile?.bio || "";
-    $("bioTitle").value = profile?.title || "";
-    $("bioUrl").value = profile?.url || "";
-
-  } catch (error) {
-    console.error("Load Bio:", error);
-  }
-}
+/* ===============================
+   BIO
+================================ */
 
 $("saveBio")?.addEventListener("click", async () => {
-  if (!currentUser) return;
-
-  const name = cleanText($("bioName").value);
-  const description = cleanText($("bioDesc").value);
-  const title = cleanText($("bioTitle").value);
-  const url = safeURL($("bioUrl").value);
-
-  if (!name) {
-    setStatus("bioStatus", "Nama wajib diisi.", "error");
-    return;
-  }
-
-  if ($("bioUrl").value.trim() && !url) {
-    setStatus("bioStatus", "URL tidak valid. Gunakan https://", "error");
-    return;
-  }
+  if (!uid()) return;
 
   try {
-    setStatus("bioStatus", "Menyimpan...");
-
-    const old = currentProfile || {};
-
-    const profile = {
-      ...old,
-      uid: currentUser.uid,
-      name,
-      description,
-      bio: old.bio || description,
-      title,
-      url,
-      phone: currentUser.phoneNumber || old.phone || "",
-      updatedAt: Date.now()
-    };
-
-    await POPER.saveData(
-      `users/${currentUser.uid}/publicBio`,
-      profile
-    );
-
-    currentProfile = profile;
-
-    if (profile.phone) {
-      await POPER.saveData(
-        `phoneLookup/${phoneKey(profile.phone)}`,
-        {
-          uid: currentUser.uid,
-          phone: profile.phone
-        }
-      );
-    }
-
-    setStatus("bioStatus", "Bio berhasil disimpan!", "success");
-    renderIdentity(currentUser);
-
-  } catch (error) {
-    console.error(error);
-    setStatus("bioStatus", error.message || "Gagal menyimpan Bio.", "error");
-  }
-});
-
-/* ============================================
-   PHONE SCANNER CAMERA
-============================================ */
-
-async function startPhoneCamera() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    setStatus("phoneScanStatus", "Browser tidak mendukung kamera.", "error");
-    return;
-  }
-
-  try {
-    stopPhoneCamera();
-
-    phoneStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
-      audio: false
-    });
-
-    $("phoneScanVideo").srcObject = phoneStream;
-    $("phoneScanVideo").classList.remove("hidden");
-    $("phoneScanPlaceholder").classList.add("hidden");
-
-    setStatus("phoneScanStatus", "Kamera aktif. Arahkan ke nomor HP.");
-
-    startLiveOCR();
-
-  } catch (error) {
-    console.error(error);
-    setStatus("phoneScanStatus", "Tidak dapat mengakses kamera. Periksa izin kamera.", "error");
-  }
-}
-
-function stopPhoneCamera() {
-  if (phoneStream) {
-    phoneStream.getTracks().forEach(track => track.stop());
-    phoneStream = null;
-  }
-
-  if ($("phoneScanVideo")) {
-    $("phoneScanVideo").srcObject = null;
-  }
-
-  clearInterval(phoneLiveTimer);
-  phoneLiveTimer = null;
-
-  $("phoneScanPlaceholder")?.classList.remove("hidden");
-}
-
-$("startPhoneCamera")?.addEventListener("click", startPhoneCamera);
-$("stopPhoneCamera")?.addEventListener("click", stopPhoneCamera);
-
-$("backFromScanner")?.addEventListener("click", () => {
-  showSection("home");
-});
-
-/* ============================================
-   OCR WORKER
-============================================ */
-
-async function getPhoneOCRWorker() {
-  if (phoneOCRWorker) return phoneOCRWorker;
-
-  if (!window.Tesseract) {
-    throw new Error("OCR engine belum tersedia.");
-  }
-
-  phoneOCRWorker = await Tesseract.createWorker("eng");
-
-  await phoneOCRWorker.setParameters({
-    tessedit_char_whitelist: "0123456789+()- ",
-    tessedit_pageseg_mode: "6",
-    preserve_interword_spaces: "1"
-  });
-
-  return phoneOCRWorker;
-}
-
-function extractPhoneCandidates(text) {
-  const cleaned = String(text || "")
-    .replace(/[Oo]/g, "0")
-    .replace(/[Il|]/g, "1");
-
-  const matches = cleaned.match(
-    /(?:\+?62|0)\s*(?:[\d\s().-]{7,18})/g
-  ) || [];
-
-  const result = [];
-
-  for (const match of matches) {
-    let number = match.replace(/\D/g, "");
-
-    if (number.startsWith("62")) {
-      number = "0" + number.slice(2);
-    }
-
-    if (number.startsWith("8")) {
-      number = "0" + number;
-    }
-
-    if (/^08\d{8,13}$/.test(number) && !result.includes(number)) {
-      result.push(number);
-    }
-  }
-
-  return result;
-}
-
-function mergePhoneCandidates(...arrays) {
-  const all = [];
-
-  arrays.flat().forEach(value => {
-    const n = normalizePhone(value);
-
-    if (/^08\d{8,13}$/.test(n) && !all.includes(n)) {
-      all.push(n);
-    }
-  });
-
-  return all;
-}
-
-function renderPhoneCandidates(numbers) {
-  detectedPhoneNumbers = mergePhoneCandidates(numbers);
-
-  const box = $("phoneCandidates");
-  const list = $("candidateList");
-
-  if (!box || !list) return;
-
-  list.innerHTML = "";
-
-  if (!detectedPhoneNumbers.length) {
-    box.classList.add("hidden");
-    return;
-  }
-
-  box.classList.remove("hidden");
-  $("candidateCount").textContent = detectedPhoneNumbers.length + " nomor";
-
-  detectedPhoneNumbers.forEach((number, index) => {
-    const button = document.createElement("button");
-
-    button.type = "button";
-    button.className = "phone-candidate";
-
-    if (selectedPhoneNumber === number) {
-      button.classList.add("selected");
-    }
-
-    const left = document.createElement("span");
-    left.textContent = number;
-
-    const right = document.createElement("strong");
-    right.textContent = selectedPhoneNumber === number ? "✓" : "Pilih";
-
-    button.append(left, right);
-
-    button.addEventListener("click", () => {
-      selectPhoneCandidate(number, true);
-    });
-
-    list.appendChild(button);
-  });
-}
-
-function selectPhoneCandidate(number, autoSearch = false) {
-  selectedPhoneNumber = number;
-  $("scannedPhoneNumber").value = number;
-  renderPhoneCandidates(detectedPhoneNumbers);
-
-  setStatus("phoneScanStatus", "Nomor dipilih: " + number, "success");
-
-  if (autoSearch) {
-    autoFindBio(number);
-  }
-}
-
-async function recognizePhone(source, live = false) {
-  if (phoneOCRBusy) return [];
-
-  phoneOCRBusy = true;
-
-  try {
-    const worker = await getPhoneOCRWorker();
-
-    const result = await worker.recognize(source);
-    const candidates = extractPhoneCandidates(result?.data?.text || "");
-
-    if (!live) {
-      renderPhoneCandidates(candidates);
-
-      if (candidates.length === 1) {
-        selectedPhoneNumber = candidates[0];
-        $("scannedPhoneNumber").value = candidates[0];
-      }
-
-      setStatus(
-        "phoneScanStatus",
-        candidates.length
-          ? `${candidates.length} nomor ditemukan. Pilih nomor atau edit.`
-          : "Nomor belum terbaca. Coba crop, zoom, atau foto ulang."
-      );
-    }
-
-    return candidates;
-
-  } catch (error) {
-    console.error("OCR:", error);
-
-    if (!live) {
-      setStatus("phoneScanStatus", "OCR gagal membaca gambar.", "error");
-    }
-
-    return [];
-
-  } finally {
-    phoneOCRBusy = false;
-  }
-}
-
-/* ============================================
-   LIVE OCR
-============================================ */
-
-function startLiveOCR() {
-  clearInterval(phoneLiveTimer);
-
-  phoneLiveTimer = setInterval(async () => {
-    if (!phoneStream || phoneOCRBusy) return;
-
-    const video = $("phoneScanVideo");
-
-    if (!video || video.readyState < 2 || video.videoWidth === 0) return;
-
-    const now = Date.now();
-
-    if (now - lastLiveOCR < 3500) return;
-    lastLiveOCR = now;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const candidates = await recognizePhone(canvas, true);
-
-    if (candidates.length) {
-      renderPhoneCandidates(candidates);
-      setStatus("phoneScanStatus", "Nomor terdeteksi. Ketuk nomor untuk memilih.");
-    }
-
-  }, 500);
-}
-
-/* ============================================
-   IMAGE UPLOAD OCR
-============================================ */
-
-async function handlePhoneImage(file) {
-  if (!file || !file.type.startsWith("image/")) return;
-
-  stopPhoneCamera();
-
-  if (cropImageObjectURL) {
-    URL.revokeObjectURL(cropImageObjectURL);
-  }
-
-  cropImageObjectURL = URL.createObjectURL(file);
-
-  $("phoneImagePreview").src = cropImageObjectURL;
-  $("phoneImagePreview").classList.remove("hidden");
-
-  const image = new Image();
-
-  image.onload = async () => {
-    openCropEditor(image);
-    await recognizePhone(image, false);
-  };
-
-  image.onerror = () => {
-    setStatus("phoneScanStatus", "Gambar tidak dapat dibuka.", "error");
-  };
-
-  image.src = cropImageObjectURL;
-}
-
-$("phoneImageUpload")?.addEventListener("change", event => {
-  handlePhoneImage(event.target.files?.[0]);
-});
-
-$("phoneTakePhoto")?.addEventListener("change", event => {
-  handlePhoneImage(event.target.files?.[0]);
-});
-
-/* ============================================
-   CROP / ZOOM EDITOR
-============================================ */
-
-function openCropEditor(image) {
-  cropImage = image;
-
-  const viewport = $("cropViewport");
-  const canvas = $("cropCanvas");
-  if (!viewport || !canvas) return;
-
-  const vw = viewport.clientWidth;
-  const vh = viewport.clientHeight;
-
-  canvas.width = image.naturalWidth || image.width;
-  canvas.height = image.naturalHeight || image.height;
-
-  canvas.style.left = "0";
-  canvas.style.top = "0";
-
-  canvas.getContext("2d").drawImage(image, 0, 0);
-
-  cropBaseScale = Math.min(vw / canvas.width, vh / canvas.height);
-  cropScale = cropBaseScale;
-
-  cropOffsetX = (vw - canvas.width * cropScale) / 2;
-  cropOffsetY = (vh - canvas.height * cropScale) / 2;
-
-  updateCropTransform();
-
-  $("cropEditor").classList.remove("hidden");
-  $("zoomValue").textContent = "100%";
-}
-
-function updateCropTransform() {
-  const canvas = $("cropCanvas");
-  if (!canvas) return;
-
-  canvas.style.transform =
-    `translate(${cropOffsetX}px,${cropOffsetY}px) scale(${cropScale})`;
-}
-
-function zoomCrop(multiplier) {
-  if (!cropImage) return;
-
-  const viewport = $("cropViewport");
-  const centerX = viewport.clientWidth / 2;
-  const centerY = viewport.clientHeight / 2;
-
-  const oldScale = cropScale;
-  cropScale = Math.min(cropBaseScale * 5, Math.max(cropBaseScale * .5, cropScale * multiplier));
-
-  const ratio = cropScale / oldScale;
-
-  cropOffsetX = centerX - (centerX - cropOffsetX) * ratio;
-  cropOffsetY = centerY - (centerY - cropOffsetY) * ratio;
-
-  updateCropTransform();
-
-  $("zoomValue").textContent =
-    Math.round((cropScale / cropBaseScale) * 100) + "%";
-}
-
-$("zoomIn")?.addEventListener("click", () => zoomCrop(1.2));
-$("zoomOut")?.addEventListener("click", () => zoomCrop(.83));
-
-$("resetCrop")?.addEventListener("click", () => {
-  if (cropImage) openCropEditor(cropImage);
-});
-
-const cropViewport = $("cropViewport");
-
-cropViewport?.addEventListener("pointerdown", event => {
-  cropDragging = true;
-  cropStartX = event.clientX;
-  cropStartY = event.clientY;
-  cropStartOffsetX = cropOffsetX;
-  cropStartOffsetY = cropOffsetY;
-
-  cropViewport.setPointerCapture(event.pointerId);
-});
-
-cropViewport?.addEventListener("pointermove", event => {
-  if (!cropDragging) return;
-
-  cropOffsetX = cropStartOffsetX + event.clientX - cropStartX;
-  cropOffsetY = cropStartOffsetY + event.clientY - cropStartY;
-
-  updateCropTransform();
-});
-
-cropViewport?.addEventListener("pointerup", () => cropDragging = false);
-cropViewport?.addEventListener("pointercancel", () => cropDragging = false);
-
-function getSelectedCropCanvas() {
-  if (!cropImage) return null;
-
-  const viewport = $("cropViewport");
-  const selection = $("cropSelection");
-
-  const vr = viewport.getBoundingClientRect();
-  const sr = selection.getBoundingClientRect();
-
-  const sx = (sr.left - vr.left - cropOffsetX) / cropScale;
-  const sy = (sr.top - vr.top - cropOffsetY) / cropScale;
-  const sw = sr.width / cropScale;
-  const sh = sr.height / cropScale;
-
-  const x = Math.max(0, Math.min(cropImage.width - 1, sx));
-  const y = Math.max(0, Math.min(cropImage.height - 1, sy));
-  const width = Math.max(1, Math.min(cropImage.width - x, sw));
-  const height = Math.max(1, Math.min(cropImage.height - y, sh));
-
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(width);
-  canvas.height = Math.round(height);
-
-  canvas.getContext("2d").drawImage(
-    cropImage,
-    x, y, width, height,
-    0, 0, canvas.width, canvas.height
-  );
-
-  return canvas;
-}
-
-$("scanCropButton")?.addEventListener("click", async () => {
-  const crop = getSelectedCropCanvas();
-  if (!crop) return;
-
-  setStatus("phoneScanStatus", "Membaca area crop...");
-  await recognizePhone(crop, false);
-});
-
-/* ============================================
-   FIND BIO
-============================================ */
-
-async function findBioByPhone(phone) {
-  const number = normalizePhone(phone);
-
-  if (!/^08\d{8,13}$/.test(number)) {
-    setStatus("findStatus", "Nomor HP tidak valid.", "error");
-    return null;
-  }
-
-  if (!currentUser) {
-    setStatus("findStatus", "Silakan login terlebih dahulu.", "error");
-    return null;
-  }
-
-  setStatus("findStatus", "Mencari Bio...");
-  $("findResult").classList.add("hidden");
-  $("contactConnect").classList.add("hidden");
-
-  try {
-    const lookup = await POPER.getData(
-      `phoneLookup/${phoneKey(number)}`
-    );
-
-    if (!lookup?.uid) {
-      setStatus("findStatus", "Bio belum ditemukan.", "");
-      renderFindNotFound(number);
-      openContactConnect(number, false);
-      return null;
-    }
-
-    const profile = await POPER.getData(
-      `users/${lookup.uid}/publicBio`
-    );
-
-    if (!profile) {
-      setStatus("findStatus", "Profil belum tersedia.", "");
-      openContactConnect(number, false);
-      return null;
-    }
-
-    setStatus("findStatus", "Profil ditemukan!", "success");
-    renderFindProfile(profile, lookup.uid);
-    openContactConnect(number, true);
-
-    return profile;
-
-  } catch (error) {
-    console.error("Find Bio:", error);
-    setStatus("findStatus", error.message || "Pencarian gagal.", "error");
-    return null;
-  }
-}
-
-$("findBioButton")?.addEventListener("click", () => {
-  findBioByPhone($("findPhone").value);
-});
-
-$("searchScannedPhone")?.addEventListener("click", () => {
-  const number = normalizePhone($("scannedPhoneNumber").value);
-  if (!number) {
-    setStatus("phoneScanStatus", "Masukkan nomor HP.", "error");
-    return;
-  }
-
-  $("findPhone").value = number;
-  showSection("find");
-  findBioByPhone(number);
-});
-
-async function autoFindBio(number) {
-  $("findPhone").value = number;
-  showSection("find");
-  await findBioByPhone(number);
-}
-
-function renderFindNotFound(phone) {
-  const result = $("findResult");
-  result.classList.remove("hidden");
-  result.innerHTML = "";
-
-  const h = document.createElement("h3");
-  h.textContent = "Bio belum ditemukan";
-
-  const p = document.createElement("p");
-  p.textContent = phone + " belum terdaftar di POPER.";
-
-  result.append(h, p);
-}
-
-function renderFindProfile(profile, uid) {
-  const result = $("findResult");
-  result.classList.remove("hidden");
-  result.innerHTML = "";
-
-  const avatar = document.createElement("img");
-  avatar.className = "profile-avatar";
-  avatar.src = profile.photoURL || profile.photo || "https://placehold.co/120x120";
-
-  const h = document.createElement("h2");
-  h.textContent = profile.name || "POPER User";
-
-  const desc = document.createElement("p");
-  desc.textContent = profile.bio || profile.description || "";
-  desc.className = "muted";
-
-  const profileButton = document.createElement("button");
-  profileButton.className = "primary-btn";
-  profileButton.textContent = "Buka Profil";
-  profileButton.addEventListener("click", () => {
-    openPublicProfile(uid);
-  });
-
-  result.append(avatar, h, desc, profileButton);
-}
-
-function openPublicProfile(uid) {
-  if (!uid) return;
-  publicProfileUID = uid;
-  showSection("publicProfile");
-  loadPublicProfile(uid);
-}
-
-/* ============================================
-   CONTACT CONNECT
-============================================ */
-
-function openContactConnect(phone, bioExists = false) {
-  const number = normalizePhone(phone);
-  if (!number) return;
-
-  const box = $("contactConnect");
-  if (!box) return;
-
-  box.classList.remove("hidden");
-  $("contactPhoneDisplay").textContent = number;
-  $("contactConnectStatus").textContent = bioExists
-    ? "Pengguna POPER ditemukan"
-    : "Nomor belum memiliki Bio POPER";
-
-  const wa = normalizePhoneForWhatsApp(number);
-
-  $("contactWhatsApp").onclick = () => {
-    window.open("https://wa.me/" + wa, "_blank", "noopener");
-  };
-
-  $("contactCopy").onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(number);
-      setStatus("findStatus", "Nomor berhasil disalin.", "success");
-    } catch {
-      prompt("Salin nomor ini:", number);
-    }
-  };
-
-  $("contactSave").onclick = () => downloadVCard({
-    name: "POPER Contact " + number,
-    phone: number,
-    url: ""
-  });
-
-  $("contactShare").onclick = async () => {
-    const data = { title: "Kontak POPER", text: number };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(data);
-      } catch (e) {
-        if (e.name !== "AbortError") console.error(e);
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(number);
-        setStatus("findStatus", "Nomor disalin.", "success");
-      } catch {
-        prompt("Salin nomor:", number);
-      }
-    }
-  };
-
-  $("contactInvite").onclick = async () => {
-    const text = "Yuk bergabung di POPER! https://poper.web.id";
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "POPER", text });
-      } catch (e) {
-        if (e.name !== "AbortError") console.error(e);
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(text);
-        setStatus("findStatus", "Link undangan disalin.", "success");
-      } catch {
-        prompt("Bagikan link POPER:", text);
-      }
-    }
-  };
-}
-
-function downloadVCard({ name, phone, url }) {
-  const lines = [
-    "BEGIN:VCARD",
-    "VERSION:3.0",
-    "FN:" + String(name || "POPER Contact").replace(/\n/g, " "),
-    phone ? "TEL;TYPE=CELL:" + phone : "",
-    url ? "URL:" + url : "",
-    "END:VCARD"
-  ].filter(Boolean);
-
-  const blob = new Blob([lines.join("\r\n")], {
-    type: "text/vcard;charset=utf-8"
-  });
-
-  const objectURL = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = objectURL;
-  a.download = "POPER-Contact.vcf";
-  a.click();
-
-  setTimeout(() => URL.revokeObjectURL(objectURL), 1500);
-}
-
-/* ============================================
-   PROFILE EDITOR
-============================================ */
-
-function fillProfileEditor(profile = {}) {
-  $("editProfileName").value = profile.name || "";
-  $("editUsername").value = (profile.username || "").replace(/^@/, "");
-  $("editProfileBio").value = profile.bio || profile.description || "";
-  $("editProfileWhatsApp").value = profile.phone || currentUser?.phoneNumber || "";
-
-  const links = profile.links || {};
-
-  $("editInstagram").value = links.instagram || "";
-  $("editTikTok").value = links.tiktok || "";
-  $("editFacebook").value = links.facebook || "";
-  $("editYouTube").value = links.youtube || "";
-  $("editWebsite").value = links.website || "";
-  $("editTelegram").value = links.telegram || "";
-
-  profileEditorPhoto = profile.photoURL || profile.photo || "";
-  $("editProfilePhoto").src = profileEditorPhoto || "https://placehold.co/120x120";
-}
-
-async function loadMyProfileEditor() {
-  if (!currentUser) return;
-
-  try {
-    const profile = await POPER.getData(
-      `users/${currentUser.uid}/publicBio`
-    );
-
-    fillProfileEditor(profile || {});
-  } catch (error) {
-    console.error(error);
-    setStatus("profileEditorStatus", "Gagal memuat profil.", "error");
-  }
-}
-
-function validEditorLink(value) {
-  if (!value.trim()) return "";
-
-  const url = safeURL(value);
-
-  if (!url) {
-    throw new Error("Link tidak valid. Gunakan alamat http/https.");
-  }
-
-  return url;
-}
-
-function normalizeUsername(value) {
-  return value.toLowerCase()
-    .trim()
-    .replace(/^@/, "")
-    .replace(/[^a-z0-9._]/g, "");
-}
-
-async function saveMyProfileEditor() {
-  if (!currentUser) {
-    setStatus("profileEditorStatus", "Login terlebih dahulu.", "error");
-    return;
-  }
-
-  const name = cleanText($("editProfileName").value);
-  const username = normalizeUsername($("editUsername").value);
-
-  if (!name) {
-    setStatus("profileEditorStatus", "Nama wajib diisi.", "error");
-    return;
-  }
-
-  if (username.length < 3) {
-    setStatus("profileEditorStatus", "Username minimal 3 karakter.", "error");
-    return;
-  }
-
-  try {
-    const links = {
-      instagram: validEditorLink($("editInstagram").value),
-      tiktok: validEditorLink($("editTikTok").value),
-      facebook: validEditorLink($("editFacebook").value),
-      youtube: validEditorLink($("editYouTube").value),
-      website: validEditorLink($("editWebsite").value),
-      telegram: validEditorLink($("editTelegram").value)
-    };
-
-    const previous = currentProfile || {};
-
-    const profile = {
-      ...previous,
-      uid: currentUser.uid,
-      name,
-      username,
-      bio: cleanText($("editProfileBio").value),
-      description: cleanText($("editProfileBio").value),
-      phone: cleanText($("editProfileWhatsApp").value) || currentUser.phoneNumber || "",
-      photoURL: profileEditorPhoto,
+    await window.POPER.saveData(`${basePath()}/publicBio`, {
+      name: $("bioName").value.trim(),
+      description: $("bioDesc").value.trim(),
+      phone: auth.currentUser.phoneNumber || "",
       links,
       updatedAt: Date.now()
-    };
+    });
 
-    setStatus("profileEditorStatus", "Menyimpan profil...");
-
-    await POPER.saveData(
-      `users/${currentUser.uid}/publicBio`,
-      profile
+    await window.POPER.saveData(
+      `phoneLookup/${phoneKey(auth.currentUser.phoneNumber)}`,
+      {
+        uid: uid(),
+        phone: auth.currentUser.phoneNumber
+      }
     );
 
-    currentProfile = profile;
-
-    if (profile.phone) {
-      await POPER.saveData(
-        `phoneLookup/${phoneKey(profile.phone)}`,
-        { uid: currentUser.uid, phone: profile.phone }
-      );
-    }
-
-    renderIdentity(currentUser);
-    setStatus("profileEditorStatus", "Profil berhasil disimpan!", "success");
-
+    status("bioStatus", "Profil berhasil disimpan!");
+    renderBioLinks();
+    renderBioPreview();
   } catch (error) {
-    console.error(error);
-    setStatus("profileEditorStatus", error.message || "Gagal menyimpan.", "error");
+    status("bioStatus", error.message || "Gagal menyimpan profil.");
+  }
+});
+
+async function loadBio() {
+  if (!uid()) return;
+
+  try {
+    const data = await window.POPER.getData(`${basePath()}/publicBio`);
+    if (!data) return;
+
+    $("bioName").value = data.name || "";
+    $("bioDesc").value = data.description || "";
+
+    links = Array.isArray(data.links) ? data.links : [];
+
+    renderBioLinks();
+    renderBuilderLinks();
+    renderBioPreview();
+  } catch (error) {
+    console.error("Load bio:", error);
   }
 }
 
-$("saveProfileEditor")?.addEventListener("click", saveMyProfileEditor);
+$("openPublicBio")?.addEventListener("click", () => {
+  renderBioPreview();
+  showSection("builder");
+});
 
-$("profilePhotoUpload")?.addEventListener("change", event => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+/* ===============================
+   LINK BUILDER
+================================ */
 
-  if (!file.type.startsWith("image/")) {
-    setStatus("profileEditorStatus", "File bukan gambar.", "error");
+$("addBioLink")?.addEventListener("click", () => {
+  const title = $("linkTitle").value.trim();
+  const url = safeURL($("linkURL").value);
+  const type = $("linkType").value;
+  const image = safeURL($("linkImage").value);
+  const animation = $("linkAnimation").value;
+
+  if (!title) {
+    status("builderStatus", "Masukkan nama tombol.");
     return;
   }
 
-  if (file.size > 2 * 1024 * 1024) {
-    setStatus("profileEditorStatus", "Ukuran foto maksimal 2 MB.", "error");
+  if (!url) {
+    status("builderStatus", "URL tujuan harus valid dan menggunakan http/https.");
     return;
   }
 
-  const reader = new FileReader();
+  if (type === "image" && !image) {
+    status("builderStatus", "Tombol gambar membutuhkan URL gambar.");
+    return;
+  }
 
-  reader.onload = () => {
-    const img = new Image();
+  links.push({
+    id: crypto.randomUUID(),
+    title,
+    url,
+    type,
+    image,
+    animation
+  });
 
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const max = 600;
-      const scale = Math.min(1, max / Math.max(img.width, img.height));
+  $("linkTitle").value = "";
+  $("linkURL").value = "";
+  $("linkImage").value = "";
 
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
+  renderBioLinks();
+  renderBuilderLinks();
+  renderBioPreview();
 
-      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+  status("builderStatus", "Link ditambahkan. Tekan Simpan Profil untuk menyimpan online.");
+});
 
-      profileEditorPhoto = canvas.toDataURL("image/jpeg", .75);
-      $("editProfilePhoto").src = profileEditorPhoto;
-      setStatus("profileEditorStatus", "Foto siap disimpan.");
+function renderBioLinks() {
+  const container = $("bioLinks");
+  if (!container) return;
+
+  if (!links.length) {
+    container.innerHTML = "<p>Belum ada link.</p>";
+    return;
+  }
+
+  container.innerHTML = links.map(link => `
+    <div class="item">
+      <strong>${escapeHTML(link.title)}</strong>
+      ${link.type === "image" && safeURL(link.image)
+        ? `<img src="${escapeAttr(link.image)}" alt="">`
+        : ""}
+      <a class="builder-link ${animationClass(link.animation)}"
+         href="${escapeAttr(safeURL(link.url))}"
+         target="_blank" rel="noopener noreferrer">
+        ${escapeHTML(link.title)}
+      </a>
+    </div>
+  `).join("");
+}
+
+function renderBuilderLinks() {
+  const container = $("builderLinks");
+  if (!container) return;
+
+  container.innerHTML = links.map((link, index) => `
+    <div class="item">
+      <strong>${escapeHTML(link.title)}</strong>
+      <small>${escapeHTML(link.url)}</small>
+      <p>Jenis: ${escapeHTML(link.type)} · Animasi: ${escapeHTML(link.animation || "none")}</p>
+      ${link.type === "image" && safeURL(link.image)
+        ? `<img src="${escapeAttr(link.image)}" style="width:100%;border-radius:12px">`
+        : ""}
+      <div class="item-actions">
+        <button class="secondary small" data-edit-link="${index}">Edit</button>
+        <button class="danger small" data-delete-link="${index}">Hapus</button>
+        <button class="secondary small" data-up-link="${index}">↑</button>
+        <button class="secondary small" data-down-link="${index}">↓</button>
+      </div>
+    </div>
+  `).join("");
+
+  container.querySelectorAll("[data-delete-link]").forEach(button => {
+    button.onclick = () => {
+      links.splice(Number(button.dataset.deleteLink), 1);
+      renderBuilderLinks();
+      renderBioLinks();
+      renderBioPreview();
     };
+  });
 
-    img.src = reader.result;
+  container.querySelectorAll("[data-edit-link]").forEach(button => {
+    button.onclick = () => {
+      const i = Number(button.dataset.editLink);
+      const link = links[i];
+
+      $("linkTitle").value = link.title || "";
+      $("linkURL").value = link.url || "";
+      $("linkType").value = link.type || "text";
+      $("linkImage").value = link.image || "";
+      $("linkAnimation").value = link.animation || "none";
+
+      links.splice(i, 1);
+      renderBuilderLinks();
+      renderBioLinks();
+      renderBioPreview();
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+  });
+
+  container.querySelectorAll("[data-up-link]").forEach(button => {
+    button.onclick = () => {
+      const i = Number(button.dataset.upLink);
+      if (i <= 0) return;
+      [links[i - 1], links[i]] = [links[i], links[i - 1]];
+      renderBuilderLinks();
+      renderBioLinks();
+      renderBioPreview();
+    };
+  });
+
+  container.querySelectorAll("[data-down-link]").forEach(button => {
+    button.onclick = () => {
+      const i = Number(button.dataset.downLink);
+      if (i >= links.length - 1) return;
+      [links[i + 1], links[i]] = [links[i], links[i + 1]];
+      renderBuilderLinks();
+      renderBioLinks();
+      renderBioPreview();
+    };
+  });
+}
+
+function renderBioPreview() {
+  const container = $("bioPreview");
+  if (!container) return;
+
+  const name = $("bioName")?.value || "Nama kamu";
+  const desc = $("bioDesc")?.value || "";
+
+  container.innerHTML = `
+    <div class="preview-profile">
+      <div class="preview-name">${escapeHTML(name)}</div>
+      <div class="preview-desc">${escapeHTML(desc)}</div>
+    </div>
+    ${links.map(link => {
+      const url = safeURL(link.url);
+      if (!url) return "";
+
+      if (link.type === "image" && safeURL(link.image)) {
+        return `
+          <a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">
+            <img class="link-image ${animationClass(link.animation)}"
+                 src="${escapeAttr(link.image)}"
+                 alt="${escapeAttr(link.title)}">
+          </a>
+        `;
+      }
+
+      return `
+        <a class="link-button ${animationClass(link.animation)}"
+           href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">
+           ${escapeHTML(link.title)}
+        </a>
+      `;
+    }).join("")}
+  `;
+}
+
+/* ===============================
+   PAGE BUILDER
+================================ */
+
+function setEditorMode(mode) {
+  editorMode = mode;
+
+  $("visualEditor").hidden = mode !== "visual";
+  $("textEditor").hidden = mode !== "text";
+  $("htmlEditor").hidden = mode !== "html";
+}
+
+document.querySelectorAll("[data-editor-mode]").forEach(button => {
+  button.addEventListener("click", () => {
+    setEditorMode(button.dataset.editorMode);
+  });
+});
+
+$("addPageBlock")?.addEventListener("click", () => {
+  const type = $("blockType").value;
+  const content = $("blockContent").value.trim();
+  const extra = $("blockExtra").value.trim();
+
+  if (!content) {
+    status("pageStatus", "Isi konten blok terlebih dahulu.");
+    return;
+  }
+
+  pageBlocks.push({
+    id: crypto.randomUUID(),
+    type,
+    content,
+    extra
+  });
+
+  $("blockContent").value = "";
+  $("blockExtra").value = "";
+
+  renderPageBlocks();
+  previewPage();
+});
+
+function renderPageBlocks() {
+  const container = $("pageBlocks");
+  if (!container) return;
+
+  container.innerHTML = pageBlocks.map((block, index) => `
+    <div class="page-block">
+      <strong>${escapeHTML(block.type.toUpperCase())}</strong>
+      <p>${escapeHTML(block.content.slice(0, 200))}</p>
+      ${block.extra ? `<small>${escapeHTML(block.extra)}</small>` : ""}
+      <button class="danger small" data-delete-block="${index}">Hapus</button>
+    </div>
+  `).join("");
+
+  container.querySelectorAll("[data-delete-block]").forEach(button => {
+    button.onclick = () => {
+      pageBlocks.splice(Number(button.dataset.deleteBlock), 1);
+      renderPageBlocks();
+      previewPage();
+    };
+  });
+}
+
+function renderBlocksHTML(blocks) {
+  return blocks.map(block => {
+    const content = escapeHTML(block.content);
+    const extra = safeURL(block.extra);
+
+    switch (block.type) {
+      case "heading":
+        return `<h2>${content}</h2>`;
+
+      case "text":
+        return `<p>${content.replace(/\n/g, "<br>")}</p>`;
+
+      case "image":
+        return extra
+          ? `<img src="${escapeAttr(extra)}" alt="${content}">`
+          : "";
+
+      case "button":
+        return extra
+          ? `<a href="${escapeAttr(extra)}">${content}</a>`
+          : "";
+
+      case "html":
+        return sanitizeHTML(block.content);
+
+      default:
+        return `<p>${content}</p>`;
+    }
+  }).join("");
+}
+
+/* Basic sanitization for user HTML preview/public display */
+function sanitizeHTML(html) {
+  const template = document.createElement("template");
+  template.innerHTML = String(html || "");
+
+  template.content.querySelectorAll(
+    "script,iframe,object,embed,form,base,meta,link"
+  ).forEach(el => el.remove());
+
+  template.content.querySelectorAll("*").forEach(el => {
+    [...el.attributes].forEach(attr => {
+      const name = attr.name.toLowerCase();
+      const value = attr.value.trim().toLowerCase();
+
+      if (name.startsWith("on")) el.removeAttribute(attr.name);
+      if ((name === "href" || name === "src") &&
+          value.startsWith("javascript:")) {
+        el.removeAttribute(attr.name);
+      }
+    });
+  });
+
+  return template.innerHTML;
+}
+
+function currentPageContent() {
+  if (editorMode === "html") {
+    return {
+      mode: "html",
+      html: sanitizeHTML($("pageHTML").value),
+      text: "",
+      blocks: []
+    };
+  }
+
+  if (editorMode === "text") {
+    return {
+      mode: "text",
+      html: "",
+      text: $("pageText").value,
+      blocks: []
+    };
+  }
+
+  return {
+    mode: "visual",
+    html: "",
+    text: "",
+    blocks: pageBlocks
   };
+}
 
-  reader.readAsDataURL(file);
-});
+function previewPage() {
+  const container = $("pagePreview");
+  if (!container) return;
 
-$("previewProfileEditor")?.addEventListener("click", () => {
-  if (!currentUser) return;
-  openPublicProfile(currentUser.uid);
-});
+  const data = currentPageContent();
 
-/* ============================================
-   PUBLIC PROFILE
-============================================ */
+  let html = "";
 
-async function loadPublicProfile(uid) {
-  if (!uid) return;
+  if (data.mode === "html") {
+    html = sanitizeHTML(data.html);
+  } else if (data.mode === "text") {
+    html = `<div>${escapeHTML(data.text).replace(/\n/g, "<br>")}</div>`;
+  } else {
+    html = renderBlocksHTML(data.blocks);
+  }
 
-  $("publicProfileLoading").classList.remove("hidden");
-  $("publicProfileContent").classList.add("hidden");
-  $("publicProfileNotFound").classList.add("hidden");
+  container.innerHTML = html;
+}
+
+$("previewPage")?.addEventListener("click", previewPage);
+
+function collectPage() {
+  const title = $("pageTitle").value.trim();
+  const slug = makeSlug($("pageSlug").value || title);
+  const type = $("pageType").value;
+
+  return {
+    id: $("editingPageId")?.value || crypto.randomUUID(),
+    title,
+    slug,
+    type,
+    ...currentPageContent(),
+    published: false,
+    updatedAt: Date.now()
+  };
+}
+
+/* Create hidden editing ID if not already present */
+if (!$("editingPageId")) {
+  const hidden = document.createElement("input");
+  hidden.id = "editingPageId";
+  hidden.type = "hidden";
+  document.body.appendChild(hidden);
+}
+
+async function savePage(publish = false) {
+  if (!uid()) {
+    status("pageStatus", "Login terlebih dahulu.");
+    return;
+  }
+
+  const page = collectPage();
+
+  if (!page.title) {
+    status("pageStatus", "Isi nama halaman.");
+    return;
+  }
+
+  if (!page.slug) {
+    status("pageStatus", "Slug halaman tidak valid.");
+    return;
+  }
+
+  page.published = publish;
+  page.updatedAt = Date.now();
 
   try {
-    const profile = await POPER.getData(
-      `users/${uid}/publicBio`
+    await window.POPER.saveData(
+      `${basePath()}/pages/${page.id}`,
+      page
     );
 
-    if (!profile) {
-      $("publicProfileLoading").classList.add("hidden");
-      $("publicProfileNotFound").classList.remove("hidden");
+    const existing = pages.findIndex(p => p.id === page.id);
+    if (existing >= 0) pages[existing] = page;
+    else pages.push(page);
+
+    status(
+      "pageStatus",
+      publish ? "Halaman berhasil dipublikasikan!" : "Draft berhasil disimpan!"
+    );
+
+    renderMyPages();
+  } catch (error) {
+    status("pageStatus", error.message || "Gagal menyimpan halaman.");
+  }
+}
+
+$("savePage")?.addEventListener("click", () => savePage(false));
+$("publishPage")?.addEventListener("click", () => savePage(true));
+
+async function loadPages() {
+  if (!uid()) return;
+
+  try {
+    const data = await window.POPER.getData(`${basePath()}/pages`);
+    pages = data ? Object.values(data) : [];
+    renderMyPages();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function renderMyPages() {
+  const container = $("myPages");
+  if (!container) return;
+
+  if (!pages.length) {
+    container.innerHTML = "<p>Belum ada halaman.</p>";
+    return;
+  }
+
+  container.innerHTML = pages.map(page => `
+    <div class="item">
+      <strong>${escapeHTML(page.title)}</strong>
+      <p>${escapeHTML(page.slug)} · ${page.published ? "Published" : "Draft"}</p>
+      <div class="item-actions">
+        <button class="secondary small" data-edit-page="${escapeAttr(page.id)}">Edit</button>
+        <button class="secondary small" data-preview-page="${escapeAttr(page.id)}">Preview</button>
+        <button class="danger small" data-delete-page="${escapeAttr(page.id)}">Hapus</button>
+      </div>
+    </div>
+  `).join("");
+
+  container.querySelectorAll("[data-edit-page]").forEach(button => {
+    button.onclick = () => editPage(button.dataset.editPage);
+  });
+
+  container.querySelectorAll("[data-preview-page]").forEach(button => {
+    button.onclick = () => previewSavedPage(button.dataset.previewPage);
+  });
+
+  container.querySelectorAll("[data-delete-page]").forEach(button => {
+    button.onclick = async () => {
+      const id = button.dataset.deletePage;
+      if (!confirm("Hapus halaman ini?")) return;
+
+      await window.POPER.deleteData(`${basePath()}/pages/${id}`);
+      pages = pages.filter(p => p.id !== id);
+      renderMyPages();
+    };
+  });
+}
+
+function editPage(id) {
+  const page = pages.find(p => p.id === id);
+  if (!page) return;
+
+  $("editingPageId").value = page.id;
+  $("pageTitle").value = page.title || "";
+  $("pageSlug").value = page.slug || "";
+  $("pageType").value = page.type || "landing";
+
+  setEditorMode(page.mode || "visual");
+
+  pageBlocks = Array.isArray(page.blocks) ? page.blocks : [];
+  $("pageText").value = page.text || "";
+  $("pageHTML").value = page.html || "";
+
+  renderPageBlocks();
+  previewPage();
+
+  showSection("pages");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function previewSavedPage(id) {
+  const page = pages.find(p => p.id === id);
+  if (!page) return;
+
+  let html = "";
+  if (page.mode === "html") html = sanitizeHTML(page.html || "");
+  else if (page.mode === "text") html = escapeHTML(page.text || "").replace(/\n/g, "<br>");
+  else html = renderBlocksHTML(page.blocks || []);
+
+  $("pagePreview").innerHTML = `<h2>${escapeHTML(page.title)}</h2>${html}`;
+  showSection("pages");
+}
+
+/* ===============================
+   FIND BIO
+================================ */
+
+async function findBioByPhone(phone, containerId) {
+  const container = $(containerId);
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!phone.trim()) {
+    container.textContent = "Masukkan nomor HP.";
+    return;
+  }
+
+  try {
+    container.textContent = "Mencari...";
+    const key = phoneKey(phone);
+    const lookup = await window.POPER.getData(`phoneLookup/${key}`);
+
+    if (!lookup?.uid) {
+      container.textContent = "Bio POPER tidak ditemukan.";
       return;
     }
 
-    const name = profile.name || "POPER User";
-    const username = profile.username || "";
-    const bio = profile.bio || profile.description || "";
-    const photo = profile.photoURL || profile.photo || "";
-    const phone = profile.phone || "";
+    const bio = await window.POPER.getData(
+      `users/${lookup.uid}/publicBio`
+    );
 
-    $("publicName").textContent = name;
-    $("publicUsername").textContent = username ? "@" + username.replace(/^@/, "") : "";
-    $("publicBioText").textContent = bio;
-    $("publicAvatar").src = photo || "https://placehold.co/120x120";
+    if (!bio) {
+      container.textContent = "Bio belum tersedia.";
+      return;
+    }
 
-    renderPublicLinks(profile);
-
-    $("publicSaveContact").onclick = () => downloadVCard({
-      name,
-      phone,
-      url: publicProfileURL(uid)
-    });
-
-    $("publicShareProfile").onclick = async () => {
-      const url = publicProfileURL(uid);
-
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: name + " — POPER",
-            text: "Lihat profil saya",
-            url
-          });
-        } catch (e) {
-          if (e.name !== "AbortError") console.error(e);
-        }
-      } else {
-        try {
-          await navigator.clipboard.writeText(url);
-          alert("Link profil disalin.");
-        } catch {
-          prompt("Link profil:", url);
-        }
-      }
-    };
-
-    $("publicProfileLoading").classList.add("hidden");
-    $("publicProfileContent").classList.remove("hidden");
-
+    container.innerHTML = `
+      <div class="item">
+        <h3>${escapeHTML(bio.name || "Pengguna POPER")}</h3>
+        <p>${escapeHTML(bio.description || "")}</p>
+        <small>${escapeHTML(bio.phone || "")}</small>
+        ${Array.isArray(bio.links) ? bio.links.map(link => {
+          const url = safeURL(link.url);
+          if (!url) return "";
+          return `<a class="link-button ${animationClass(link.animation)}"
+            href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">
+            ${escapeHTML(link.title || "Buka Link")}
+          </a>`;
+        }).join("") : ""}
+      </div>
+    `;
   } catch (error) {
-    console.error("Public profile:", error);
-    $("publicProfileLoading").classList.add("hidden");
-    $("publicProfileNotFound").classList.remove("hidden");
+    container.textContent = error.message || "Pencarian gagal.";
   }
 }
 
-function renderPublicLinks(profile) {
-  const container = $("publicLinks");
-  container.innerHTML = "";
+$("findBio")?.addEventListener("click", () => {
+  findBioByPhone($("findPhone").value, "findResult");
+});
 
-  const links = profile.links || {};
-  const entries = [
-    ["Bio Link", profile.url],
-    ["Instagram", links.instagram],
-    ["TikTok", links.tiktok],
-    ["Facebook", links.facebook],
-    ["YouTube", links.youtube],
-    ["Website", links.website],
-    ["Telegram", links.telegram]
-  ];
+$("searchScannedPhone")?.addEventListener("click", () => {
+  findBioByPhone($("scannedPhoneNumber").value, "phoneScanResult");
+});
 
-  entries.forEach(([label, value]) => {
-    const url = safeURL(value);
-    if (!url) return;
+/* ===============================
+   QR VAULT
+================================ */
 
-    const a = document.createElement("a");
-    a.className = "profile-link";
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.textContent = "↗ " + label;
-    container.appendChild(a);
-  });
+function stopCameraScanner() {
+  cameraActive = false;
 
-  if (profile.phone) {
-    const wa = document.createElement("a");
-    wa.className = "profile-link";
-    wa.href = "https://wa.me/" + normalizePhoneForWhatsApp(profile.phone);
-    wa.target = "_blank";
-    wa.rel = "noopener noreferrer";
-    wa.textContent = "💬 WhatsApp";
-    container.appendChild(wa);
+  if (cameraFrame) {
+    cancelAnimationFrame(cameraFrame);
+    cameraFrame = null;
   }
+
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+
+  if ($("qrVideo")) $("qrVideo").srcObject = null;
+  if ($("qrCameraBox")) $("qrCameraBox").hidden = true;
 }
 
-function publicProfileURL(uid) {
-  return location.origin + location.pathname + "?uid=" + encodeURIComponent(uid);
-}
-
-$("publicBackHome")?.addEventListener("click", () => showSection("home"));
-$("publicNotFoundHome")?.addEventListener("click", () => showSection("home"));
-
-/* ============================================
-   SMART IDENTITY QR
-============================================ */
-
-function renderIdentity(user) {
-  if (!user) return;
-
-  const link = publicProfileURL(user.uid);
-
-  $("identityName").textContent = currentProfile.name || user.displayName || "POPER User";
-  $("identityPhone").textContent = currentProfile.phone || user.phoneNumber || "Nomor tidak tersedia";
-  $("identityLink").textContent = link;
-
-  const avatar = $("identityAvatar");
-
-  if (currentProfile.photoURL || currentProfile.photo) {
-    avatar.innerHTML = "";
-    const img = document.createElement("img");
-    img.src = currentProfile.photoURL || currentProfile.photo;
-    avatar.appendChild(img);
-  } else {
-    avatar.textContent = "👤";
-  }
-
-  const qr = $("identityQR");
-  qr.innerHTML = "";
-
-  if (window.QRCode) {
-    new QRCode(qr, {
-      text: link,
-      width: 210,
-      height: 210,
-      colorDark: "#172b4d",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  }
-
-  $("copyIdentityLink").onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(link);
-      alert("Link identitas disalin.");
-    } catch {
-      prompt("Salin link:", link);
-    }
-  };
-
-  $("shareIdentity").onclick = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "POPER Identity",
-          text: "Hubungkan denganku di POPER",
-          url: link
-        });
-      } catch (e) {
-        if (e.name !== "AbortError") console.error(e);
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(link);
-        alert("Link disalin.");
-      } catch {
-        prompt("Link identitas:", link);
-      }
-    }
-  };
-
-  $("downloadIdentityQR").onclick = () => {
-    const canvas = qr.querySelector("canvas");
-    const img = qr.querySelector("img");
-    const src = canvas ? canvas.toDataURL("image/png") : img?.src;
-
-    if (!src) return alert("QR belum siap.");
-
-    const a = document.createElement("a");
-    a.href = src;
-    a.download = "POPER-Identity-QR.png";
-    a.click();
-  };
-}
-
-/* ============================================
-   QR VAULT — CAMERA
-============================================ */
-
-async function startQRScanner() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    setStatus("qrStatus", "Kamera tidak didukung.", "error");
-    return;
-  }
-
+$("startQRScanner")?.addEventListener("click", async () => {
   try {
-    stopQRScanner();
-
-    qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
       audio: false
     });
 
-    $("qrVideo").srcObject = qrStream;
-    $("qrVideo").classList.remove("hidden");
-    $("qrPlaceholder").classList.add("hidden");
+    $("qrVideo").srcObject = cameraStream;
+    $("qrCameraBox").hidden = false;
+    await $("qrVideo").play();
 
-    scanQRLoop();
-
+    cameraActive = true;
+    scanQRFrame();
   } catch (error) {
-    console.error(error);
-    setStatus("qrStatus", "Gagal membuka kamera QR.", "error");
+    status("qrScanStatus", error.message || "Kamera gagal dibuka.");
   }
-}
+});
 
-function stopQRScanner() {
-  if (qrStream) {
-    qrStream.getTracks().forEach(track => track.stop());
-    qrStream = null;
-  }
+$("stopQRScanner")?.addEventListener("click", stopCameraScanner);
 
-  if ($("qrVideo")) {
-    $("qrVideo").srcObject = null;
-    $("qrVideo").classList.add("hidden");
-  }
-
-  if (qrFrame) {
-    cancelAnimationFrame(qrFrame);
-    qrFrame = null;
-  }
-
-  $("qrPlaceholder")?.classList.remove("hidden");
-}
-
-$("startQRScanner")?.addEventListener("click", startQRScanner);
-$("stopQRScanner")?.addEventListener("click", stopQRScanner);
-
-function scanQRLoop() {
-  if (!qrStream || qrBusy) return;
+function scanQRFrame() {
+  if (!cameraActive) return;
 
   const video = $("qrVideo");
 
-  if (video.readyState >= 2 && video.videoWidth > 0) {
+  if (video.readyState >= 2) {
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -1438,329 +864,347 @@ function scanQRLoop() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0);
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = window.jsQR?.(image.data, image.width, image.height);
 
-    const result = window.jsQR?.(
-      imageData.data,
-      imageData.width,
-      imageData.height,
-      { inversionAttempts: "attemptBoth" }
-    );
-
-    if (result?.data) {
-      $("qrUrl").value = result.data;
-      setStatus("qrStatus", "QR berhasil dipindai. Isi nama lalu simpan.", "success");
-      stopQRScanner();
+    if (code?.data) {
+      scannedQRValue = code.data;
+      $("qrResultBox").value = code.data;
+      stopCameraScanner();
+      status("qrScanStatus", "QR berhasil terbaca.");
     }
   }
 
-  if (qrStream) {
-    qrFrame = requestAnimationFrame(scanQRLoop);
-  }
+  if (cameraActive) cameraFrame = requestAnimationFrame(scanQRFrame);
 }
 
-/* ============================================
-   QR IMAGE UPLOAD
-============================================ */
-
-$("qrImageInput")?.addEventListener("change", event => {
+$("qrImageInput")?.addEventListener("change", async event => {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  const reader = new FileReader();
-
-  reader.onload = () => {
+  try {
+    const url = URL.createObjectURL(file);
     const img = new Image();
+    img.src = url;
+    await img.decode();
 
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
 
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
 
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = window.jsQR?.(image.data, image.width, image.height);
 
-      const result = window.jsQR?.(
-        data.data,
-        data.width,
-        data.height,
-        { inversionAttempts: "attemptBoth" }
-      );
+    if (code?.data) {
+      $("qrResultBox").value = code.data;
+      status("qrScanStatus", "QR gambar berhasil dibaca.");
+    } else {
+      status("qrScanStatus", "QR tidak ditemukan.");
+    }
 
-      if (result?.data) {
-        $("qrUrl").value = result.data;
-        setStatus("qrStatus", "QR berhasil dibaca dari gambar.", "success");
-      } else {
-        setStatus("qrStatus", "QR tidak terdeteksi. Coba gambar yang lebih jelas.", "error");
-      }
-    };
-
-    img.src = reader.result;
-  };
-
-  reader.readAsDataURL(file);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    status("qrScanStatus", "Gambar gagal diproses.");
+  }
 });
 
-/* ============================================
-   QR VAULT — SAVE / LOAD / DELETE
-============================================ */
-
 $("saveQR")?.addEventListener("click", async () => {
-  if (!currentUser) return;
+  if (!uid()) return;
 
-  const name = cleanText($("qrName").value) || "QR Tanpa Nama";
-  const url = cleanText($("qrUrl").value);
+  const name = $("qrName").value.trim() || "QR Link";
+  const raw = $("qrResultBox").value.trim();
+  const url = safeURL(raw);
 
   if (!url) {
-    setStatus("qrStatus", "Link QR masih kosong.", "error");
+    status("qrScanStatus", "Link QR harus URL http/https.");
     return;
   }
 
   try {
-    setStatus("qrStatus", "Menyimpan QR...");
-
-    await POPER.pushData(`qrVault/${currentUser.uid}`, {
+    await window.POPER.pushData(`qrVault/${uid()}`, {
       name,
       url,
       createdAt: Date.now()
     });
 
-    $("qrName").value = "";
-    $("qrUrl").value = "";
-
-    setStatus("qrStatus", "QR berhasil disimpan!", "success");
-    loadQRVault();
-
+    status("qrScanStatus", "QR berhasil disimpan!");
+    loadQR();
   } catch (error) {
-    console.error(error);
-    setStatus("qrStatus", error.message || "Gagal menyimpan QR.", "error");
+    status("qrScanStatus", error.message || "Gagal menyimpan QR.");
   }
 });
 
-async function loadQRVault() {
-  if (!currentUser) return;
+async function loadQR() {
+  if (!uid()) return;
 
-  try {
-    qrRecords = await POPER.getData(`qrVault/${currentUser.uid}`) || {};
-    renderQRVault();
-  } catch (error) {
-    console.error("Load QR vault:", error);
-  }
-}
+  const data = await window.POPER.getData(`qrVault/${uid()}`);
+  const container = $("qrList");
 
-function renderQRVault() {
-  const container = $("qrVaultList");
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  const entries = Object.entries(qrRecords || {}).reverse();
-
-  if (!entries.length) {
-    container.innerHTML = '<p class="muted">Belum ada QR tersimpan.</p>';
+  if (!data) {
+    container.innerHTML = "<p>Vault kosong.</p>";
     return;
   }
 
-  entries.forEach(([key, item]) => {
-    const card = document.createElement("div");
-    card.className = "qr-item";
+  container.innerHTML = Object.entries(data).map(([key, item]) => `
+    <div class="item">
+      <strong>${escapeHTML(item.name)}</strong>
+      <a class="link-button" href="${escapeAttr(safeURL(item.url))}"
+        target="_blank" rel="noopener noreferrer">Buka Link</a>
+      <button class="danger small" data-delete-qr="${escapeAttr(key)}">Hapus</button>
+    </div>
+  `).join("");
 
-    const title = document.createElement("strong");
-    title.textContent = item.name || "QR";
-
-    const link = document.createElement("p");
-    link.className = "muted";
-    link.textContent = item.url || "";
-
-    const actions = document.createElement("div");
-    actions.className = "qr-item-actions";
-
-    const open = document.createElement("button");
-    open.className = "small-btn";
-    open.textContent = "Buka";
-    open.onclick = () => {
-      const safe = safeURL(item.url);
-      if (safe) window.open(safe, "_blank", "noopener");
-      else prompt("Isi QR:", item.url);
+  container.querySelectorAll("[data-delete-qr]").forEach(button => {
+    button.onclick = async () => {
+      await window.POPER.deleteData(`qrVault/${uid()}/${button.dataset.deleteQr}`);
+      loadQR();
     };
-
-    const copy = document.createElement("button");
-    copy.className = "small-btn";
-    copy.textContent = "Salin";
-    copy.onclick = async () => {
-      try {
-        await navigator.clipboard.writeText(item.url);
-        alert("Link disalin.");
-      } catch {
-        prompt("Salin link:", item.url);
-      }
-    };
-
-    const del = document.createElement("button");
-    del.className = "small-btn";
-    del.textContent = "Hapus";
-    del.onclick = async () => {
-      if (!confirm("Hapus QR ini?")) return;
-
-      await POPER.deleteData(`qrVault/${currentUser.uid}/${key}`);
-      loadQRVault();
-    };
-
-    actions.append(open, copy, del);
-    card.append(title, link, actions);
-    container.appendChild(card);
   });
 }
 
-/* ============================================
-   NOTES — SAVE / LOAD / DELETE
-============================================ */
+/* ===============================
+   NOTES
+================================ */
 
 $("saveNote")?.addEventListener("click", async () => {
-  if (!currentUser) return;
+  if (!uid()) return;
 
-  const title = cleanText($("noteTitle").value);
-  const text = cleanText($("noteText").value);
-  const id = $("noteId").value;
+  const title = $("noteTitle").value.trim();
+  const content = $("noteContent").value.trim();
 
-  if (!title && !text) {
-    setStatus("noteStatus", "Catatan masih kosong.", "error");
+  if (!title || !content) {
+    status("notesStatus", "Isi judul dan isi catatan.");
     return;
   }
 
   try {
-    setStatus("noteStatus", "Menyimpan...");
-
-    const data = {
+    await window.POPER.pushData(`notes/${uid()}`, {
       title,
-      text,
-      updatedAt: Date.now()
-    };
+      content,
+      createdAt: Date.now()
+    });
 
-    if (id) {
-      await POPER.saveData(`notes/${currentUser.uid}/${id}`, data);
-    } else {
-      await POPER.pushData(`notes/${currentUser.uid}`, {
-        ...data,
-        createdAt: Date.now()
+    $("noteTitle").value = "";
+    $("noteContent").value = "";
+
+    status("notesStatus", "Catatan tersimpan.");
+    loadNotes();
+  } catch (error) {
+    status("notesStatus", error.message || "Gagal.");
+  }
+});
+
+async function loadNotes() {
+  if (!uid()) return;
+
+  const data = await window.POPER.getData(`notes/${uid()}`);
+  const container = $("notesList");
+
+  if (!data) {
+    container.innerHTML = "<p>Belum ada catatan.</p>";
+    return;
+  }
+
+  container.innerHTML = Object.entries(data).map(([key, note]) => `
+    <div class="item">
+      <strong>${escapeHTML(note.title)}</strong>
+      <p>${escapeHTML(note.content)}</p>
+      <button class="danger small" data-delete-note="${escapeAttr(key)}">Hapus</button>
+    </div>
+  `).join("");
+
+  container.querySelectorAll("[data-delete-note]").forEach(button => {
+    button.onclick = async () => {
+      await window.POPER.deleteData(`notes/${uid()}/${button.dataset.deleteNote}`);
+      loadNotes();
+    };
+  });
+}
+
+/* ===============================
+   PHONE OCR SCANNER
+================================ */
+
+function formatDetectedPhone(raw) {
+  let digits = String(raw).replace(/\D/g, "");
+
+  if (digits.startsWith("62")) return "+" + digits;
+  if (digits.startsWith("8")) return "0" + digits;
+  return digits;
+}
+
+function extractPhone(text) {
+  const matches = text.match(/\+?\d[\d\s().-]{7,}\d/g) || [];
+
+  for (const match of matches) {
+    const digits = match.replace(/\D/g, "");
+    if (digits.length >= 10 && digits.length <= 15 &&
+        (digits.startsWith("08") || digits.startsWith("8") || digits.startsWith("62"))) {
+      return formatDetectedPhone(digits);
+    }
+  }
+
+  const compact = text.replace(/\D/g, "");
+
+  if (compact.length >= 10 && compact.length <= 15 &&
+      (compact.startsWith("08") || compact.startsWith("8") || compact.startsWith("62"))) {
+    return formatDetectedPhone(compact);
+  }
+
+  return "";
+}
+
+async function startPhoneScanner() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    status("phoneScanStatus", "Browser tidak mendukung kamera.");
+    return;
+  }
+
+  try {
+    status("phoneScanStatus", "Meminta akses kamera...");
+    phoneCameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+
+    $("phoneScanVideo").srcObject = phoneCameraStream;
+    await $("phoneScanVideo").play();
+
+    phoneOCRActive = true;
+    status("phoneScanStatus", "Kamera aktif. Arahkan ke nomor HP.");
+    startPhoneOCR();
+  } catch (error) {
+    status("phoneScanStatus", error.message || "Kamera tidak dapat dibuka.");
+  }
+}
+
+async function startPhoneOCR() {
+  if (phoneOCRBusy || !phoneOCRActive) return;
+  phoneOCRBusy = true;
+
+  try {
+    if (!window.Tesseract) throw new Error("Library OCR belum tersedia.");
+
+    if (!phoneOCRWorker) {
+      status("phoneScanStatus", "Menyiapkan OCR...");
+
+      phoneOCRWorker = await Tesseract.createWorker("eng");
+
+      await phoneOCRWorker.setParameters({
+        tessedit_char_whitelist: "0123456789+-() ",
+        tessedit_pageseg_mode: "6"
       });
     }
 
-    clearNoteForm();
-    setStatus("noteStatus", "Catatan tersimpan.", "success");
-    loadNotes();
-
+    phoneOCRBusy = false;
+    runPhoneOCR();
   } catch (error) {
-    console.error(error);
-    setStatus("noteStatus", error.message || "Gagal menyimpan catatan.", "error");
-  }
-});
-
-function clearNoteForm() {
-  $("noteId").value = "";
-  $("noteTitle").value = "";
-  $("noteText").value = "";
-}
-
-$("clearNote")?.addEventListener("click", clearNoteForm);
-
-async function loadNotes() {
-  if (!currentUser) return;
-
-  try {
-    noteRecords = await POPER.getData(`notes/${currentUser.uid}`) || {};
-    renderNotes();
-  } catch (error) {
-    console.error(error);
+    phoneOCRBusy = false;
+    status("phoneScanStatus", error.message || "OCR gagal.");
   }
 }
 
-function renderNotes() {
-  const container = $("notesList");
-  container.innerHTML = "";
+async function runPhoneOCR() {
+  if (!phoneOCRActive || phoneOCRBusy) return;
 
-  const entries = Object.entries(noteRecords || {}).reverse();
+  const video = $("phoneScanVideo");
 
-  if (!entries.length) {
-    container.innerHTML = '<p class="muted">Belum ada catatan.</p>';
+  if (!video || video.readyState < 2 || !video.videoWidth) {
+    phoneOCRTimer = setTimeout(runPhoneOCR, 1000);
     return;
   }
 
-  entries.forEach(([id, note]) => {
-    const card = document.createElement("div");
-    card.className = "note-item";
+  phoneOCRBusy = true;
 
-    const h = document.createElement("h4");
-    h.textContent = note.title || "Catatan";
+  try {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
-    const p = document.createElement("p");
-    p.textContent = note.text || "";
+    const w = video.videoWidth;
+    const h = video.videoHeight;
 
-    const actions = document.createElement("div");
-    actions.className = "note-actions";
+    canvas.width = 1200;
+    canvas.height = 300;
 
-    const edit = document.createElement("button");
-    edit.className = "small-btn";
-    edit.textContent = "Edit";
-    edit.onclick = () => {
-      $("noteId").value = id;
-      $("noteTitle").value = note.title || "";
-      $("noteText").value = note.text || "";
-      showSection("notes");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    };
+    ctx.filter = "grayscale(1) contrast(2)";
+    ctx.drawImage(video, 0, h * .25, w, h * .5, 0, 0, canvas.width, canvas.height);
 
-    const del = document.createElement("button");
-    del.className = "small-btn";
-    del.textContent = "Hapus";
-    del.onclick = async () => {
-      if (!confirm("Hapus catatan ini?")) return;
-      await POPER.deleteData(`notes/${currentUser.uid}/${id}`);
-      loadNotes();
-    };
+    const result = await phoneOCRWorker.recognize(canvas);
+    const detected = extractPhone(result.data.text || "");
 
-    actions.append(edit, del);
-    card.append(h, p, actions);
-    container.appendChild(card);
+    if (detected && detected !== lastDetectedPhone) {
+      lastDetectedPhone = detected;
+      $("scannedPhoneNumber").value = detected;
+      status("phoneScanStatus", "Nomor terdeteksi. Periksa lalu tekan Cari Bio.");
+    }
+  } catch (error) {
+    console.warn("OCR:", error);
+  }
+
+  phoneOCRBusy = false;
+  if (phoneOCRActive) phoneOCRTimer = setTimeout(runPhoneOCR, 1000);
+}
+
+function stopPhoneScanner() {
+  phoneOCRActive = false;
+
+  if (phoneOCRTimer) {
+    clearTimeout(phoneOCRTimer);
+    phoneOCRTimer = null;
+  }
+
+  if (phoneCameraStream) {
+    phoneCameraStream.getTracks().forEach(track => track.stop());
+    phoneCameraStream = null;
+  }
+
+  if ($("phoneScanVideo")) $("phoneScanVideo").srcObject = null;
+
+  phoneOCRBusy = false;
+  lastDetectedPhone = "";
+}
+
+$("startPhoneCamera")?.addEventListener("click", startPhoneScanner);
+$("stopPhoneCamera")?.addEventListener("click", stopPhoneScanner);
+
+/* ===============================
+   THEME
+================================ */
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem("poper-theme", theme);
+
+  document.querySelectorAll("[data-theme-choice]").forEach(button => {
+    button.classList.toggle("active", button.dataset.themeChoice === theme);
   });
 }
 
-/* ============================================
-   PUBLIC PROFILE LINK HANDLER
-============================================ */
-
-function checkPublicProfileURL() {
-  const params = new URLSearchParams(location.search);
-  const uid = params.get("uid");
-
-  if (!uid) return false;
-
-  publicProfileUID = uid;
-
-  $("loginPanel")?.classList.add("hidden");
-  $("dashboard")?.classList.remove("hidden");
-  $("bottomNav")?.classList.add("hidden");
-
-  showSection("publicProfile");
-  loadPublicProfile(uid);
-
-  return true;
-}
-
-/* ============================================
-   INIT
-============================================ */
-
-function initPOPER() {
-  checkPublicProfileURL();
-
-  // Reset OCR camera resources if app leaves scanner
-  window.addEventListener("pagehide", () => {
-    stopPhoneCamera();
-    stopQRScanner();
+document.querySelectorAll("[data-theme-choice]").forEach(button => {
+  button.addEventListener("click", () => {
+    applyTheme(button.dataset.themeChoice);
+    status("themeStatus", "Tema diubah.");
   });
+});
+
+/* ===============================
+   LOAD
+================================ */
+
+async function loadAll() {
+  await Promise.allSettled([
+    loadBio(),
+    loadQR(),
+    loadNotes(),
+    loadPages()
+  ]);
 }
 
-initPOPER();
+window.POPER.onAuth(user => {
+  loginUI(user);
+});
+
+console.log("POPER Bio Link Builder siap.");

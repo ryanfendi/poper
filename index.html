@@ -786,6 +786,75 @@ button:active{
     padding-bottom:10px;
   }
 }
+
+  
+/* POPER PHONE OCR SCANNER */
+
+.phone-scanner-card{
+  text-align:center;
+}
+
+.phone-camera-frame{
+  position:relative;
+  width:100%;
+  min-height:250px;
+  background:#080b16;
+  border-radius:20px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  margin:15px 0;
+}
+
+.phone-camera-frame video{
+  display:block;
+  width:100%;
+  min-height:250px;
+  max-height:400px;
+  object-fit:cover;
+}
+
+.phone-scan-overlay{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  pointer-events:none;
+}
+
+.phone-scan-guide{
+  width:88%;
+  height:90px;
+  border:2px solid #8b6cff;
+  border-radius:15px;
+  box-shadow:0 0 25px rgba(139,108,255,.22);
+  position:relative;
+}
+
+.phone-scan-guide:after{
+  content:"";
+  position:absolute;
+  left:5%;
+  right:5%;
+  top:50%;
+  height:2px;
+  background:#69b9ff;
+  box-shadow:0 0 12px #69b9ff;
+}
+
+#phoneScanStatus{
+  font-size:13px;
+  min-height:22px;
+}
+
+#phoneScanResult .item{
+  text-align:left;
+}
+
+#stopPhoneCamera{
+  color:var(--text);
+}
+
+  
 </style>
 </head>
 

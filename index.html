@@ -3,240 +3,334 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#6c4cff">
-  <title>POPER — Scan, Bio & Connect</title>
+  <meta name="theme-color" content="#11101b">
+  <title>POPER — Digital Identity</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div id="app">
+<div id="app">
 
-    <!-- AUTH -->
-    <section id="authScreen" class="screen auth-screen">
-      <div class="auth-card">
-        <div class="logo">P<span>O</span>PER</div>
-        <p class="muted">Scan. Connect. Discover.</p>
+  <!-- AUTH -->
+  <section id="authPage" class="auth-page hidden">
+    <div class="auth-card">
+      <div class="brand-logo">P<span>O</span>PER</div>
+      <p class="muted">Your digital identity</p>
 
-        <div id="loginForm">
-          <h2>Welcome back</h2>
-          <p>Masuk menggunakan nomor telepon.</p>
-
-          <div class="phone-input">
-            <span>🇮🇩 +62</span>
-            <input id="phoneInput" type="tel" placeholder="81234567890">
-          </div>
-
-          <div id="recaptcha-container"></div>
-
-          <button id="sendOtpBtn" class="primary-btn">
-            Kirim OTP
-          </button>
-        </div>
-
-        <div id="otpForm" class="hidden">
-          <h2>Verifikasi OTP</h2>
-          <p>Masukkan 6 digit kode yang dikirim.</p>
-
-          <input id="otpInput" class="otp-input" type="text"
-            inputmode="numeric" maxlength="6" placeholder="000000">
-
-          <button id="verifyOtpBtn" class="primary-btn">
-            Verifikasi & Masuk
-          </button>
-
-          <button id="backLoginBtn" class="text-btn">
-            Kembali
-          </button>
-        </div>
-
-        <p id="authMessage" class="message"></p>
+      <div class="auth-illustration">
+        <span class="material-symbols-rounded">fingerprint</span>
       </div>
-    </section>
 
-    <!-- MAIN APP -->
-    <section id="mainScreen" class="screen hidden">
+      <h1>Welcome to POPER</h1>
+      <p class="muted">Login with your phone number</p>
 
-      <header class="topbar">
-        <div class="logo small-logo">P<span>O</span>PER</div>
-
-        <div class="top-actions">
-          <button id="themeToggle" class="icon-btn" title="Tema">◐</button>
-          <button id="profileButton" class="icon-btn" title="Profil">●</button>
+      <div id="phoneStep">
+        <label>Phone Number</label>
+        <div class="phone-input">
+          <span>🇮🇩 +62</span>
+          <input id="phoneInput" type="tel" placeholder="81234567890">
         </div>
-      </header>
 
-      <main class="main-content">
+        <div id="recaptcha-container"></div>
 
-        <!-- HOME SCANNER -->
-        <section id="homePage" class="page active">
-          <div class="hero">
-            <span class="eyebrow">PHONE BIO FINDER</span>
-            <h1>Find anyone's<br><span>Bio Link.</span></h1>
-            <p>Scan nomor telepon atau masukkan nomor untuk mencari bio yang tersedia di POPER.</p>
-          </div>
-
-          <div class="scanner-card">
-            <label for="searchPhone">Nomor telepon</label>
-            <div class="search-box">
-              <input id="searchPhone" type="tel" placeholder="08xxxxxxxxxx">
-              <button id="findBioBtn">Cari</button>
-            </div>
-
-            <div class="scanner-actions">
-              <button id="cameraScanBtn" class="secondary-btn">📷 Scan Kamera</button>
-              <button id="uploadScanBtn" class="secondary-btn">🖼 Upload Gambar</button>
-              <input id="imageScanInput" type="file" accept="image/*" hidden>
-            </div>
-
-            <div id="scannerArea" class="scanner-area hidden">
-              <video id="scannerVideo" autoplay playsinline></video>
-              <button id="captureBtn" class="primary-btn">Ambil & Baca</button>
-              <button id="closeScannerBtn" class="text-btn">Tutup Kamera</button>
-            </div>
-
-            <p id="scanStatus" class="message"></p>
-          </div>
-
-          <div id="searchResult" class="search-result"></div>
-
-          <div class="feature-grid">
-            <div class="feature-card">
-              <span>🔗</span>
-              <h3>Bio Links</h3>
-              <p>Buat halaman link profilmu sendiri.</p>
-            </div>
-            <div class="feature-card">
-              <span>🔐</span>
-              <h3>QR Vault</h3>
-              <p>Simpan QR, link, dan data penting.</p>
-            </div>
-            <div class="feature-card">
-              <span>📝</span>
-              <h3>Notes</h3>
-              <p>Catatan pribadi tersimpan online.</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- BIO PAGE -->
-        <section id="bioPage" class="page">
-          <div class="page-heading">
-            <div>
-              <span class="eyebrow">YOUR DIGITAL IDENTITY</span>
-              <h1>My Bio Links</h1>
-            </div>
-            <button id="createBioBtn" class="primary-btn">+ Buat Bio</button>
-          </div>
-
-          <div id="bioList" class="bio-list"></div>
-
-          <div id="bioEditor" class="panel hidden">
-            <h2 id="bioEditorTitle">Buat Bio Baru</h2>
-
-            <input id="bioTitle" placeholder="Nama / Judul profil">
-            <textarea id="bioDescription" placeholder="Deskripsi singkat"></textarea>
-
-            <label>Background</label>
-            <input id="bioBackground" type="color" value="#17152a">
-
-            <label>Warna tombol</label>
-            <input id="bioButtonColor" type="color" value="#7457ff">
-
-            <label>Foto profil (URL)</label>
-            <input id="bioAvatar" placeholder="https://...">
-
-            <div id="bioLinksEditor"></div>
-            <button id="addBioLinkBtn" class="secondary-btn">+ Tambah Link</button>
-
-            <div class="editor-actions">
-              <button id="saveBioBtn" class="primary-btn">Simpan Bio</button>
-              <button id="cancelBioBtn" class="secondary-btn">Batal</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- VAULT -->
-        <section id="vaultPage" class="page">
-          <div class="page-heading">
-            <div>
-              <span class="eyebrow">PRIVATE STORAGE</span>
-              <h1>QR Vault</h1>
-            </div>
-          </div>
-
-          <div class="panel">
-            <input id="vaultTitle" placeholder="Nama QR / Link">
-            <input id="vaultUrl" placeholder="https:// atau isi link">
-            <button id="saveVaultBtn" class="primary-btn">Simpan ke Vault</button>
-          </div>
-
-          <div id="vaultList" class="vault-list"></div>
-        </section>
-
-        <!-- NOTES -->
-        <section id="notesPage" class="page">
-          <div class="page-heading">
-            <div>
-              <span class="eyebrow">PERSONAL SPACE</span>
-              <h1>My Notes</h1>
-            </div>
-          </div>
-
-          <div class="panel">
-            <input id="noteTitle" placeholder="Judul catatan">
-            <textarea id="noteContent" placeholder="Tulis catatan..."></textarea>
-            <button id="saveNoteBtn" class="primary-btn">Simpan Catatan</button>
-          </div>
-
-          <div id="notesList" class="notes-list"></div>
-        </section>
-
-        <!-- PROFILE -->
-        <section id="profilePage" class="page">
-          <div class="page-heading">
-            <div>
-              <span class="eyebrow">ACCOUNT</span>
-              <h1>Profil Saya</h1>
-            </div>
-          </div>
-
-          <div class="panel profile-panel">
-            <div class="avatar-circle">P</div>
-            <h2 id="profilePhone">-</h2>
-            <p class="muted">POPER Member</p>
-            <button id="logoutBtn" class="danger-btn">Keluar</button>
-          </div>
-        </section>
-
-      </main>
-
-      <!-- NAVIGATION -->
-      <nav class="bottom-nav">
-        <button data-page="homePage" class="nav-item active">
-          <span>⌕</span><small>Scan</small>
+        <button id="sendOtpBtn" class="primary-btn full">
+          Send OTP <span class="material-symbols-rounded">arrow_forward</span>
         </button>
-        <button data-page="bioPage" class="nav-item">
-          <span>↗</span><small>Bio</small>
-        </button>
-        <button data-page="vaultPage" class="nav-item">
-          <span>▦</span><small>Vault</small>
-        </button>
-        <button data-page="notesPage" class="nav-item">
-          <span>▤</span><small>Notes</small>
-        </button>
-      </nav>
-    </section>
+      </div>
 
-    <!-- PUBLIC BIO PAGE -->
-    <section id="publicBioScreen" class="screen public-screen hidden">
-      <button id="closePublicBioBtn" class="public-back">← Kembali</button>
-      <div id="publicBioContent"></div>
-    </section>
+      <div id="otpStep" class="hidden">
+        <label>Verification Code</label>
+        <input id="otpInput" class="text-input otp-input" inputmode="numeric" maxlength="6" placeholder="000000">
 
-  </div>
+        <button id="verifyOtpBtn" class="primary-btn full">Verify OTP</button>
+        <button id="backPhoneBtn" class="ghost-btn full">Change phone number</button>
+      </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script type="module" src="firebase.js"></script>
-  <script type="module" src="app.js"></script>
+      <p id="authMessage" class="message"></p>
+    </div>
+  </section>
+
+  <!-- MAIN APP -->
+  <section id="mainApp" class="hidden">
+
+    <header class="top-header">
+      <div>
+        <div class="brand-logo small">P<span>O</span>PER</div>
+        <div class="header-subtitle">Digital Identity Platform</div>
+      </div>
+
+      <div class="header-actions">
+        <button id="themeToggle" class="icon-btn" title="Toggle Theme">
+          <span class="material-symbols-rounded">dark_mode</span>
+        </button>
+
+        <button id="profileButton" class="avatar-btn">
+          <span class="material-symbols-rounded">person</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="mainContent">
+
+      <!-- SCAN PAGE -->
+      <section id="scanPage" class="page active">
+
+        <div class="welcome-section">
+          <p class="eyebrow">PHONE SCANNER</p>
+          <h1>Find someone's<br><span>Bio Profile.</span></h1>
+          <p class="muted">Scan a phone number or upload an image to find their POPER profile.</p>
+        </div>
+
+        <div class="scanner-card">
+          <div class="scanner-graphic">
+            <div class="scanner-ring ring-1"></div>
+            <div class="scanner-ring ring-2"></div>
+            <div class="scanner-ring ring-3"></div>
+            <span class="material-symbols-rounded scanner-icon">document_scanner</span>
+            <div class="scan-line"></div>
+          </div>
+
+          <h2>Scan phone number</h2>
+          <p class="muted">Point your camera at a phone number or upload a screenshot.</p>
+
+          <button id="startCameraBtn" class="primary-btn full">
+            <span class="material-symbols-rounded">photo_camera</span>
+            Open Camera
+          </button>
+
+          <button id="uploadImageBtn" class="secondary-btn full">
+            <span class="material-symbols-rounded">image</span>
+            Upload Image
+          </button>
+
+          <input type="file" id="imageInput" accept="image/*" hidden>
+        </div>
+
+        <div id="cameraBox" class="camera-box hidden">
+          <video id="cameraVideo" autoplay playsinline></video>
+          <div class="camera-overlay">
+            <div class="camera-frame"></div>
+          </div>
+          <div class="camera-controls">
+            <button id="captureBtn" class="primary-btn">Capture & Scan</button>
+            <button id="closeCameraBtn" class="secondary-btn">Close</button>
+          </div>
+          <canvas id="cameraCanvas" hidden></canvas>
+        </div>
+
+        <div id="scanResultBox" class="scan-result hidden">
+          <h3>Detected Number</h3>
+          <div class="detected-number">
+            <span id="detectedNumber">-</span>
+            <button id="copyDetectedBtn" class="icon-btn">
+              <span class="material-symbols-rounded">content_copy</span>
+            </button>
+          </div>
+          <button id="findBioBtn" class="primary-btn full">Find Bio</button>
+        </div>
+
+        <div class="manual-search">
+          <h3>Search manually</h3>
+          <div class="search-box">
+            <span class="material-symbols-rounded">search</span>
+            <input id="manualPhoneInput" type="tel" placeholder="Enter phone number">
+            <button id="manualSearchBtn">Search</button>
+          </div>
+        </div>
+
+        <div class="feature-mini-grid">
+          <div class="mini-card">
+            <span class="material-symbols-rounded">link</span>
+            <strong>Bio Links</strong>
+            <small>Create your profile</small>
+          </div>
+          <div class="mini-card">
+            <span class="material-symbols-rounded">qr_code_2</span>
+            <strong>QR Vault</strong>
+            <small>Save QR & links</small>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- BIO PAGE -->
+      <section id="bioPage" class="page">
+
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">YOUR IDENTITY</p>
+            <h1>My Bio Links</h1>
+          </div>
+          <button id="createBioBtn" class="primary-btn compact">
+            <span class="material-symbols-rounded">add</span> Create
+          </button>
+        </div>
+
+        <div id="bioList" class="bio-list"></div>
+
+        <div id="bioEditor" class="editor-card hidden">
+          <h2 id="bioEditorTitle">Create Bio</h2>
+
+          <input id="bioTitle" class="text-input" placeholder="Profile name">
+          <input id="bioUsername" class="text-input" placeholder="Username">
+          <textarea id="bioDescription" class="text-input" placeholder="Description"></textarea>
+
+          <label>Profile image</label>
+          <input id="bioImageInput" class="text-input" type="file" accept="image/*">
+          <input id="bioImageUrl" class="text-input" placeholder="Or image URL">
+
+          <label>Background</label>
+          <div class="color-row">
+            <input id="bioBackgroundColor" type="color" value="#171323">
+            <input id="bioBackgroundImage" type="file" accept="image/*">
+          </div>
+
+          <label>Button color</label>
+          <input id="bioButtonColor" type="color" value="#8458f5">
+
+          <label>Text color</label>
+          <input id="bioTextColor" type="color" value="#ffffff">
+
+          <div class="editor-section">
+            <h3>Social / Website Buttons</h3>
+            <div id="bioLinksContainer"></div>
+            <button id="addBioLinkBtn" class="secondary-btn full">+ Add Link</button>
+          </div>
+
+          <div class="editor-actions">
+            <button id="previewBioBtn" class="secondary-btn">Preview</button>
+            <button id="saveBioBtn" class="primary-btn">Save Bio</button>
+            <button id="cancelBioBtn" class="ghost-btn">Cancel</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- VAULT PAGE -->
+      <section id="vaultPage" class="page">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">PRIVATE COLLECTION</p>
+            <h1>QR Vault</h1>
+          </div>
+          <button id="addVaultBtn" class="primary-btn compact">
+            <span class="material-symbols-rounded">add</span> Add
+          </button>
+        </div>
+
+        <div class="vault-add-card">
+          <input id="vaultTitle" class="text-input" placeholder="Title">
+          <input id="vaultUrl" class="text-input" placeholder="Link or QR content">
+          <button id="saveVaultBtn" class="primary-btn full">Save to Vault</button>
+        </div>
+
+        <div id="vaultList" class="vault-list"></div>
+      </section>
+
+      <!-- NOTES PAGE -->
+      <section id="notesPage" class="page">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">PERSONAL SPACE</p>
+            <h1>My Notes</h1>
+          </div>
+          <button id="newNoteBtn" class="primary-btn compact">
+            <span class="material-symbols-rounded">add</span> New
+          </button>
+        </div>
+
+        <div id="noteEditor" class="note-editor hidden">
+          <input id="noteTitle" class="text-input" placeholder="Note title">
+          <textarea id="noteContent" class="text-input note-content" placeholder="Write something..."></textarea>
+          <div class="editor-actions">
+            <button id="saveNoteBtn" class="primary-btn">Save</button>
+            <button id="cancelNoteBtn" class="secondary-btn">Cancel</button>
+          </div>
+        </div>
+
+        <div id="notesList" class="notes-list"></div>
+      </section>
+
+      <!-- PROFILE PAGE -->
+      <section id="profilePage" class="page">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">ACCOUNT</p>
+            <h1>My Profile</h1>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-avatar">
+            <span class="material-symbols-rounded">person</span>
+          </div>
+          <h2 id="profilePhone">-</h2>
+          <p class="muted">POPER Member</p>
+        </div>
+
+        <div class="settings-card">
+          <button id="profileThemeBtn" class="settings-row">
+            <span class="material-symbols-rounded">palette</span>
+            <span>Appearance</span>
+            <span class="material-symbols-rounded">chevron_right</span>
+          </button>
+
+          <button id="logoutBtn" class="settings-row danger">
+            <span class="material-symbols-rounded">logout</span>
+            <span>Logout</span>
+            <span class="material-symbols-rounded">chevron_right</span>
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-page="scanPage">
+        <span class="material-symbols-rounded">document_scanner</span>
+        <small>Scan</small>
+      </button>
+      <button class="nav-item" data-page="bioPage">
+        <span class="material-symbols-rounded">link</span>
+        <small>Bio</small>
+      </button>
+      <button class="nav-item" data-page="vaultPage">
+        <span class="material-symbols-rounded">qr_code_2</span>
+        <small>Vault</small>
+      </button>
+      <button class="nav-item" data-page="notesPage">
+        <span class="material-symbols-rounded">sticky_note_2</span>
+        <small>Notes</small>
+      </button>
+      <button class="nav-item" data-page="profilePage">
+        <span class="material-symbols-rounded">person</span>
+        <small>Profile</small>
+      </button>
+    </nav>
+
+  </section>
+
+</div>
+
+<!-- BIO PUBLIC VIEW -->
+<div id="publicBioPage" class="public-bio-page hidden">
+  <button id="closePublicBioBtn" class="public-close-btn">
+    <span class="material-symbols-rounded">arrow_back</span>
+  </button>
+  <div id="publicBioContent"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script type="module" src="firebase.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

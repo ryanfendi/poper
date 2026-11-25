@@ -134,6 +134,75 @@ background:#2d3653;margin-bottom:10px
   min-height:120px;
 }
 
+  #qrImageInput {
+  padding:12px;
+  background:#101528;
+  border:1px solid #3a405a;
+  color:white;
+  border-radius:12px;
+}
+
+#qrPreview img {
+  width:100%;
+  max-height:280px;
+  object-fit:contain;
+  border-radius:15px;
+  margin:12px 0;
+}
+
+.qr-link-card {
+  padding:16px;
+  border-radius:16px;
+  background:#101528;
+  border:1px solid #303650;
+  margin:12px 0;
+}
+
+.qr-link-button {
+  display:block;
+  width:100%;
+  text-decoration:none;
+  text-align:center;
+  padding:14px;
+  margin-top:12px;
+  border-radius:12px;
+  color:white;
+  background:linear-gradient(135deg,#875cf5,#527cff);
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+
+.qr-link-meta {
+  font-size:12px;
+  color:#aab0c9;
+  overflow-wrap:anywhere;
+  margin-top:8px;
+}
+
+.qr-delete-button {
+  border:0;
+  padding:10px 14px;
+  margin-top:10px;
+  border-radius:10px;
+  color:#ffb5c2;
+  background:#442837;
+}
+
+#qrScanStatus {
+  color:#aab0c9;
+  font-size:14px;
+  overflow-wrap:anywhere;
+  margin-top:12px;
+}
+
+#qrCameraBox {
+  margin:12px 0;
+}
+
+#qrCameraBox video {
+  max-height:350px;
+  object-fit:cover;
+}
 </style>
 </head>
 
@@ -196,31 +265,73 @@ background:#2d3653;margin-bottom:10px
 
   
 <!-- QR VAULT -->
+
 <section class="section" id="qr">
   <div class="card">
+
     <h2>QR Vault</h2>
-    <p>Satu tempat untuk menyimpan semua data QR milikmu.</p>
+    <p>Scan atau upload gambar QR, POPER akan membaca dan menyimpan link-nya.</p>
 
-    <label>Jenis data</label>
-    <select id="qrType">
-      <option value="qris">QRIS / Pembayaran</option>
-      <option value="website">Website / Link</option>
-      <option value="wifi">WiFi</option>
-      <option value="text">Teks / QR lainnya</option>
-    </select>
-
-    <input id="qrName" placeholder="Nama (contoh: QRIS Toko)">
-
-    <textarea id="qrUrl"
-      placeholder="Tempel isi QR atau URL di sini"></textarea>
-
-    <button id="saveQR" class="primary">
-      Simpan ke Vault
+    <!-- KAMERA SCAN -->
+    <button id="startQRScanner" class="primary">
+      📷 Scan QR dengan Kamera
     </button>
 
+    <div id="qrCameraBox" hidden>
+      <video id="qrVideo" autoplay playsinline
+        style="width:100%;border-radius:15px;background:#000">
+      </video>
+
+      <button id="stopQRScanner" class="secondary">
+        Tutup Kamera
+      </button>
+    </div>
+
+    <!-- UPLOAD QR -->
+    <label for="qrImageInput">Upload Gambar QR Code</label>
+
+    <input
+      type="file"
+      id="qrImageInput"
+      accept="image/*"
+    >
+
+    <div id="qrPreview"></div>
+
+    <!-- HASIL QR -->
+    <div id="qrResultBox" hidden>
+
+      <label>Nama tombol / link</label>
+
+      <input
+        id="qrName"
+        placeholder="Contoh: Instagram Saya"
+      >
+
+      <label>Link hasil scan</label>
+
+      <textarea
+        id="qrUrl"
+        placeholder="Hasil scan QR akan muncul di sini"
+      ></textarea>
+
+      <button id="saveQR" class="primary">
+        💾 Simpan Link ke Vault
+      </button>
+
+    </div>
+
+    <div id="qrScanStatus"></div>
+
+    <hr style="border-color:#303650;margin:25px 0">
+
+    <h2>Link Tersimpan</h2>
+
     <div id="qrList"></div>
+
   </div>
 </section>
+
 
 
   <!-- NOTES -->
@@ -249,6 +360,7 @@ background:#2d3653;margin-bottom:10px
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>

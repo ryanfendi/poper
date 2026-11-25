@@ -815,3 +815,20 @@ window.POPER.onAuth(user => {
 });
 
 console.log("POPER QR Vault v2 siap.");
+
+
+document.getElementById("openPublicBio")?.addEventListener("click", () => {
+  const user = window.POPER.auth.currentUser;
+
+  if (!user || !user.phoneNumber) {
+    alert("Login terlebih dahulu.");
+    return;
+  }
+
+  const phone = encodeURIComponent(user.phoneNumber);
+
+  window.open(
+    `bio.html?phone=${phone}`,
+    "_blank"
+  );
+});

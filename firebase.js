@@ -60,19 +60,37 @@ function resetRecaptcha() {
   if (container) container.innerHTML = "";
 }
 
+
 function setupRecaptcha() {
-  if (recaptchaVerifier) return recaptchaVerifier;
+  if (recaptchaVerifier) {
+    return recaptchaVerifier;
+  }
+
+  const container = document.getElementById("recaptcha-container");
+
+  if (!container) {
+    throw new Error("Container reCAPTCHA tidak ditemukan di HTML.");
+  }
+
+  container.innerHTML = "";
 
   recaptchaVerifier = new RecaptchaVerifier(
     auth,
-    "recaptcha-container",
+    container,
     {
-      size: "normal"
+      size: "normal",
+      callback: () => {
+        console.log("reCAPTCHA berhasil diverifikasi");
+      },
+      "expired-callback": () => {
+        console.log("reCAPTCHA kedaluwarsa");
+      }
     }
   );
 
   return recaptchaVerifier;
 }
+
 
 async function sendOTP(phone) {
   const verifier = setupRecaptcha();

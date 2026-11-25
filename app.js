@@ -1,445 +1,557 @@
 const $ = id => document.getElementById(id);
 
-let currentUser = null;
-let currentBioId = null;
-let bioLinksDraft = [];
-let cameraStream = null;
-let editingBioId = null;
+const state = {
+  user: null,
+  confirmation: null,
+  cameraStream: null,
+  detectedPhone: "",
+  editingBioId: null,
+  editingNoteId: null,
+  currentBio: null
+};
 
-const userPath = () => `users/${currentUser.uid}`;
-const bioPath = () => `${userPath()}/bios`;
-const vaultPath = () => `${userPath()}/vault`;
-const notesPath = () => `${userPath()}/notes`;
+const DB = () => state.user ? `users/${state.user.uid}` : null;
 
-function showMessage(id, message, error = false) {
-  const el = $(id);
-  if (!el) return;
+function toast(message) {
+  const el = $("toast");
   el.textContent = message;
-  el.style.color = error ? "#ef5261" : "var(--accent)";
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2600);
 }
 
-function escapeHTML(value = "") {
-  return String(value).replace(/[&<>"']/g, c => ({
+function setMessage(message, error = false) {
+  $("authMessage").textContent = message;
+  $("authMessage").style.color = error ? "#ff647c" : "";
+}
+
+function safePhone(phone) {
+  return String(phone || "").replace(/[^\d+]/g, "");
+}
+
+function escapeHTML(str = "") {
+  return String(str).replace(/[&<>"']/g, char => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     '"': "&quot;",
     "'": "&#39;"
-  }[c]));
+  }[char]));
 }
 
-// AUTH
+function makeId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function showAuth() {
+  $("authPage").classList.remove("hidden");
+  $("mainApp").classList.add("hidden");
+  $("publicBioPage").classList.add("hidden");
+}
+
+function showApp() {
+  $("authPage").classList.add("hidden");
+  $("mainApp").classList.remove("hidden");
+  $("profilePhone").textContent = state.user.phoneNumber || "POPER Member";
+  navigate("scanPage");
+  loadAll();
+}
+
+function navigate(pageId) {
+  document.querySelectorAll(".page").forEach(page => page.classList.remove("active"));
+  $(pageId)?.classList.add("active");
+
+  document.querySelectorAll(".nav-item").forEach(item => {
+    item.classList.toggle("active", item.dataset.page === pageId);
+  }
+
+  stopCamera();
+}
+
+function setTheme(theme) {
+  document.body.classList.toggle("light", theme === "light");
+  localStorage.setItem("poper-theme", theme);
+  $("themeToggle").innerHTML = theme === "light"
+    ? '<span class="material-symbols-rounded">light_mode</span>'
+    : '<span class="material-symbols-rounded">dark_mode</span>';
+}
+
+function toggleTheme() {
+  setTheme(document.body.classList.contains("light") ? "dark" : "light");
+}
+
+async function loadAll() {
+  await Promise.all([
+    loadBios(),
+    loadVault(),
+    loadNotes()
+  ]);
+}
+
+/* AUTH */
+
 $("sendOtpBtn").onclick = async () => {
   const phone = $("phoneInput").value.trim();
 
-  if (!phone) {
-    showMessage("authMessage", "Masukkan nomor HP terlebih dahulu.", true);
+  if (!phone || phone.replace(/\D/g, "").length < 8) {
+    setMessage("Masukkan nomor HP yang valid.", true);
     return;
   }
 
   $("sendOtpBtn").disabled = true;
-  showMessage("authMessage", "Mengirim OTP...");
+  setMessage("Mengirim OTP...");
 
   try {
-    await POPER.sendOTP(phone);
-    $("loginForm").classList.add("hidden");
-    $("otpForm").classList.remove("hidden");
-    showMessage("authMessage", "OTP berhasil dikirim.");
+    state.confirmation = await POPER.sendOTP(phone);
+    $("phoneStep").classList.add("hidden");
+    $("otpStep").classList.remove("hidden");
+    setMessage("Kode OTP sudah dikirim.");
   } catch (error) {
-    showMessage("authMessage", error.message, true);
+    console.error(error);
+    setMessage(error.message || "Gagal mengirim OTP.", true);
+    POPER.resetRecaptcha();
   } finally {
     $("sendOtpBtn").disabled = false;
   }
 };
 
 $("verifyOtpBtn").onclick = async () => {
+  const code = $("otpInput").value.trim();
+
+  if (code.length < 6) {
+    setMessage("Masukkan 6 digit OTP.", true);
+    return;
+  }
+
   try {
     $("verifyOtpBtn").disabled = true;
-    await POPER.verifyOTP($("otpInput").value);
-    showMessage("authMessage", "Verifikasi berhasil.");
+    setMessage("Memverifikasi...");
+
+    await state.confirmation.confirm(code);
+    state.confirmation = null;
   } catch (error) {
-    showMessage("authMessage", error.message, true);
+    console.error(error);
+    setMessage("OTP salah atau sudah kedaluwarsa.", true);
   } finally {
     $("verifyOtpBtn").disabled = false;
   }
 };
 
-$("backLoginBtn").onclick = () => {
-  $("otpForm").classList.add("hidden");
-  $("loginForm").classList.remove("hidden");
+$("backPhoneBtn").onclick = () => {
+  $("otpStep").classList.add("hidden");
+  $("phoneStep").classList.remove("hidden");
+  $("otpInput").value = "";
   POPER.resetRecaptcha();
+  setMessage("");
+};
+
+$("logoutBtn").onclick = async () => {
+  try {
+    stopCamera();
+    await POPER.logout();
+  } catch (error) {
+    toast(error.message);
+  }
 };
 
 POPER.onAuth(user => {
-  currentUser = user;
-
-  if (user) {
-    $("authScreen").classList.add("hidden");
-    $("mainScreen").classList.remove("hidden");
-    $("profilePhone").textContent = user.phoneNumber || "";
-    loadAll();
-  } else {
-    $("authScreen").classList.remove("hidden");
-    $("mainScreen").classList.add("hidden");
-  }
+  state.user = user;
+  if (user) showApp();
+  else showAuth();
 });
 
-$("logoutBtn").onclick = async () => {
-  await POPER.logout();
-};
-
-// NAVIGATION
-function openPage(pageId) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  $(pageId)?.classList.add("active");
-
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-  document.querySelector(`[data-page="${pageId}"]`)?.classList.add("active");
-
-  if (pageId === "bioPage") loadBios();
-  if (pageId === "vaultPage") loadVault();
-  if (pageId === "notesPage") loadNotes();
-}
+/* NAV */
 
 document.querySelectorAll(".nav-item").forEach(btn => {
-  btn.onclick = () => openPage(btn.dataset.page);
+  btn.onclick = () => navigate(btn.dataset.page);
 });
 
-$("profileButton").onclick = () => openPage("profilePage");
+$("profileButton").onclick = () => navigate("profilePage");
+$("themeToggle").onclick = toggleTheme;
+$("profileThemeBtn").onclick = toggleTheme;
 
-// THEME
-$("themeToggle").onclick = () => {
-  document.body.classList.toggle("dark");
-  localStorage.setItem("poperTheme",
-    document.body.classList.contains("dark") ? "dark" : "light");
-};
+setTheme(localStorage.getItem("poper-theme") || "dark");
 
-if (localStorage.getItem("poperTheme") === "dark") {
-  document.body.classList.add("dark");
-}
+/* SCANNER CAMERA */
 
-// PHONE SEARCH
-$("findBioBtn").onclick = searchBio;
-$("searchPhone").onkeydown = e => {
-  if (e.key === "Enter") searchBio();
-};
-
-async function searchBio() {
-  const phone = POPER.normalizePhone($("searchPhone").value);
-
-  $("searchResult").innerHTML = "";
-  showMessage("scanStatus", "Mencari Bio...");
-
+$("startCameraBtn").onclick = async () => {
   try {
-    const users = await POPER.getData("publicPhoneIndex");
-    const targetUid = users?.[phone.replace("+", "")];
-
-    if (!targetUid) {
-      showMessage("scanStatus", "Bio belum ditemukan.");
-      return;
-    }
-
-    const bios = await POPER.getData(`users/${targetUid}/bios`);
-
-    if (!bios) {
-      showMessage("scanStatus", "Pengguna belum membuat Bio.");
-      return;
-    }
-
-    const entries = Object.entries(bios).filter(([, bio]) => bio.published !== false);
-
-    if (!entries.length) {
-      showMessage("scanStatus", "Tidak ada Bio yang dipublikasikan.");
-      return;
-    }
-
-    $("searchResult").innerHTML = entries.map(([id, bio]) => `
-      <div class="result-card">
-        <h3>${escapeHTML(bio.title || "Bio")}</h3>
-        <p>${escapeHTML(bio.description || "")}</p>
-        <button class="primary-btn" data-open-bio="${escapeHTML(id)}" data-owner="${escapeHTML(targetUid)}">Lihat Bio ↗</button>
-      </div>
-    `).join("");
-
-    $("searchResult").querySelectorAll("[data-open-bio]").forEach(btn => {
-      btn.onclick = () => showPublicBio(targetUid, btn.dataset.openBio);
-    });
-
-    showMessage("scanStatus", "Bio ditemukan.");
-  } catch (error) {
-    showMessage("scanStatus", error.message, true);
-  }
-}
-
-// SCANNER CAMERA
-$("cameraScanBtn").onclick = startCamera;
-$("closeScannerBtn").onclick = stopCamera;
-$("captureBtn").onclick = captureAndOCR;
-
-async function startCamera() {
-  try {
-    $("scannerArea").classList.remove("hidden");
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
+    state.cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
       audio: false
     });
-    $("scannerVideo").srcObject = cameraStream;
+
+    $("cameraVideo").srcObject = state.cameraStream;
+    $("cameraBox").classList.remove("hidden");
+    $("cameraBox").scrollIntoView({ behavior: "smooth" });
   } catch (error) {
-    showMessage("scanStatus", "Kamera tidak dapat diakses.", true);
+    toast("Kamera gagal dibuka. Periksa izin kamera.");
   }
-}
-
-function stopCamera() {
-  cameraStream?.getTracks().forEach(track => track.stop());
-  cameraStream = null;
-  $("scannerVideo").srcObject = null;
-  $("scannerArea").classList.add("hidden");
-}
-
-async function captureAndOCR() {
-  const video = $("scannerVideo");
-
-  if (!video.videoWidth) {
-    showMessage("scanStatus", "Kamera belum siap.", true);
-    return;
-  }
-
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext("2d").drawImage(video, 0, 0);
-
-  await processOCR(canvas);
-}
-
-$("uploadScanBtn").onclick = () => $("imageScanInput").click();
-
-$("imageScanInput").onchange = async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const img = new Image();
-  img.onload = async () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    canvas.getContext("2d").drawImage(img, 0, 0);
-    await processOCR(canvas);
-    URL.revokeObjectURL(img.src);
-  };
-  img.src = URL.createObjectURL(file);
 };
 
-async function processOCR(canvas) {
-  showMessage("scanStatus", "Membaca gambar...");
+function stopCamera() {
+  if (state.cameraStream) {
+    state.cameraStream.getTracks().forEach(track => track.stop());
+    state.cameraStream = null;
+  }
+  if ($("cameraVideo")) $("cameraVideo").srcObject = null;
+}
+
+$("closeCameraBtn").onclick = () => {
+  stopCamera();
+  $("cameraBox").classList.add("hidden");
+};
+
+$("captureBtn").onclick = async () => {
+  const video = $("cameraVideo");
+  const canvas = $("cameraCanvas");
+
+  if (!video.videoWidth) return toast("Kamera belum siap.");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  canvas.getContext("2d").drawImage(video, 0, 0);
+
+  stopCamera();
+  $("cameraBox").classList.add("hidden");
+
+  await runOCR(canvas);
+};
+
+/* UPLOAD IMAGE */
+
+$("uploadImageBtn").onclick = () => $("imageInput").click();
+
+$("imageInput").onchange = async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  await runOCR(file);
+  event.target.value = "";
+};
+
+/* OCR */
+
+async function runOCR(source) {
+  toast("Membaca nomor dari gambar...");
 
   try {
-    const result = await Tesseract.recognize(canvas, "eng");
-    const text = result.data.text;
-    const matches = text.match(/(?:\+?62|0)\s*[\d\s\-()]{7,}/g) || [];
+    const result = await Tesseract.recognize(source, "eng");
+    const text = result.data.text || "";
 
-    if (!matches.length) {
-      showMessage("scanStatus", "Nomor HP tidak terdeteksi. Coba gambar lebih jelas.", true);
+    const candidates = text.match(/(?:\+?62|0)?[\d\s().-]{8,18}/g) || [];
+
+    const phones = candidates
+      .map(value => value.replace(/[^\d+]/g, ""))
+      .filter(value => value.replace(/\D/g, "").length >= 9);
+
+    if (!phones.length) {
+      toast("Nomor HP tidak ditemukan. Coba gambar lain.");
       return;
     }
 
-    const phone = matches[0].replace(/[^\d+]/g, "");
-    $("searchPhone").value = phone;
-    $("scanStatus").textContent = "Nomor terdeteksi: " + phone;
-    stopCamera();
-    await searchBio();
+    state.detectedPhone = phones[0];
+    $("detectedNumber").textContent = state.detectedPhone;
+    $("scanResultBox").classList.remove("hidden");
+    $("scanResultBox").scrollIntoView({ behavior: "smooth" });
   } catch (error) {
-    showMessage("scanStatus", "OCR gagal membaca gambar.", true);
+    console.error(error);
+    toast("OCR gagal membaca gambar.");
   }
 }
 
-// BIO
-$("createBioBtn").onclick = () => openBioEditor();
-$("cancelBioBtn").onclick = closeBioEditor;
-$("addBioLinkBtn").onclick = () => addBioLinkRow();
-$("saveBioBtn").onclick = saveBio;
+$("copyDetectedBtn").onclick = async () => {
+  await navigator.clipboard.writeText(state.detectedPhone || "");
+  toast("Nomor disalin.");
+};
 
-function openBioEditor(bio = null, id = null) {
-  editingBioId = id;
-  bioLinksDraft = bio?.links ? Object.values(bio.links) : [];
-  $("bioEditorTitle").textContent = bio ? "Edit Bio" : "Buat Bio Baru";
-  $("bioTitle").value = bio?.title || "";
-  $("bioDescription").value = bio?.description || "";
-  $("bioBackground").value = bio?.background || "#17152a";
-  $("bioButtonColor").value = bio?.buttonColor || "#7457ff";
-  $("bioAvatar").value = bio?.avatar || "";
-  renderBioLinkRows();
+$("findBioBtn").onclick = () => findBio(state.detectedPhone);
+$("manualSearchBtn").onclick = () => findBio($("manualPhoneInput").value);
+
+/* FIND BIO */
+
+async function findBio(phone) {
+  if (!state.user) return toast("Silakan login.");
+
+  const normalized = POPER.normalizePhone(phone);
+  toast("Mencari Bio...");
+
+  try {
+    const profiles = await POPER.getData("publicBios");
+
+    let found = null;
+
+    if (profiles) {
+      for (const [uid, userBios] of Object.entries(profiles)) {
+        if (!userBios) continue;
+
+        for (const [bioId, bio] of Object.entries(userBios)) {
+          if (bio && bio.phone === normalized) {
+            found = { ...bio, id: bioId, owner: uid };
+            break;
+          }
+        }
+
+        if (found) break;
+      }
+    }
+
+    if (!found) {
+      toast("Bio tidak ditemukan untuk nomor tersebut.");
+      return;
+    }
+
+    renderPublicBio(found);
+  } catch (error) {
+    console.error(error);
+    toast("Gagal mencari Bio.");
+  }
+}
+
+/* BIO */
+
+function bioPath() {
+  return `${DB()}/bios`;
+}
+
+async function loadBios() {
+  if (!state.user) return;
+
+  const bios = await POPER.getData(bioPath()) || {};
+  const list = $("bioList");
+
+  list.innerHTML = Object.entries(bios).map(([id, bio]) => `
+    <div class="item-card">
+      <h3>${escapeHTML(bio.title)}</h3>
+      <p>@${escapeHTML(bio.username || "")}</p>
+      <p>${escapeHTML(bio.description || "")}</p>
+      <div class="item-actions">
+        <button data-preview="${id}">Preview</button>
+        <button data-edit="${id}">Edit</button>
+        <button data-delete="${id}" class="delete-btn">Delete</button>
+      </div>
+    </div>
+  `).join("");
+
+  list.querySelectorAll("[data-preview]").forEach(btn => {
+    btn.onclick = () => renderPublicBio(bios[btn.dataset.preview]);
+  });
+
+  list.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.onclick = () => editBio(btn.dataset.edit, bios[btn.dataset.edit]);
+  });
+
+  list.querySelectorAll("[data-delete]").forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm("Hapus Bio ini?")) return;
+
+      const bio = bios[btn.dataset.delete];
+
+      await POPER.deleteData(`${bioPath()}/${btn.dataset.delete}`);
+      if (bio?.phone) {
+        await POPER.deleteData(`publicBios/${state.user.uid}/${btn.dataset.delete}`);
+      }
+
+      loadBios();
+      toast("Bio dihapus.");
+    };
+  });
+}
+
+function resetBioEditor() {
+  state.editingBioId = null;
+  $("bioEditorTitle").textContent = "Create Bio";
+  $("bioTitle").value = "";
+  $("bioUsername").value = "";
+  $("bioDescription").value = "";
+  $("bioImageInput").value = "";
+  $("bioImageUrl").value = "";
+  $("bioBackgroundColor").value = "#171323";
+  $("bioButtonColor").value = "#8458f5";
+  $("bioTextColor").value = "#ffffff";
+  $("bioLinksContainer").innerHTML = "";
+}
+
+$("createBioBtn").onclick = () => {
+  resetBioEditor();
+  $("bioEditor").classList.remove("hidden");
+  $("bioEditor").scrollIntoView({ behavior: "smooth" });
+};
+
+$("cancelBioBtn").onclick = () => $("bioEditor").classList.add("hidden");
+
+$("addBioLinkBtn").onclick = () => addBioLink();
+
+function addBioLink(title = "", url = "") {
+  const row = document.createElement("div");
+  row.className = "bio-link-row";
+
+  row.innerHTML = `
+    <input class="text-input link-title" placeholder="Button name">
+    <input class="text-input link-url" placeholder="https://..." value="">
+    <button type="button">×</button>
+  `;
+
+  row.querySelector(".link-title").value = title;
+  row.querySelector(".link-url").value = url;
+
+  row.querySelector("button").onclick = () => row.remove();
+  $("bioLinksContainer").appendChild(row);
+}
+
+async function editBio(id, bio) {
+  resetBioEditor();
+
+  state.editingBioId = id;
+  $("bioEditorTitle").textContent = "Edit Bio";
+  $("bioTitle").value = bio.title || "";
+  $("bioUsername").value = bio.username || "";
+  $("bioDescription").value = bio.description || "";
+  $("bioImageUrl").value = bio.avatar || "";
+  $("bioBackgroundColor").value = bio.backgroundColor || "#171323";
+  $("bioButtonColor").value = bio.buttonColor || "#8458f5";
+  $("bioTextColor").value = bio.textColor || "#ffffff";
+
+  (bio.links || []).forEach(link => addBioLink(link.title, link.url));
+
   $("bioEditor").classList.remove("hidden");
   $("bioEditor").scrollIntoView({ behavior: "smooth" });
 }
 
-function closeBioEditor() {
-  $("bioEditor").classList.add("hidden");
-  editingBioId = null;
-  bioLinksDraft = [];
-}
-
-function addBioLinkRow() {
-  bioLinksDraft.push({ title: "", url: "" });
-  renderBioLinkRows();
-}
-
-function renderBioLinkRows() {
-  $("bioLinksEditor").innerHTML = bioLinksDraft.map((link, i) => `
-    <div class="link-editor-row">
-      <input data-link-title="${i}" placeholder="Nama tombol" value="${escapeHTML(link.title || "")}">
-      <input data-link-url="${i}" placeholder="https://..." value="${escapeHTML(link.url || "")}">
-      <button data-remove-link="${i}">×</button>
-    </div>
-  `).join("");
-
-  $("bioLinksEditor").querySelectorAll("[data-link-title]").forEach(input => {
-    input.oninput = () => bioLinksDraft[input.dataset.linkTitle].title = input.value;
-  });
-
-  $("bioLinksEditor").querySelectorAll("[data-link-url]").forEach(input => {
-    input.oninput = () => bioLinksDraft[input.dataset.linkUrl].url = input.value;
-  });
-
-  $("bioLinksEditor").querySelectorAll("[data-remove-link]").forEach(button => {
-    button.onclick = () => {
-      bioLinksDraft.splice(button.dataset.removeLink, 1);
-      renderBioLinkRows();
-    };
+async function fileToDataURL(file) {
+  if (!file) return null;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
-async function saveBio() {
-  if (!currentUser) return;
+$("saveBioBtn").onclick = async () => {
+  if (!state.user) return toast("Login terlebih dahulu.");
 
   const title = $("bioTitle").value.trim();
+  if (!title) return toast("Nama Bio wajib diisi.");
 
-  if (!title) {
-    alert("Nama Bio wajib diisi.");
-    return;
+  const links = [...$("bioLinksContainer").querySelectorAll(".bio-link-row")]
+    .map(row => ({
+      title: row.querySelector(".link-title").value.trim(),
+      url: row.querySelector(".link-url").value.trim()
+    }))
+    .filter(link => link.title && link.url);
+
+  const id = state.editingBioId || makeId();
+
+  const avatarFile = $("bioImageInput").files[0];
+  const backgroundFile = $("bioBackgroundImage").files[0];
+
+  let avatar = $("bioImageUrl").value.trim();
+  let backgroundImage = "";
+
+  try {
+    if (avatarFile) avatar = await fileToDataURL(avatarFile);
+    if (backgroundFile) backgroundImage = await fileToDataURL(backgroundFile);
+  } catch (error) {
+    return toast("Gagal membaca gambar.");
   }
 
-  const links = bioLinksDraft.filter(link => link.title.trim() && link.url.trim());
+  const phone = state.user.phoneNumber || "";
 
-  const data = {
+  const bio = {
+    id,
     title,
+    username: $("bioUsername").value.trim(),
     description: $("bioDescription").value.trim(),
-    background: $("bioBackground").value,
-    buttonColor: $("bioButtonColor").value,
-    avatar: $("bioAvatar").value.trim(),
+    avatar,
+    phone,
     links,
-    published: true,
+    backgroundColor: $("bioBackgroundColor").value,
+    backgroundImage,
+    buttonColor: $("bioButtonColor").value,
+    textColor: $("bioTextColor").value,
     updatedAt: Date.now()
   };
 
   try {
-    if (editingBioId) {
-      await POPER.updateData(`${bioPath()}/${editingBioId}`, data);
-    } else {
-      data.createdAt = Date.now();
-      await POPER.pushData(bioPath(), data);
+    await POPER.saveData(`${bioPath()}/${id}`, bio);
+
+    // Public lookup index
+    if (phone) {
+      await POPER.saveData(`publicBios/${state.user.uid}/${id}`, bio);
     }
 
-    closeBioEditor();
+    $("bioEditor").classList.add("hidden");
     await loadBios();
+    toast("Bio berhasil disimpan.");
   } catch (error) {
-    alert("Gagal menyimpan Bio: " + error.message);
+    console.error(error);
+    toast("Gagal menyimpan Bio. Periksa Firebase Rules.");
   }
-}
+};
 
-async function loadBios() {
-  const bios = await POPER.getData(bioPath());
+$("previewBioBtn").onclick = () => {
+  const links = [...$("bioLinksContainer").querySelectorAll(".bio-link-row")]
+    .map(row => ({
+      title: row.querySelector(".link-title").value,
+      url: row.querySelector(".link-url").value
+    }));
 
-  if (!bios) {
-    $("bioList").innerHTML = `<div class="empty-state">Belum ada Bio. Buat Bio pertama kamu.</div>`;
-    return;
-  }
-
-  $("bioList").innerHTML = Object.entries(bios).map(([id, bio]) => `
-    <div class="bio-card">
-      <h3>${escapeHTML(bio.title)}</h3>
-      <p>${escapeHTML(bio.description || "")}</p>
-      <div class="card-actions">
-        <button data-preview="${escapeHTML(id)}">Preview</button>
-        <button data-edit="${escapeHTML(id)}">Edit</button>
-        <button data-delete="${escapeHTML(id)}">Hapus</button>
-        <button data-copy="${escapeHTML(id)}">Salin Link</button>
-      </div>
-    </div>
-  `).join("");
-
-  $("bioList").querySelectorAll("[data-preview]").forEach(btn => {
-    btn.onclick = () => showPublicBio(currentUser.uid, btn.dataset.preview);
+  renderPublicBio({
+    title: $("bioTitle").value || "My Bio",
+    username: $("bioUsername").value,
+    description: $("bioDescription").value,
+    avatar: $("bioImageUrl").value,
+    links,
+    backgroundColor: $("bioBackgroundColor").value,
+    buttonColor: $("bioButtonColor").value,
+    textColor: $("bioTextColor").value
   });
+};
 
-  $("bioList").querySelectorAll("[data-edit]").forEach(btn => {
-    btn.onclick = () => openBioEditor(bios[btn.dataset.edit], btn.dataset.edit);
-  });
+function renderPublicBio(bio) {
+  state.currentBio = bio;
 
-  $("bioList").querySelectorAll("[data-delete]").forEach(btn => {
-    btn.onclick = async () => {
-      if (confirm("Hapus Bio ini?")) {
-        await POPER.deleteData(`${bioPath()}/${btn.dataset.delete}`);
-        loadBios();
-      }
-    };
-  });
+  const content = $("publicBioContent");
+  const background = bio.backgroundImage
+    ? `url("${bio.backgroundImage}")`
+    : bio.backgroundColor || "#171323";
 
-  $("bioList").querySelectorAll("[data-copy]").forEach(btn => {
-    btn.onclick = async () => {
-      const url = location.origin + location.pathname + "?bio=" + currentUser.uid + "_" + btn.dataset.copy;
-      await navigator.clipboard.writeText(url);
-      alert("Link Bio disalin!");
-    };
-  });
-}
-
-// PUBLIC BIO
-async function showPublicBio(uid, bioId) {
-  const bio = await POPER.getData(`users/${uid}/bios/${bioId}`);
-
-  if (!bio) {
-    alert("Bio tidak ditemukan.");
-    return;
-  }
-
-  $("mainScreen").classList.add("hidden");
-  $("publicBioScreen").classList.remove("hidden");
-
-  const links = Object.values(bio.links || {});
-
-  $("publicBioContent").innerHTML = `
-    <div class="public-bio" style="background:${escapeHTML(bio.background || "#17152a")};color:white">
-      ${bio.avatar ? `<img src="${escapeHTML(bio.avatar)}" alt="Avatar">` : ""}
+  content.innerHTML = `
+    <div class="public-bio-content" style="background-color:${escapeHTML(bio.backgroundColor || "#171323")};background-image:${bio.backgroundImage ? `url('${bio.backgroundImage}')` : "none"};color:${escapeHTML(bio.textColor || "#ffffff")}">
+      ${bio.avatar ? `<img class="public-bio-avatar" src="${escapeHTML(bio.avatar)}">` : ""}
       <h1>${escapeHTML(bio.title || "")}</h1>
+      <div>@${escapeHTML(bio.username || "")}</div>
       <p>${escapeHTML(bio.description || "")}</p>
-      ${links.map(link => `
-        <a class="public-link" style="background:${escapeHTML(bio.buttonColor || "#7457ff")}"
-           href="${escapeHTML(link.url)}" target="_blank" rel="noopener">
+      ${(bio.links || []).map(link => `
+        <a class="public-bio-link" href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer" style="background:${escapeHTML(bio.buttonColor || "#8458f5")};color:${escapeHTML(bio.textColor || "#ffffff")}">
           ${escapeHTML(link.title)}
         </a>
       `).join("")}
-      <div style="margin-top:30px;opacity:.6">Made with POPER</div>
+      <div class="muted" style="margin-top:30px">Made with POPER</div>
     </div>
   `;
+
+  $("mainApp").classList.add("hidden");
+  $("publicBioPage").classList.remove("hidden");
 }
 
 $("closePublicBioBtn").onclick = () => {
-  $("publicBioScreen").classList.add("hidden");
-  $("mainScreen").classList.remove("hidden");
+  $("publicBioPage").classList.add("hidden");
+  $("mainApp").classList.remove("hidden");
 };
 
-// VAULT
-$("saveVaultBtn").onclick = saveVault;
+/* VAULT */
 
-async function saveVault() {
+function vaultPath() {
+  return `${DB()}/vault`;
+}
+
+$("saveVaultBtn").onclick = async () => {
   const title = $("vaultTitle").value.trim();
   const url = $("vaultUrl").value.trim();
 
-  if (!title || !url) {
-    alert("Isi nama dan link terlebih dahulu.");
-    return;
-  }
+  if (!title || !url) return toast("Isi title dan link.");
 
   try {
     await POPER.pushData(vaultPath(), {
@@ -451,156 +563,129 @@ async function saveVault() {
     $("vaultTitle").value = "";
     $("vaultUrl").value = "";
     loadVault();
+    toast("Tersimpan di Vault.");
   } catch (error) {
-    alert("Gagal menyimpan Vault: " + error.message);
+    toast("Gagal menyimpan Vault.");
   }
-}
+};
+
+$("addVaultBtn").onclick = () => $("vaultTitle").focus();
 
 async function loadVault() {
-  const data = await POPER.getData(vaultPath());
+  if (!state.user) return;
 
-  if (!data) {
-    $("vaultList").innerHTML = `<div class="empty-state">Vault masih kosong.</div>`;
-    return;
-  }
+  const data = await POPER.getData(vaultPath()) || {};
+  const list = $("vaultList");
 
-  $("vaultList").innerHTML = Object.entries(data).map(([id, item]) => `
-    <div class="vault-card">
+  list.innerHTML = Object.entries(data).map(([id, item]) => `
+    <div class="item-card">
       <h3>${escapeHTML(item.title)}</h3>
       <p>${escapeHTML(item.url)}</p>
-      <div class="card-actions">
-        <button data-vault-open="${escapeHTML(id)}">Buka</button>
-        <button data-vault-delete="${escapeHTML(id)}">Hapus</button>
+      <div class="item-actions">
+        <button data-open="${id}">Open</button>
+        <button data-copy="${id}">Copy</button>
+        <button data-delete="${id}" class="delete-btn">Delete</button>
       </div>
     </div>
   `).join("");
 
-  $("vaultList").querySelectorAll("[data-vault-open]").forEach(btn => {
+  list.querySelectorAll("[data-open]").forEach(btn => {
     btn.onclick = () => {
-      const item = data[btn.dataset.vaultOpen];
-      window.open(item.url, "_blank", "noopener");
+      const item = data[btn.dataset.open];
+      let url = item.url;
+      if (/^https?:\/\//i.test(url)) window.open(url, "_blank", "noopener");
+      else toast("Konten QR: " + url);
     };
   });
 
-  $("vaultList").querySelectorAll("[data-vault-delete]").forEach(btn => {
+  list.querySelectorAll("[data-copy]").forEach(btn => {
     btn.onclick = async () => {
-      await POPER.deleteData(`${vaultPath()}/${btn.dataset.vaultDelete}`);
+      await navigator.clipboard.writeText(data[btn.dataset.copy].url);
+      toast("Disalin.");
+    };
+  });
+
+  list.querySelectorAll("[data-delete]").forEach(btn => {
+    btn.onclick = async () => {
+      await POPER.deleteData(`${vaultPath()}/${btn.dataset.delete}`);
       loadVault();
     };
   });
 }
 
-// NOTES
-$("saveNoteBtn").onclick = saveNote;
+/* NOTES */
 
-async function saveNote() {
-  const title = $("noteTitle").value.trim();
-  const content = $("noteContent").value.trim();
-
-  if (!title || !content) {
-    alert("Isi judul dan catatan.");
-    return;
-  }
-
-  await POPER.pushData(notesPath(), {
-    title,
-    content,
-    createdAt: Date.now()
-  });
-
-  $("noteTitle").value = "";
-  $("noteContent").value = "";
-  loadNotes();
+function notesPath() {
+  return `${DB()}/notes`;
 }
 
-async function loadNotes() {
-  const notes = await POPER.getData(notesPath());
+$("newNoteBtn").onclick = () => {
+  state.editingNoteId = null;
+  $("noteTitle").value = "";
+  $("noteContent").value = "";
+  $("noteEditor").classList.remove("hidden");
+};
 
-  if (!notes) {
-    $("notesList").innerHTML = `<div class="empty-state">Belum ada catatan.</div>`;
-    return;
+$("cancelNoteBtn").onclick = () => $("noteEditor").classList.add("hidden");
+
+$("saveNoteBtn").onclick = async () => {
+  const title = $("noteTitle").value.trim() || "Untitled";
+  const content = $("noteContent").value;
+
+  try {
+    if (state.editingNoteId) {
+      await POPER.updateData(`${notesPath()}/${state.editingNoteId}`, {
+        title,
+        content,
+        updatedAt: Date.now()
+      });
+    } else {
+      await POPER.pushData(notesPath(), {
+        title,
+        content,
+        createdAt: Date.now()
+      });
+    }
+
+    $("noteEditor").classList.add("hidden");
+    loadNotes();
+    toast("Note tersimpan.");
+  } catch (error) {
+    toast("Gagal menyimpan Note.");
   }
+};
 
-  $("notesList").innerHTML = Object.entries(notes).map(([id, note]) => `
-    <div class="note-card">
+async function loadNotes() {
+  if (!state.user) return;
+
+  const notes = await POPER.getData(notesPath()) || {};
+  const list = $("notesList");
+
+  list.innerHTML = Object.entries(notes).map(([id, note]) => `
+    <div class="item-card">
       <h3>${escapeHTML(note.title)}</h3>
       <p>${escapeHTML(note.content).replace(/\n/g, "<br>")}</p>
-      <div class="card-actions">
-        <button data-note-delete="${escapeHTML(id)}">Hapus</button>
+      <div class="item-actions">
+        <button data-edit="${id}">Edit</button>
+        <button data-delete="${id}" class="delete-btn">Delete</button>
       </div>
     </div>
   `).join("");
 
-  $("notesList").querySelectorAll("[data-note-delete]").forEach(btn => {
+  list.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.onclick = () => {
+      state.editingNoteId = btn.dataset.edit;
+      const note = notes[btn.dataset.edit];
+      $("noteTitle").value = note.title;
+      $("noteContent").value = note.content;
+      $("noteEditor").classList.remove("hidden");
+    };
+  });
+
+  list.querySelectorAll("[data-delete]").forEach(btn => {
     btn.onclick = async () => {
-      await POPER.deleteData(`${notesPath()}/${btn.dataset.noteDelete}`);
+      await POPER.deleteData(`${notesPath()}/${btn.dataset.delete}`);
       loadNotes();
     };
   });
-}
-
-// LOAD
-async function loadAll() {
-  if (!currentUser) return;
-
-  loadBios();
-  loadVault();
-  loadNotes();
-
-  // Buat index pencarian nomor HP.
-  // Index public harus diizinkan melalui Firebase Rules.
-  try {
-    const phone = currentUser.phoneNumber;
-    if (phone) {
-      const key = phone.replace("+", "");
-      await POPER.updateData("publicPhoneIndex", {
-        [key]: currentUser.uid
-      });
-    }
-  } catch (error) {
-    console.warn("Phone index:", error.message);
-  }
-}
-
-// URL PUBLIC BIO
-const query = new URLSearchParams(location.search);
-const bioParam = query.get("bio");
-
-if (bioParam && bioParam.includes("_")) {
-  const [uid, id] = bioParam.split("_");
-
-  POPER.onAuth(user => {
-    if (!user) {
-      // Bio publik dapat dibuka tanpa login
-      openDirectBio(uid, id);
-    }
-  });
-}
-
-async function openDirectBio(uid, id) {
-  try {
-    const bio = await POPER.getData(`users/${uid}/bios/${id}`);
-    if (!bio) return;
-
-    $("authScreen").classList.add("hidden");
-    $("mainScreen").classList.add("hidden");
-    $("publicBioScreen").classList.remove("hidden");
-
-    const links = Object.values(bio.links || {});
-
-    $("publicBioContent").innerHTML = `
-      <div class="public-bio" style="background:${escapeHTML(bio.background || "#17152a")};color:white">
-        ${bio.avatar ? `<img src="${escapeHTML(bio.avatar)}" alt="Avatar">` : ""}
-        <h1>${escapeHTML(bio.title || "")}</h1>
-        <p>${escapeHTML(bio.description || "")}</p>
-        ${links.map(link => `
-          <a class="public-link" style="background:${escapeHTML(bio.buttonColor || "#7457ff")}"
-          href="${escapeHTML(link.url)}" target="_blank" rel="noopener">${escapeHTML(link.title)}</a>
-        `).join("")}
-        <div style="margin-top:30px;opacity:.6">Made with POPER</div>
-      </div>
-    `;
-  } catch (error) {
-    console.error(error);
-  }
 }

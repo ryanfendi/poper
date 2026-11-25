@@ -1,6 +1,6 @@
 
 import { initializeApp }
-  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 
 import {
   getAuth,
@@ -9,7 +9,6 @@ import {
   RecaptchaVerifier,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-
 
 import {
   getDatabase,
@@ -21,11 +20,7 @@ import {
   push
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
-
-// =================================
-// FIREBASE CONFIG
-// Ganti dengan konfigurasi project kamu
-// =================================
+/* FIREBASE CONFIG */
 
 const firebaseConfig = {
   apiKey: "AIzaSyD4eRul_asozC7eT15z2tcMaRO-gNJ7Us8",
@@ -37,22 +32,21 @@ const firebaseConfig = {
   appId: "1:91901111544:web:a2f1c0a418e16f6ee45f0d"
 };
 
-// =================================
-// INITIALIZE
-// =================================
+/* INITIALIZE */
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
 let recaptchaVerifier = null;
-let recaptchaWidgetId = null;
+
+/* PHONE */
 
 function normalizePhone(phone) {
   let number = String(phone || "").replace(/\D/g, "");
 
   if (number.startsWith("0")) {
-    number = "62" + number.slice(1);
+    number = "62" + number.substring(1);
   } else if (!number.startsWith("62")) {
     number = "62" + number;
   }
@@ -60,22 +54,16 @@ function normalizePhone(phone) {
   return "+" + number;
 }
 
+/* RECAPTCHA */
+
 function setupRecaptcha() {
-  if (recaptchaVerifier) {
-    return recaptchaVerifier;
-  }
+  if (recaptchaVerifier) return recaptchaVerifier;
 
   recaptchaVerifier = new RecaptchaVerifier(
     auth,
     "recaptcha-container",
     {
-      size: "normal",
-      callback: () => {
-        console.log("reCAPTCHA berhasil.");
-      },
-      "expired-callback": () => {
-        console.log("reCAPTCHA expired, ulangi.");
-      }
+      size: "normal"
     }
   );
 
@@ -87,20 +75,17 @@ async function resetRecaptcha() {
     try {
       await recaptchaVerifier.clear();
     } catch (e) {
-      console.warn(e);
+      console.warn("Reset reCAPTCHA:", e);
     }
   }
 
   recaptchaVerifier = null;
-  recaptchaWidgetId = null;
 
-  const container =
-    document.getElementById("recaptcha-container");
-
-  if (container) {
-    container.innerHTML = "";
-  }
+  const container = document.getElementById("recaptcha-container");
+  if (container) container.innerHTML = "";
 }
+
+/* SEND OTP */
 
 async function sendOTP(phone) {
   const formatted = normalizePhone(phone);
@@ -111,14 +96,16 @@ async function sendOTP(phone) {
 
   const verifier = setupRecaptcha();
 
-  return await signInWithPhoneNumber(
+  return signInWithPhoneNumber(
     auth,
     formatted,
     verifier
   );
 }
 
-function logout() {
+/* AUTH */
+
+async function logout() {
   return signOut(auth);
 }
 
@@ -126,10 +113,32 @@ function listenAuth(callback) {
   return onAuthStateChanged(auth, callback);
 }
 
-// =================================
-// POPER GLOBAL API
-// =================================
+/* DATABASE */
 
+async function saveData(path, data) {
+  return set(ref(db, path), data);
+}
+
+async function getData(path) {
+  const snapshot = await get(ref(db, path));
+  return snapshot.exists() ? snapshot.val() : null;
+}
+
+async function updateData(path, data) {
+  return update(ref(db, path), data);
+}
+
+async function deleteData(path) {
+  return remove(ref(db, path));
+}
+
+async function pushData(path, data) {
+  const newRef = push(ref(db, path));
+  await set(newRef, data);
+  return newRef.key;
+}
+
+/* GLOBAL API */
 
 window.POPER = {
   app,
@@ -143,34 +152,15 @@ window.POPER = {
   logout,
   onAuth: listenAuth,
 
-  // DATABASE FUNCTIONS
-  saveData: async (path, data) => {
-    return set(ref(db, path), data);
-  },
-
-  getData: async (path) => {
-    const snapshot = await get(ref(db, path));
-    return snapshot.exists() ? snapshot.val() : null;
-  },
-
-  updateData: async (path, data) => {
-    return update(ref(db, path), data);
-  },
-
-  deleteData: async (path) => {
-    return remove(ref(db, path));
-  },
-
-  pushData: async (path, data) => {
-    const newRef = push(ref(db, path));
-    await set(newRef, data);
-    return newRef.key;
-  },
+  saveData,
+  getData,
+  updateData,
+  deleteData,
+  pushData,
 
   get currentUser() {
     return auth.currentUser;
   }
 };
 
-console.log("POPER Firebase + Database Ready");
-
+console.log("POPER Firebase siap.");

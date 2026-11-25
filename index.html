@@ -4,369 +4,272 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POPER - Phone Identity</title>
-  <meta name="theme-color" content="#0b1120">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+  <meta name="theme-color" content="#10121b">
+  <title>POPER - Scan Number</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 
-<!-- LOGIN -->
-<section id="authScreen" class="auth-screen">
-  <div class="auth-card">
-    <div class="logo">POPER<span>.</span></div>
-    <p class="tagline">Your phone. Your identity. Your space.</p>
+<div class="app">
 
-    <div id="phoneStep">
-      <h2>Welcome to POPER</h2>
-      <p>Login menggunakan nomor telepon.</p>
-
-      <input
-        id="phoneNumber"
-        type="tel"
-        placeholder="+62 81234567890"
-      >
-
-      <div id="recaptcha-container"></div>
-
-      <button id="sendOtpBtn" class="primary-btn">
-        Kirim kode OTP
-      </button>
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">P</div>
+      <div>
+        <h1>poper<span>.</span></h1>
+        <small>SCAN NUMBER · FIND BIO</small>
+      </div>
     </div>
-
-    <div id="otpStep" style="display:none">
-      <h2>Verifikasi OTP</h2>
-      <p>Masukkan kode verifikasi SMS.</p>
-
-      <input
-        id="otpCode"
-        type="number"
-        placeholder="6 digit OTP"
-      >
-
-      <button id="verifyOtpBtn" class="primary-btn">
-        Verifikasi
-      </button>
-
-      <button id="backPhoneBtn" class="secondary-btn">
-        Kembali
-      </button>
-    </div>
-
-    <div id="authMessage"></div>
-  </div>
-</section>
-
-<!-- MAIN APP -->
-<section id="mainApp" style="display:none">
-
-  <!-- HEADER -->
-  <header class="app-header">
-    <div class="logo">POPER<span>.</span></div>
-
-    <div class="header-user">
-      <span id="displayNumber"></span>
-      <button id="profileBtn" class="profile-btn">👤</button>
-    </div>
+    <button class="avatar" id="profileBtn">👤</button>
   </header>
 
-  <!-- CONTENT -->
-  <main id="mainContent">
+  <main id="homePage" class="page active">
 
-    <!-- HOME -->
-    <section id="home" class="page home-page active">
-      <div class="hero">
-        <div class="hero-badge">PHONE IDENTITY PLATFORM</div>
+    <div class="welcome">
+      <p class="eyebrow">PHONE IDENTITY NETWORK</p>
+      <h2>Find people<br>by <span>phone number.</span></h2>
+      <p>Arahkan kamera ke nomor HP untuk menemukan Bio Link pemiliknya.</p>
+    </div>
 
-        <h1>Your number.<br>Your digital world.</h1>
-
-        <p>
-          Satu nomor telepon untuk membuka identitas,
-          link, halaman, catatan, dan koneksi digital.
-        </p>
-
-        <button onclick="navigate('scanner')" class="primary-btn">
-          Scan nomor HP →
-        </button>
+    <button class="scan-card" id="openScanner">
+      <div class="scan-visual">
+        <div class="scan-frame">
+          <span class="corner tl"></span>
+          <span class="corner tr"></span>
+          <span class="corner bl"></span>
+          <span class="corner br"></span>
+          <div class="scan-line"></div>
+          <span class="scan-placeholder">0812 3456 7890</span>
+        </div>
       </div>
-
-      <div class="section-title">
-        <h2>Explore POPER</h2>
-        <p>Semua kebutuhan digital dalam satu identitas.</p>
-      </div>
-
-      <div class="menu-grid">
-
-        <button class="menu-card" onclick="navigate('scanner')">
-          <div class="menu-icon">📷</div>
-          <h3>Scanner</h3>
-          <p>Scan nomor HP langsung dari kamera.</p>
-        </button>
-
-        <button class="menu-card" onclick="navigate('profile')">
-          <div class="menu-icon">🪪</div>
-          <h3>My ID</h3>
-          <p>Atur identitas digital kamu.</p>
-        </button>
-
-        <button class="menu-card" onclick="navigate('biolink')">
-          <div class="menu-icon">🔗</div>
-          <h3>BioLink</h3>
-          <p>Kumpulkan semua link dalam satu halaman.</p>
-        </button>
-
-        <button class="menu-card" onclick="navigate('pages')">
-          <div class="menu-icon">🌐</div>
-          <h3>Pages</h3>
-          <p>Buat halaman landing page milikmu.</p>
-        </button>
-
-        <button class="menu-card" onclick="navigate('notes')">
-          <div class="menu-icon">📝</div>
-          <h3>Notes</h3>
-          <p>Simpan catatan digital.</p>
-        </button>
-
-      </div>
-
-      <div class="home-footer">
-        <h3>One number. Many possibilities.</h3>
-        <p>POPER — Your digital identity.</p>
-      </div>
-    </section>
-
-    <!-- SCANNER -->
-    <section id="scanner" class="page">
-      <div class="page-heading">
-        <button class="back-btn" onclick="navigate('home')">←</button>
+      <div class="scan-info">
         <div>
-          <h1>Phone Scanner</h1>
-          <p>Scan nomor telepon dari layar atau kartu.</p>
+          <h3>Scan Phone Number</h3>
+          <p>Scan tulisan nomor HP langsung</p>
         </div>
+        <div class="scan-arrow">↗</div>
       </div>
+    </button>
 
-      <div class="scanner-card">
+    <div class="section-heading">
+      <h3>Quick Access</h3>
+    </div>
 
-        <div class="scanner-preview">
-          <video id="scannerVideo" autoplay playsinline muted></video>
+    <div class="quick-grid">
+      <button class="quick-item" id="myBioBtn">
+        <div class="quick-icon purple">↗</div>
+        <span>My Bio</span>
+      </button>
 
-          <div class="scanner-overlay">
-            <div class="scan-frame">
-              <span class="corner top-left"></span>
-              <span class="corner top-right"></span>
-              <span class="corner bottom-left"></span>
-              <span class="corner bottom-right"></span>
-              <div class="scan-line"></div>
-            </div>
-          </div>
+      <button class="quick-item" id="vaultBtn">
+        <div class="quick-icon blue">▣</div>
+        <span>QR Vault</span>
+      </button>
 
-          <div class="scanner-placeholder" id="scannerPlaceholder">
-            <div class="camera-icon">📷</div>
-            <p>Kamera akan muncul di sini</p>
-          </div>
-        </div>
+      <button class="quick-item" id="notesBtn">
+        <div class="quick-icon orange">✎</div>
+        <span>Notes</span>
+      </button>
 
-        <div class="scanner-status">
-          <span class="status-dot"></span>
-          <span id="scannerStatus">Kamera belum dimulai</span>
-        </div>
+      <button class="quick-item" id="historyBtn">
+        <div class="quick-icon green">◷</div>
+        <span>History</span>
+      </button>
+    </div>
 
-        <div class="scanner-actions">
-          <button id="startScannerBtn" class="primary-btn">
-            📷 Mulai Scan
-          </button>
+    <div class="section-heading">
+      <h3>Recent Scans</h3>
+      <button id="clearHistory">Clear</button>
+    </div>
 
-          <button id="stopScannerBtn" class="secondary-btn">
-            Berhenti
-          </button>
-
-          <button id="flashBtn" class="secondary-btn">
-            ⚡ Flash
-          </button>
-        </div>
-
-        <!-- SCAN RESULT -->
-        <div id="scanResult" class="scan-result" style="display:none">
-          <div class="result-icon">📱</div>
-          <h3>Nomor terdeteksi</h3>
-
-          <div id="detectedPhone" class="detected-phone">
-            -
-          </div>
-
-          <button id="openDetectedProfileBtn" class="primary-btn">
-            Buka POPER ID
-          </button>
-
-          <button id="scanAgainBtn" class="secondary-btn">
-            Scan Lagi
-          </button>
-        </div>
-
+    <div id="recentList" class="recent-list">
+      <div class="empty-state">
+        <span>◉</span>
+        <p>Nomor yang kamu scan akan muncul di sini.</p>
       </div>
-
-      <div class="scanner-info">
-        <h3>Tips mendapatkan hasil terbaik</h3>
-        <ul>
-          <li>Pastikan nomor terlihat jelas.</li>
-          <li>Jaga kamera agar tidak bergerak.</li>
-          <li>Gunakan pencahayaan yang cukup.</li>
-          <li>Scan nomor dengan format 08, 62, atau +62.</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- PROFILE -->
-    <section id="profile" class="page">
-      <div class="page-heading">
-        <button class="back-btn" onclick="navigate('home')">←</button>
-        <div>
-          <h1>My POPER ID</h1>
-          <p>Identitas digital milikmu.</p>
-        </div>
-      </div>
-
-      <div class="panel">
-        <label>Nomor HP</label>
-        <div id="accountPhone" class="account-phone">-</div>
-
-        <label>Nama</label>
-        <input id="nameInput" type="text" placeholder="Nama kamu">
-
-        <label>Username</label>
-        <input id="usernameInput" type="text" placeholder="username">
-
-        <label>Bio</label>
-        <textarea id="bioInput" placeholder="Ceritakan tentang dirimu"></textarea>
-
-        <button onclick="saveProfile()" class="primary-btn">
-          Simpan Profil
-        </button>
-      </div>
-    </section>
-
-    <!-- BIOLINK -->
-    <section id="biolink" class="page">
-      <div class="page-heading">
-        <button class="back-btn" onclick="navigate('home')">←</button>
-        <div>
-          <h1>BioLink</h1>
-          <p>Semua link kamu dalam satu tempat.</p>
-        </div>
-      </div>
-
-      <div class="panel">
-        <label>Judul Link</label>
-        <input id="linkTitle" type="text" placeholder="Instagram saya">
-
-        <label>URL</label>
-        <input id="linkUrl" type="url" placeholder="https://">
-
-        <button onclick="addLink()" class="primary-btn">
-          + Tambahkan Link
-        </button>
-      </div>
-
-      <div id="linksList"></div>
-    </section>
-
-    <!-- PAGES -->
-    <section id="pages" class="page">
-      <div class="page-heading">
-        <button class="back-btn" onclick="navigate('home')">←</button>
-        <div>
-          <h1>My Pages</h1>
-          <p>Buat halaman digital sendiri.</p>
-        </div>
-      </div>
-
-      <div class="panel">
-        <label>Judul halaman</label>
-        <input id="pageTitle" type="text" placeholder="Nama landing page">
-
-        <label>Deskripsi</label>
-        <textarea id="pageDescription" placeholder="Deskripsi halaman"></textarea>
-
-        <button onclick="addPage()" class="primary-btn">
-          + Buat Page
-        </button>
-      </div>
-
-      <div id="pagesList"></div>
-    </section>
-
-    <!-- NOTES -->
-    <section id="notes" class="page">
-      <div class="page-heading">
-        <button class="back-btn" onclick="navigate('home')">←</button>
-        <div>
-          <h1>My Notes</h1>
-          <p>Catatan digital kamu.</p>
-        </div>
-      </div>
-
-      <div class="panel">
-        <label>Judul</label>
-        <input id="noteTitle" type="text" placeholder="Judul catatan">
-
-        <label>Isi catatan</label>
-        <textarea id="noteContent" placeholder="Tulis sesuatu..."></textarea>
-
-        <button onclick="addNote()" class="primary-btn">
-          + Simpan Note
-        </button>
-      </div>
-
-      <div id="notesList"></div>
-    </section>
+    </div>
 
   </main>
 
-  <!-- BOTTOM NAVIGATION -->
-  <nav class="bottom-nav">
+  <!-- SCANNER PAGE -->
+  <section id="scannerPage" class="page">
+    <div class="page-top">
+      <button class="back-btn" id="closeScanner">←</button>
+      <h3>Scan Number</h3>
+      <span></span>
+    </div>
 
-    <button class="nav-item active" onclick="navigate('home')">
-      <span>⌂</span>
-      <small>Home</small>
+    <div class="camera-box">
+      <video id="camera" autoplay playsinline></video>
+      <div class="camera-overlay">
+        <div class="ocr-frame">
+          <span class="corner tl"></span>
+          <span class="corner tr"></span>
+          <span class="corner bl"></span>
+          <span class="corner br"></span>
+          <div class="camera-scanline"></div>
+        </div>
+      </div>
+      <div id="cameraMessage" class="camera-message">
+        Arahkan kamera ke tulisan nomor HP
+      </div>
+    </div>
+
+    <p class="scanner-tip">
+      Pastikan nomor terlihat jelas, pencahayaan cukup dan kamera tidak goyang.
+    </p>
+
+    <button class="primary-btn" id="captureBtn">◉ Scan Number</button>
+    <button class="secondary-btn" id="uploadImageBtn">Scan dari gambar</button>
+    <input type="file" id="imageInput" accept="image/*" hidden>
+
+    <div id="scanStatus" class="status-text"></div>
+
+    <div class="manual-box">
+      <p>Atau masukkan nomor secara manual</p>
+      <div class="manual-input">
+        <input id="manualNumber" type="tel" placeholder="+62 812 xxxx xxxx">
+        <button id="manualSearch">→</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULT PAGE -->
+  <section id="resultPage" class="page">
+    <div class="page-top">
+      <button class="back-btn" id="resultBack">←</button>
+      <h3>Scan Result</h3>
+      <span></span>
+    </div>
+
+    <div class="result-card">
+      <div class="result-icon">☎</div>
+      <p>PHONE NUMBER DETECTED</p>
+      <h2 id="detectedNumber"></h2>
+      <div id="resultMessage" class="result-message"></div>
+    </div>
+
+    <button class="primary-btn" id="findBioBtn">Find POPER Bio →</button>
+    <button class="secondary-btn" id="saveNumberBtn">Save Number</button>
+    <button class="secondary-btn" id="whatsappBtn">Open WhatsApp</button>
+  </section>
+
+  <!-- MY BIO -->
+  <section id="bioPage" class="page">
+    <div class="page-top">
+      <button class="back-btn" id="bioBack">←</button>
+      <h3>My Bio</h3>
+      <button class="text-btn" id="saveBio">Save</button>
+    </div>
+
+    <div class="bio-preview">
+      <div class="bio-avatar" id="bioAvatar">👤</div>
+      <h2 id="bioPreviewName">Your Name</h2>
+      <p id="bioPreviewDesc">Welcome to my POPER page</p>
+    </div>
+
+    <div class="form-group">
+      <label>Display Name</label>
+      <input id="bioName" placeholder="Your name">
+    </div>
+
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="bioDesc" placeholder="Write something about you"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Phone Number</label>
+      <input id="bioPhone" type="tel" placeholder="Your phone number">
+    </div>
+
+    <div class="section-heading">
+      <h3>My Links</h3>
+      <button id="addLinkBtn">+ Add</button>
+    </div>
+
+    <div id="bioLinks"></div>
+
+    <button class="secondary-btn" id="shareBioBtn">Share My Bio</button>
+  </section>
+
+  <!-- QR VAULT -->
+  <section id="vaultPage" class="page">
+    <div class="page-top">
+      <button class="back-btn" id="vaultBack">←</button>
+      <h3>QR Vault</h3>
+      <button class="text-btn" id="addQrBtn">+ Add</button>
+    </div>
+
+    <p class="page-description">
+      Simpan QRIS, QR WiFi, QR website dan QR lainnya di satu tempat.
+    </p>
+
+    <input type="file" id="qrImageInput" accept="image/*" hidden>
+
+    <div class="vault-empty" id="vaultList">
+      <div class="empty-icon">▦</div>
+      <h3>Your QR collection</h3>
+      <p>QR yang kamu simpan akan muncul di sini.</p>
+      <button class="secondary-btn" id="firstQrBtn">+ Save QR Image</button>
+    </div>
+  </section>
+
+  <!-- NOTES -->
+  <section id="notesPage" class="page">
+    <div class="page-top">
+      <button class="back-btn" id="notesBack">←</button>
+      <h3>My Notes</h3>
+      <button class="text-btn" id="addNoteBtn">+ Add</button>
+    </div>
+
+    <div id="notesList"></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="historyPage" class="page">
+    <div class="page-top">
+      <button class="back-btn" id="historyBack">←</button>
+      <h3>Scan History</h3>
+      <span></span>
+    </div>
+    <div id="fullHistory"></div>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="profilePage" class="page">
+    <div class="page-top">
+      <button class="back-btn" id="profileBack">←</button>
+      <h3>Account</h3>
+      <span></span>
+    </div>
+    <div class="profile-card">
+      <div class="bio-avatar">👤</div>
+      <h2 id="accountName">Guest User</h2>
+      <p>POPER account</p>
+    </div>
+    <button class="secondary-btn" id="editProfileBtn">Edit My Bio</button>
+  </section>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item selected" data-page="homePage">
+      <span>⌂</span><small>Home</small>
     </button>
-
-    <button class="nav-item" onclick="navigate('scanner')">
-      <span>⌕</span>
-      <small>Scan</small>
+    <button class="nav-item" id="navScan">
+      <span>⌗</span><small>Scan</small>
     </button>
-
-    <button class="nav-item" onclick="navigate('biolink')">
-      <span>↗</span>
-      <small>Links</small>
+    <button class="nav-item" data-page="bioPage">
+      <span>↗</span><small>My Bio</small>
     </button>
-
-    <button class="nav-item" onclick="navigate('pages')">
-      <span>▣</span>
-      <small>Pages</small>
+    <button class="nav-item" data-page="vaultPage">
+      <span>▣</span><small>Vault</small>
     </button>
-
-    <button class="nav-item" onclick="navigate('notes')">
-      <span>▤</span>
-      <small>Notes</small>
-    </button>
-
   </nav>
 
-  <!-- ACCOUNT / LOGOUT -->
-  <div class="account-footer">
-    <button id="logoutBtn" class="secondary-btn">Keluar dari akun</button>
-  </div>
+</div>
 
-</section>
-
-<!-- OCR LIBRARY -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
-<!-- POPER APP -->
-<script type="module" src="app.js"></script>
-
+<script src="app.js"></script>
 </body>
 </html>

@@ -9,8 +9,10 @@
 
 <script>
 (function(){
-  const theme = localStorage.getItem("poper-theme") || "dark";
-  document.documentElement.setAttribute("data-theme",theme);
+  try {
+    const theme = localStorage.getItem("poper-theme") || "dark";
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch(e) {}
 })();
 </script>
 
@@ -20,25 +22,25 @@
 :root{
   --bg:#101323;
   --surface:#191d31;
-  --surface2:#222740;
+  --surface2:#232941;
   --border:#303650;
   --text:#f5f5ff;
   --muted:#929ab7;
   --purple:#8158ed;
-  --purple2:#5d7cff;
+  --blue:#5d7cff;
   --nav:#171b2c;
   --input:#111528;
 }
 
 html[data-theme="light"]{
   --bg:#f3f5fb;
-  --surface:#ffffff;
+  --surface:#fff;
   --surface2:#edf0f8;
   --border:#dce1ef;
   --text:#1c2235;
   --muted:#737c94;
   --purple:#7855dd;
-  --purple2:#587bfa;
+  --blue:#587bfa;
   --nav:#ffffff;
   --input:#f7f8fc;
 }
@@ -50,14 +52,14 @@ html[data-theme="light"]{
 
 body{
   margin:0;
+  min-height:100vh;
   background:var(--bg);
   color:var(--text);
   font-family:'Baloo 2',system-ui,sans-serif;
-  transition:background .25s,color .25s;
-  min-height:100vh;
+  transition:.25s;
 }
 
-button,input,textarea,select{
+button,input,textarea{
   font:inherit;
 }
 
@@ -65,11 +67,16 @@ button{
   cursor:pointer;
 }
 
+button:active{
+  transform:scale(.97);
+}
+
 .app{
+  width:100%;
   max-width:600px;
   margin:auto;
   min-height:100vh;
-  padding:16px 16px 110px;
+  padding:15px 16px 120px;
 }
 
 /* HEADER */
@@ -78,11 +85,11 @@ button{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:8px 2px 22px;
+  padding:10px 3px 24px;
 }
 
 .logo{
-  font-size:26px;
+  font-size:28px;
   font-weight:900;
   letter-spacing:-1px;
 }
@@ -93,8 +100,7 @@ button{
 
 .header-right{
   display:flex;
-  align-items:center;
-  gap:10px;
+  gap:8px;
 }
 
 /* PROFILE */
@@ -102,59 +108,45 @@ button{
 .profile-card{
   position:relative;
   overflow:hidden;
-  padding:22px;
-  background:
-    radial-gradient(circle at top right,rgba(125,91,240,.2),transparent 55%),
-    var(--surface);
+  padding:20px;
+  margin-bottom:20px;
   border:1px solid var(--border);
-  border-radius:25px;
-  margin-bottom:22px;
-}
-
-.profile-card:after{
-  content:"";
-  position:absolute;
-  width:120px;
-  height:120px;
-  border-radius:50%;
-  background:rgba(123,92,238,.06);
-  right:-40px;
-  bottom:-55px;
+  border-radius:24px;
+  background:
+    radial-gradient(circle at top right,rgba(125,91,240,.20),transparent 55%),
+    var(--surface);
 }
 
 .profile-avatar{
-  width:72px;
-  height:72px;
-  border-radius:23px;
+  width:62px;
+  height:62px;
   display:grid;
   place-items:center;
   background:linear-gradient(135deg,#40366b,#273d68);
-  font-size:33px;
-  margin-bottom:14px;
+  border-radius:20px;
+  font-size:28px;
+  margin-bottom:12px;
 }
 
 .profile-card h2{
   margin:0;
-  font-size:23px;
-  font-weight:800;
+  font-size:22px;
 }
 
 .profile-card p{
   margin:5px 0 0;
-  color:var(--muted);
-  font-size:15px;
   overflow-wrap:anywhere;
 }
 
-/* MAIN CONTENT */
+/* SECTIONS */
 
 .section{
   display:none;
-  animation:appear .2s ease;
 }
 
 .section.active{
   display:block;
+  animation:appear .2s ease;
 }
 
 @keyframes appear{
@@ -163,16 +155,16 @@ button{
 }
 
 .card{
-  padding:20px;
-  background:var(--surface);
+  padding:19px;
+  margin-bottom:15px;
   border:1px solid var(--border);
   border-radius:22px;
-  margin-bottom:15px;
+  background:var(--surface);
 }
 
 .card h2{
-  font-size:21px;
-  margin:0 0 14px;
+  margin:0 0 12px;
+  font-size:22px;
 }
 
 .card h3{
@@ -181,24 +173,22 @@ button{
 
 p{
   color:var(--muted);
-  line-height:1.65;
+  line-height:1.6;
 }
 
-/* INPUT */
-
-input,textarea,select{
-  width:100%;
+input,textarea{
   display:block;
+  width:100%;
   padding:14px;
-  margin:8px 0 14px;
-  border-radius:14px;
+  margin:9px 0 14px;
   border:1px solid var(--border);
+  border-radius:14px;
   background:var(--input);
   color:var(--text);
   outline:none;
 }
 
-input:focus,textarea:focus,select:focus{
+input:focus,textarea:focus{
   border-color:var(--purple);
   box-shadow:0 0 0 3px rgba(129,88,237,.12);
 }
@@ -212,70 +202,44 @@ textarea{
   resize:vertical;
 }
 
-/* BUTTONS */
-
 .primary{
+  display:block;
   width:100%;
+  padding:15px;
   border:0;
   border-radius:15px;
-  padding:15px;
-  background:linear-gradient(120deg,var(--purple),var(--purple2));
   color:white;
   font-weight:800;
+  background:linear-gradient(120deg,var(--purple),var(--blue));
   box-shadow:0 7px 20px rgba(105,78,220,.2);
+  margin-top:10px;
 }
 
 .secondary{
-  padding:11px 15px;
+  padding:12px 15px;
   border:1px solid var(--border);
-  border-radius:12px;
+  border-radius:13px;
   background:var(--surface2);
   color:var(--text);
+  margin-top:8px;
 }
 
 .danger{
-  background:#482b3c!important;
-  color:#ffb1c1!important;
+  background:#482b3c;
+  color:#ffb1c1;
 }
 
-button:active{
-  transform:scale(.97);
-}
-
-#status,#authStatus{
+#authStatus,#bioStatus,#qrScanStatus,
+#phoneScanStatus,#themeStatus{
+  min-height:20px;
   font-size:13px;
-  min-height:18px;
 }
 
-/* TABS */
-
-.tabs{
-  display:flex;
-  gap:9px;
-  overflow:auto;
-  padding:2px 0 15px;
-}
-
-.tab{
-  border:1px solid var(--border);
-  background:var(--surface2);
-  color:var(--muted);
-  border-radius:12px;
-  padding:11px 17px;
-  white-space:nowrap;
-}
-
-.tab.active{
-  background:var(--purple);
-  color:#fff;
-  border-color:transparent;
-}
-
-/* HOME SCAN */
+/* HOME */
 
 .scan-home{
   text-align:center;
-  padding:28px 18px 25px;
+  padding:25px 18px;
   border:1px solid var(--border);
   border-radius:27px;
   background:
@@ -291,19 +255,19 @@ button:active{
 }
 
 .scan-home h2{
-  font-size:24px;
+  font-size:25px;
   margin:10px 0 5px;
 }
 
 .scan-home p{
   font-size:14px;
   margin:0 auto;
-  max-width:280px;
+  max-width:290px;
 }
 
 .scan-circle{
-  width:210px;
-  height:210px;
+  width:200px;
+  height:200px;
   border-radius:50%;
   margin:25px auto;
   display:grid;
@@ -313,12 +277,11 @@ button:active{
   box-shadow:
     0 0 0 12px rgba(125,91,240,.05),
     0 0 45px rgba(125,91,240,.12);
-  position:relative;
 }
 
 .scan-circle-inner{
-  width:155px;
-  height:155px;
+  width:145px;
+  height:145px;
   border-radius:50%;
   display:grid;
   place-items:center;
@@ -327,31 +290,31 @@ button:active{
 }
 
 .scan-symbol{
-  font-size:62px;
+  font-size:58px;
   color:#c8b6ff;
 }
 
 .scan-hint{
-  margin:15px 0 20px;
+  margin:15px 0;
   font-size:12px;
   color:var(--muted);
 }
 
 .scan-start{
-  border:0;
-  border-radius:17px;
+  display:block;
   width:100%;
   padding:17px;
+  border:0;
+  border-radius:17px;
   color:white;
   font-weight:900;
   background:linear-gradient(120deg,#8058ef,#537eff);
-  box-shadow:0 9px 25px rgba(106,77,224,.25);
 }
 
-/* HOME FEATURE */
+/* HOME FEATURES */
 
 .feature-title{
-  font-size:17px;
+  font-size:18px;
   font-weight:800;
   margin:22px 3px 13px;
 }
@@ -363,18 +326,18 @@ button:active{
 }
 
 .feature-card{
-  border:1px solid var(--border);
-  background:var(--surface);
-  border-radius:19px;
-  padding:17px;
   min-height:120px;
+  padding:16px;
   text-align:left;
+  border:1px solid var(--border);
+  border-radius:19px;
+  background:var(--surface);
   color:var(--text);
 }
 
 .feature-icon{
-  font-size:25px;
-  margin-bottom:10px;
+  font-size:26px;
+  margin-bottom:8px;
 }
 
 .feature-card strong{
@@ -388,18 +351,110 @@ button:active{
   margin-top:5px;
 }
 
-/* THEME SETTINGS */
+/* SCANNER */
+
+.phone-scanner-card{
+  text-align:center;
+}
+
+.phone-camera-frame{
+  position:relative;
+  width:100%;
+  min-height:260px;
+  background:#080b16;
+  border-radius:23px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  margin:15px 0;
+}
+
+.phone-camera-frame video{
+  display:block;
+  width:100%;
+  height:300px;
+  object-fit:cover;
+}
+
+.phone-scan-overlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+
+.phone-scan-guide{
+  position:relative;
+  width:88%;
+  height:95px;
+  border:2px solid #8c6bff;
+  border-radius:18px;
+  box-shadow:0 0 24px rgba(140,107,255,.2);
+}
+
+.phone-scan-guide span{
+  position:absolute;
+  bottom:-12px;
+  left:50%;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  background:rgba(10,12,25,.85);
+  color:white;
+  font-size:10px;
+  padding:5px 12px;
+  border-radius:20px;
+  letter-spacing:1px;
+}
+
+.phone-scan-guide:after{
+  content:"";
+  position:absolute;
+  left:5%;
+  right:5%;
+  top:50%;
+  height:2px;
+  background:#69b9ff;
+  box-shadow:0 0 12px #69b9ff;
+  animation:scanLine 2s infinite;
+}
+
+@keyframes scanLine{
+  0%,100%{opacity:.3}
+  50%{opacity:1}
+}
+
+/* ITEMS */
+
+.item{
+  background:var(--input);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+  margin:10px 0;
+  overflow-wrap:anywhere;
+}
+
+.item a{
+  color:#a991ff;
+}
+
+.item button{
+  margin-top:8px;
+}
+
+/* BIO */
 
 .theme-setting{
-  background:var(--surface);
+  padding:17px;
   border:1px solid var(--border);
   border-radius:20px;
-  padding:18px;
+  background:var(--surface);
   margin-bottom:15px;
 }
 
 .theme-setting h3{
-  margin:0 0 8px;
+  margin:0;
 }
 
 .theme-buttons{
@@ -416,31 +471,16 @@ button:active{
   color:var(--text);
 }
 
-/* BIO ITEMS */
-
-.item{
-  background:var(--input);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px;
-  margin:10px 0;
-  overflow-wrap:anywhere;
-}
-
-.item a{
-  color:#a991ff;
+.theme-choice.active{
+  border-color:var(--purple);
 }
 
 /* QR VAULT */
 
-.vault-page{
-  color:var(--text);
-}
-
 .vault-brand{
   display:flex;
-  gap:13px;
   align-items:center;
+  gap:13px;
   margin:10px 0 20px;
 }
 
@@ -531,6 +571,29 @@ button:active{
 .btn-arrow{
   margin-left:auto;
   font-size:22px;
+}
+
+.vault-camera{
+  margin-top:12px;
+  padding:10px;
+  border-radius:17px;
+  background:#080b16;
+}
+
+.vault-camera video{
+  width:100%;
+  max-height:350px;
+  border-radius:13px;
+}
+
+.vault-stop-btn{
+  width:100%;
+  padding:13px;
+  margin-top:10px;
+  background:#442739;
+  color:#ffb3c1;
+  border:0;
+  border-radius:12px;
 }
 
 .vault-divider{
@@ -664,42 +727,11 @@ button:active{
   margin-top:12px;
 }
 
-.qr-link-card button.secondary{
-  margin:8px 5px 0 0;
+.qr-link-card button{
+  margin-top:8px;
 }
 
-.qr-empty{
-  text-align:center;
-  padding:25px;
-  color:var(--muted);
-  border:1px dashed var(--border);
-  border-radius:16px;
-}
-
-.vault-camera{
-  margin-top:12px;
-  padding:10px;
-  border-radius:17px;
-  background:#080b16;
-}
-
-.vault-camera video{
-  width:100%;
-  max-height:350px;
-  border-radius:13px;
-}
-
-.vault-stop-btn{
-  width:100%;
-  padding:13px;
-  margin-top:10px;
-  background:#442739;
-  color:#ffb3c1;
-  border:0;
-  border-radius:12px;
-}
-
-/* BOTTOM APP NAV */
+/* BOTTOM NAV */
 
 .app-bottom-nav{
   position:fixed;
@@ -723,11 +755,9 @@ button:active{
 
 .nav-btn{
   flex:1;
-  min-width:0;
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:center;
   gap:3px;
   border:0;
   background:transparent;
@@ -745,22 +775,18 @@ button:active{
   color:#a991ff;
 }
 
-.nav-btn.scan-nav{
-  flex:1.1;
-}
-
 .scan-nav .nav-icon{
-  width:55px;
-  height:55px;
-  border-radius:19px;
-  margin-top:-28px;
+  width:52px;
+  height:52px;
+  border-radius:18px;
+  margin-top:-27px;
   display:grid;
   place-items:center;
   font-size:27px;
   color:white;
   background:linear-gradient(135deg,#885cff,#4c7aff);
-  box-shadow:0 7px 23px rgba(112,81,228,.35);
   border:4px solid var(--bg);
+  box-shadow:0 7px 23px rgba(112,81,228,.35);
 }
 
 /* LOGIN */
@@ -770,192 +796,13 @@ button:active{
   margin:20px auto;
 }
 
-#logoutBtn{
-  border-radius:12px;
-}
-
 [hidden]{
   display:none!important;
 }
 
 @media(min-width:600px){
-  .app{
-    padding-top:25px;
-  }
-  .app-bottom-nav{
-    padding-bottom:10px;
-  }
+  .app{padding-top:25px}
 }
-
-  
-/* POPER PHONE OCR SCANNER */
-
-.phone-scanner-card{
-  text-align:center;
-}
-
-.phone-camera-frame{
-  position:relative;
-  width:100%;
-  min-height:250px;
-  background:#080b16;
-  border-radius:20px;
-  overflow:hidden;
-  border:1px solid var(--border);
-  margin:15px 0;
-}
-
-.phone-camera-frame video{
-  display:block;
-  width:100%;
-  min-height:250px;
-  max-height:400px;
-  object-fit:cover;
-}
-
-.phone-scan-overlay{
-  position:absolute;
-  inset:0;
-  display:grid;
-  place-items:center;
-  pointer-events:none;
-}
-
-.phone-scan-guide{
-  width:88%;
-  height:90px;
-  border:2px solid #8b6cff;
-  border-radius:15px;
-  box-shadow:0 0 25px rgba(139,108,255,.22);
-  position:relative;
-}
-
-.phone-scan-guide:after{
-  content:"";
-  position:absolute;
-  left:5%;
-  right:5%;
-  top:50%;
-  height:2px;
-  background:#69b9ff;
-  box-shadow:0 0 12px #69b9ff;
-}
-
-#phoneScanStatus{
-  font-size:13px;
-  min-height:22px;
-}
-
-#phoneScanResult .item{
-  text-align:left;
-}
-
-#stopPhoneCamera{
-  color:var(--text);
-}
-
-
-
-/* =================================
-   POPER PHONE SCANNER
-================================= */
-
-.phone-scanner-card {
-  text-align: center;
-}
-
-.phone-camera-frame {
-  position: relative;
-  width: 100%;
-  min-height: 280px;
-  background: #080b16;
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  margin: 18px 0;
-}
-
-.phone-camera-frame video {
-  width: 100%;
-  height: 300px;
-  object-fit: cover;
-  display: block;
-}
-
-.phone-scan-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.phone-scan-guide {
-  width: 88%;
-  height: 95px;
-  border: 2px solid #8c6bff;
-  border-radius: 18px;
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  box-shadow: 0 0 24px rgba(140,107,255,.2);
-}
-
-.phone-scan-guide span {
-  background: rgba(10,12,25,.8);
-  color: #fff;
-  font-size: 10px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  margin-bottom: -12px;
-  letter-spacing: 2px;
-}
-
-.phone-scan-guide::after {
-  content: "";
-  position: absolute;
-  left: 5%;
-  right: 5%;
-  top: 50%;
-  height: 2px;
-  background: #7fc7ff;
-  box-shadow: 0 0 12px #7fc7ff;
-  animation: phoneScanLine 2s ease-in-out infinite;
-}
-
-@keyframes phoneScanLine {
-  0%, 100% { opacity: .3; }
-  50% { opacity: 1; }
-}
-
-#phoneScanStatus {
-  min-height: 28px;
-  font-size: 13px;
-}
-
-#phoneScanner button {
-  width: 100%;
-  margin-top: 10px;
-}
-
-#phoneScanner input {
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 8px;
-}
-
-#phoneScanResult {
-  text-align: left;
-  margin-top: 15px;
-}
-
-#phoneScanner .secondary {
-  color: var(--text);
-}
-
-      
 </style>
 </head>
 
@@ -970,21 +817,23 @@ button:active{
   </div>
 </header>
 
-<!-- LOGIN PANEL -->
+<!-- LOGIN -->
 <section id="loginPanel" class="card">
   <h2>Login POPER</h2>
   <p>Masuk menggunakan nomor HP kamu.</p>
 
-  <input id="phoneInput" type="tel" placeholder="08xxxxxxxxxx">
+  <input id="phoneInput" type="tel" inputmode="tel" placeholder="+628xxxxxxxxxx">
+
   <button id="sendOtpBtn" class="primary">Kirim OTP</button>
 
   <div id="recaptcha-container"></div>
 
   <div id="otpSection" hidden>
-    <input id="otpInput" inputmode="numeric" maxlength="6" placeholder="Kode OTP 6 digit">
+    <input id="otpInput" type="tel" inputmode="numeric" maxlength="6" placeholder="Kode OTP 6 digit">
     <button id="verifyOtpBtn" class="primary">Verifikasi OTP</button>
   </div>
-  <div id="authStatus"></div>
+
+  <p id="authStatus"></p>
 </section>
 
 <!-- DASHBOARD -->
@@ -997,13 +846,13 @@ button:active{
     <p id="myPhone"></p>
   </div>
 
-  <!-- HOME / SCAN -->
+  <!-- HOME -->
   <section class="section active" id="scan">
 
     <div class="scan-home">
       <span class="scan-eyebrow">PHONE IDENTITY</span>
-      <h2>Scan Nomor HP</h2>
-      <p>Temukan Bio seseorang hanya dengan memindai nomor HP.</p>
+      <h2>Temukan Bio</h2>
+      <p>Scan nomor HP untuk menemukan profil POPER.</p>
 
       <div class="scan-circle">
         <div class="scan-circle-inner">
@@ -1012,11 +861,11 @@ button:active{
       </div>
 
       <div class="scan-hint">
-        Posisikan nomor HP di dalam area scan
+        Arahkan kamera ke nomor HP di layar lain
       </div>
 
       <button id="mainScanButton" class="scan-start">
-        📷 MULAI SCAN
+        📷 MULAI SCAN NOMOR
       </button>
     </div>
 
@@ -1049,108 +898,52 @@ button:active{
     </div>
   </section>
 
-  
-<!-- PHONE NUMBER SCANNER -->
-<section id="phoneScanner" class="section">
-  <div class="card phone-scanner-card">
+  <!-- PHONE SCANNER (ONLY ONE) -->
+  <section id="phoneScanner" class="section">
+    <div class="card phone-scanner-card">
 
-    <h2>📷 Phone Scanner</h2>
-    <p>Arahkan kamera ke nomor HP yang ingin kamu cari.</p>
+      <h2>📷 Phone Scanner</h2>
+      <p>Arahkan kamera ke nomor HP yang ingin kamu cari.</p>
 
-    <div class="phone-camera-frame">
-      <video
-        id="phoneScanVideo"
-        autoplay
-        playsinline
-        muted
-      ></video>
+      <div class="phone-camera-frame">
+        <video id="phoneScanVideo" autoplay playsinline muted></video>
 
-      <div class="phone-scan-overlay">
-        <div class="phone-scan-guide">
-          <span>SCAN NOMOR HP</span>
+        <div class="phone-scan-overlay">
+          <div class="phone-scan-guide">
+            <span>SCAN NOMOR HP</span>
+          </div>
         </div>
       </div>
+
+      <p id="phoneScanStatus">Kamera belum aktif.</p>
+
+      <button id="startPhoneCamera" class="primary">
+        📷 Aktifkan Kamera
+      </button>
+
+      <button id="stopPhoneCamera" class="secondary" style="width:100%">
+        Tutup Kamera
+      </button>
+
+      <label for="scannedPhoneNumber">Nomor HP Terbaca</label>
+      <input id="scannedPhoneNumber" type="tel" placeholder="Nomor hasil scan">
+
+      <button id="searchScannedPhone" class="primary">
+        🔎 Cari POPER
+      </button>
+
+      <button id="backFromScanner" class="secondary" style="width:100%">
+        ← Kembali
+      </button>
+
+      <div id="phoneScanResult"></div>
     </div>
+  </section>
 
-    <p id="phoneScanStatus">
-      Kamera belum aktif.
-    </p>
-
-    <button id="startPhoneCamera" class="primary">
-      📷 Aktifkan Kamera
-    </button>
-
-    <button id="stopPhoneCamera" class="secondary">
-      Tutup Kamera
-    </button>
-
-    <label for="scannedPhoneNumber">
-      Nomor HP Terbaca
-    </label>
-
-    <input
-      id="scannedPhoneNumber"
-      type="tel"
-      placeholder="Nomor hasil scan"
-    >
-
-    <button id="searchScannedPhone" class="primary">
-      🔎 Cari POPER
-    </button>
-
-    <button id="backFromScanner" class="secondary">
-      ← Kembali
-    </button>
-
-    <div id="phoneScanResult"></div>
-
-  </div>
-</section>
-
-  
-<!-- POPER PHONE SCANNER -->
-<section id="phoneScanner" class="section">
-  <div class="card phone-scanner-card">
-    <h2>📷 Scan Nomor HP</h2>
-    <p>Arahkan kamera ke nomor HP. POPER akan mencoba membaca angka secara otomatis.</p>
-
-    <div class="phone-camera-frame">
-      <video id="phoneScanVideo" autoplay playsinline muted></video>
-      <div class="phone-scan-overlay">
-        <div class="phone-scan-guide"></div>
-      </div>
-    </div>
-
-    <p id="phoneScanStatus">Kamera belum aktif.</p>
-
-    <button id="startPhoneCamera" class="primary">
-      📷 Aktifkan Kamera
-    </button>
-
-    <button id="stopPhoneCamera" class="secondary" style="width:100%;margin-top:10px">
-      Tutup Kamera
-    </button>
-
-    <label style="display:block;margin-top:18px">Nomor terdeteksi</label>
-    <input id="scannedPhoneNumber" type="tel" placeholder="Nomor HP hasil scan">
-
-    <button id="searchScannedPhone" class="primary">
-      🔎 Cari POPER
-    </button>
-
-    <button id="backFromScanner" class="secondary" style="width:100%;margin-top:10px">
-      ← Kembali ke Home
-    </button>
-
-    <div id="phoneScanResult"></div>
-  </div>
-</section>
-
-  
   <!-- BIO -->
   <section class="section" id="bio">
 
-    <div class="theme-setting" id="themeSettings">
+    <div class="theme-setting">
       <h3>🎨 Tampilan POPER</h3>
       <p>Pilih tampilan yang nyaman untukmu.</p>
 
@@ -1159,22 +952,26 @@ button:active{
         <button class="theme-choice" data-theme-choice="dark">🌙 Gelap</button>
       </div>
 
-      <p id="themeStatus" style="font-size:13px;margin-top:12px">
-        Tema tersimpan otomatis.
-      </p>
+      <p id="themeStatus">Tema tersimpan otomatis.</p>
     </div>
 
     <div class="card">
       <h2>Profil Bio Saya</h2>
+
       <input id="bioName" placeholder="Nama">
+
       <textarea id="bioDesc" placeholder="Tentang saya"></textarea>
+
       <input id="bioTitle" placeholder="Judul link">
-      <input id="bioUrl" placeholder="https://alamat-link.com">
+
+      <input id="bioUrl" type="url" placeholder="https://alamat-link.com">
 
       <button id="addBioLink" class="secondary">+ Tambah Link</button>
+
       <div id="bioLinks"></div>
 
       <button id="saveBio" class="primary">Simpan Bio Online</button>
+
       <p id="bioStatus"></p>
     </div>
 
@@ -1233,17 +1030,16 @@ button:active{
 
         <div id="qrPreview" class="vault-preview"></div>
 
-        <div id="qrResultBox" hidden class="vault-result">
-          <div class="vault-result-heading">
-            <span class="vault-label">QR TERDETEKSI</span>
-            <span class="vault-success">● Berhasil dibaca</span>
+        <div id="qrResultBox" class="vault-result">
+          <div>
+            <span class="vault-label">HASIL QR / LINK</span>
           </div>
 
           <label class="vault-input-label">Nama tombol</label>
           <input id="qrName" placeholder="Contoh: Instagram, Toko, Website">
 
-          <label class="vault-input-label">Link hasil scan</label>
-          <textarea id="qrUrl" placeholder="Link hasil QR akan muncul di sini" rows="3"></textarea>
+          <label class="vault-input-label">Link hasil QR</label>
+          <textarea id="qrUrl" placeholder="Link QR akan muncul di sini" rows="3"></textarea>
 
           <button id="saveQR" class="vault-save-btn">
             ＋ Simpan ke Vault
@@ -1269,9 +1065,13 @@ button:active{
   <section class="section" id="notes">
     <div class="card">
       <h2>📝 Notes</h2>
+
       <input id="noteTitle" placeholder="Judul catatan">
+
       <textarea id="noteContent" placeholder="Tulis catatan..."></textarea>
+
       <button id="saveNote" class="primary">Simpan Catatan</button>
+
       <div id="notesList"></div>
     </div>
   </section>
@@ -1281,8 +1081,11 @@ button:active{
     <div class="card">
       <h2>🔎 Find Bio</h2>
       <p>Cari Bio Link pengguna menggunakan nomor HP.</p>
+
       <input id="findPhone" type="tel" placeholder="Masukkan nomor HP">
+
       <button id="findBio" class="primary">Cari Bio</button>
+
       <div id="findResult"></div>
     </div>
   </section>
@@ -1290,7 +1093,7 @@ button:active{
 </main>
 </div>
 
-<!-- BOTTOM NAVIGATION -->
+<!-- BOTTOM NAV -->
 <nav class="app-bottom-nav" id="appBottomNav" hidden>
   <div class="bottom-nav-inner">
 
@@ -1322,63 +1125,12 @@ button:active{
   </div>
 </nav>
 
+<!-- LIBRARIES -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<!-- APP -->
 <script type="module" src="app.js"></script>
-
-<script>
-/* Navigation helper — preserves existing section IDs */
-document.addEventListener("DOMContentLoaded",()=>{
-  const tabs=document.querySelectorAll("[data-tab]");
-  const sections=document.querySelectorAll(".section");
-
-  function showTab(name){
-    sections.forEach(section=>{
-      section.classList.toggle("active",section.id===name);
-    });
-
-    tabs.forEach(tab=>{
-      tab.classList.toggle("active",tab.dataset.tab===name);
-    });
-
-    window.scrollTo({top:0,behavior:"smooth"});
-  }
-
-  tabs.forEach(tab=>{
-    tab.addEventListener("click",()=>{
-      showTab(tab.dataset.tab);
-    });
-  });
-
-  document.querySelectorAll("[data-open-tab]").forEach(button=>{
-    button.addEventListener("click",()=>{
-      showTab(button.dataset.openTab);
-    });
-  });
-
-  document.getElementById("mainScanButton")?.addEventListener("click",()=>{
-    showTab("find");
-    setTimeout(()=>{
-      document.getElementById("findPhone")?.focus();
-    },250);
-  });
-
-  // Dashboard bottom navigation visibility
-  const dashboard=document.getElementById("dashboard");
-  const nav=document.getElementById("appBottomNav");
-
-  const observer=new MutationObserver(()=>{
-    if(dashboard){
-      nav.hidden=dashboard.hidden;
-    }
-  });
-
-  if(dashboard){
-    observer.observe(dashboard,{attributes:true,attributeFilter:["hidden"]});
-    nav.hidden=dashboard.hidden;
-  }
-});
-</script>
 
 </body>
 </html>

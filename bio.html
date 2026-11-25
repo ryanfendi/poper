@@ -1,0 +1,463 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POPER Bio</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:#0b0e19;
+  --card:#151a2b;
+  --border:#293149;
+  --text:#f7f7ff;
+  --muted:#98a2c0;
+  --purple:#8559f6;
+  --blue:#4c83f5;
+}
+
+* {
+  box-sizing:border-box;
+}
+
+body {
+  margin:0;
+  min-height:100vh;
+  font-family:Inter,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at top,#252044,transparent 42%),
+    var(--bg);
+}
+
+button {
+  font-family:inherit;
+}
+
+.bio-page {
+  width:100%;
+  max-width:500px;
+  margin:auto;
+  padding:28px 20px 50px;
+}
+
+.bio-top {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.logo {
+  font-family:"Baloo 2",sans-serif;
+  font-size:24px;
+  font-weight:800;
+  letter-spacing:-1px;
+}
+
+.logo span {
+  color:#a58aff;
+}
+
+.share-btn {
+  width:43px;
+  height:43px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:#191e30;
+  color:white;
+  font-size:18px;
+  cursor:pointer;
+}
+
+.profile {
+  text-align:center;
+  padding:35px 10px 26px;
+}
+
+.avatar {
+  width:108px;
+  height:108px;
+  margin:auto;
+  display:grid;
+  place-items:center;
+  border-radius:35px;
+  background:linear-gradient(135deg,#8a60ff,#4d7bff);
+  box-shadow:0 12px 40px #7955eb40;
+  font-size:40px;
+  font-weight:800;
+  overflow:hidden;
+}
+
+.avatar img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.profile h1 {
+  margin:20px 0 8px;
+  font-size:26px;
+  letter-spacing:-1px;
+}
+
+.profile p {
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.8;
+  margin:0 auto;
+  max-width:360px;
+  white-space:pre-wrap;
+}
+
+.profile-tag {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 12px;
+  margin-top:15px;
+  border:1px solid #353052;
+  border-radius:30px;
+  background:#211d35;
+  color:#c3b1ff;
+  font-size:11px;
+  font-weight:700;
+}
+
+.links-title {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:15px 2px;
+}
+
+.links-title h2 {
+  font-size:15px;
+  margin:0;
+}
+
+.links-title span {
+  font-size:11px;
+  color:var(--muted);
+}
+
+.bio-links {
+  display:flex;
+  flex-direction:column;
+  gap:13px;
+}
+
+.bio-link {
+  width:100%;
+  min-height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:16px 18px;
+  text-decoration:none;
+  color:white;
+  border:1px solid #303750;
+  border-radius:18px;
+  background:linear-gradient(145deg,#1a2034,#151a2a);
+  box-shadow:0 6px 20px #00000012;
+  transition:transform .2s, border-color .2s;
+}
+
+.bio-link:active {
+  transform:scale(.97);
+}
+
+.bio-link.featured {
+  border:0;
+  background:linear-gradient(115deg,#8358f4,#4e80f5);
+  box-shadow:0 8px 25px #6b55e82a;
+}
+
+.bio-link-left {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+
+.bio-link-icon {
+  width:37px;
+  height:37px;
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+  border-radius:12px;
+  background:#30294c;
+  color:#bba7ff;
+  font-size:16px;
+}
+
+.featured .bio-link-icon {
+  background:#ffffff24;
+  color:white;
+}
+
+.bio-link-title {
+  font-size:14px;
+  font-weight:700;
+  overflow-wrap:anywhere;
+}
+
+.bio-link-arrow {
+  color:#9ba6c4;
+  font-size:20px;
+}
+
+.featured .bio-link-arrow {
+  color:white;
+}
+
+.bio-footer {
+  text-align:center;
+  padding:35px 0 10px;
+}
+
+.bio-footer p {
+  font-size:11px;
+  color:#68718e;
+}
+
+.bio-footer a {
+  text-decoration:none;
+  color:#a994ff;
+  font-family:"Baloo 2",sans-serif;
+  font-size:17px;
+  font-weight:800;
+}
+
+.loading {
+  text-align:center;
+  padding:100px 20px;
+  color:var(--muted);
+}
+
+.empty {
+  text-align:center;
+  padding:25px;
+  border:1px dashed var(--border);
+  border-radius:18px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.error {
+  color:#ff9ba8;
+}
+
+@media(min-width:600px) {
+  .bio-page {
+    padding-top:40px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div id="bioApp" class="loading">
+  Memuat profil POPER...
+</div>
+
+<script type="module">
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  get
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+
+/* GUNAKAN CONFIG FIREBASE POPER YANG SAMA */
+const firebaseConfig = {
+  apiKey: "AIzaSyD4eRul_asozC7eT15z2tcMaRO-gNJ7Us8",
+  authDomain: "poperweb.firebaseapp.com",
+  databaseURL: "https://poperweb-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "poperweb",
+  storageBucket: "poperweb.firebasestorage.app",
+  messagingSenderId: "91901111544",
+  appId: "1:91901111544:web:a2f1c0a418e16f6ee45f0d"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const appRoot = document.getElementById("bioApp");
+
+function esc(value="") {
+  return String(value).replace(/[&<>"']/g, s => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  }[s]));
+}
+
+function validURL(value) {
+  try {
+    const u = new URL(value);
+    return ["http:","https:"].includes(u.protocol) ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function getPhoneKey(phone) {
+  return String(phone || "").replace(/\D/g,"");
+}
+
+async function loadBio() {
+  const params = new URLSearchParams(location.search);
+  const phone = params.get("phone");
+
+  if (!phone) {
+    appRoot.innerHTML = `
+      <div class="error">
+        Profil tidak ditemukan.<br>
+        Nomor HP belum disertakan.
+      </div>`;
+    return;
+  }
+
+  const lookupSnap = await get(
+    ref(db,"phoneLookup/" + getPhoneKey(phone))
+  );
+
+  if (!lookupSnap.exists()) {
+    appRoot.innerHTML = `<div class="empty">Bio tidak ditemukan.</div>`;
+    return;
+  }
+
+  const lookup = lookupSnap.val();
+
+  const bioSnap = await get(
+    ref(db,"users/" + lookup.uid + "/publicBio")
+  );
+
+  if (!bioSnap.exists()) {
+    appRoot.innerHTML = `<div class="empty">Profil belum tersedia.</div>`;
+    return;
+  }
+
+  const bio = bioSnap.val();
+  const links = Array.isArray(bio.links) ? bio.links : [];
+
+  render(bio,links);
+}
+
+function render(bio,links) {
+  const safeLinks = links
+    .map(item => ({
+      title:item.title || "Link",
+      url:validURL(item.url)
+    }))
+    .filter(item => item.url);
+
+  const initial = (bio.name || "P").trim().charAt(0).toUpperCase();
+
+  appRoot.className = "bio-page";
+
+  appRoot.innerHTML = `
+    <header class="bio-top">
+      <div class="logo">POPER<span>.</span></div>
+
+      <button class="share-btn" id="shareBio" aria-label="Bagikan">
+        ↗
+      </button>
+    </header>
+
+    <section class="profile">
+      <div class="avatar">${esc(initial)}</div>
+
+      <h1>${esc(bio.name || "POPER User")}</h1>
+
+      <p>${esc(bio.description || "Selamat datang di Bio saya.")}</p>
+
+      <div class="profile-tag">
+        ✦ DIGITAL PROFILE
+      </div>
+    </section>
+
+    <section>
+      <div class="links-title">
+        <h2>Link Saya</h2>
+        <span>${safeLinks.length} link</span>
+      </div>
+
+      <div class="bio-links" id="publicLinks"></div>
+    </section>
+
+    <footer class="bio-footer">
+      <p>Powered by</p>
+      <a href="https://poper.web.id">POPER.</a>
+    </footer>
+  `;
+
+  const list = document.getElementById("publicLinks");
+
+  safeLinks.forEach((item,index) => {
+    const link = document.createElement("a");
+    link.className = "bio-link" + (index === 0 ? " featured" : "");
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+
+    link.innerHTML = `
+      <div class="bio-link-left">
+        <div class="bio-link-icon">${index === 0 ? "✦" : "↗"}</div>
+        <div class="bio-link-title">${esc(item.title)}</div>
+      </div>
+      <div class="bio-link-arrow">›</div>
+    `;
+
+    list.appendChild(link);
+  });
+
+  if (safeLinks.length === 0) {
+    list.innerHTML = `
+      <div class="empty">Belum ada link yang ditampilkan.</div>
+    `;
+  }
+
+  document.getElementById("shareBio").onclick = async () => {
+    const shareURL = location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: bio.name + " | POPER",
+          text: bio.description || "Lihat Bio saya di POPER",
+          url: shareURL
+        });
+      } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareURL);
+        alert("Link Bio berhasil disalin!");
+      } catch {
+        prompt("Salin link Bio:",shareURL);
+      }
+    }
+  };
+}
+
+loadBio().catch(error => {
+  console.error(error);
+  appRoot.innerHTML = `
+    <div class="empty error">
+      Gagal memuat Bio. Periksa koneksi internet.
+    </div>`;
+});
+</script>
+</body>
+</html>

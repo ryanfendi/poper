@@ -879,6 +879,46 @@ button:active{
     </div>
   </section>
 
+  
+<!-- POPER PHONE SCANNER -->
+<section id="phoneScanner" class="section">
+  <div class="card phone-scanner-card">
+    <h2>📷 Scan Nomor HP</h2>
+    <p>Arahkan kamera ke nomor HP. POPER akan mencoba membaca angka secara otomatis.</p>
+
+    <div class="phone-camera-frame">
+      <video id="phoneScanVideo" autoplay playsinline muted></video>
+      <div class="phone-scan-overlay">
+        <div class="phone-scan-guide"></div>
+      </div>
+    </div>
+
+    <p id="phoneScanStatus">Kamera belum aktif.</p>
+
+    <button id="startPhoneCamera" class="primary">
+      📷 Aktifkan Kamera
+    </button>
+
+    <button id="stopPhoneCamera" class="secondary" style="width:100%;margin-top:10px">
+      Tutup Kamera
+    </button>
+
+    <label style="display:block;margin-top:18px">Nomor terdeteksi</label>
+    <input id="scannedPhoneNumber" type="tel" placeholder="Nomor HP hasil scan">
+
+    <button id="searchScannedPhone" class="primary">
+      🔎 Cari POPER
+    </button>
+
+    <button id="backFromScanner" class="secondary" style="width:100%;margin-top:10px">
+      ← Kembali ke Home
+    </button>
+
+    <div id="phoneScanResult"></div>
+  </div>
+</section>
+
+  
   <!-- BIO -->
   <section class="section" id="bio">
 

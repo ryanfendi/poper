@@ -3,445 +3,727 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>POPER</title>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6d5dfc">
+<title>POPER — Phone & Bio</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
-:root {
-  --bg:#f4f5fb;
+:root{
+  --primary:#6d5dfc;
+  --primary2:#8a7cff;
+  --bg:#f5f6fb;
   --card:#ffffff;
-  --text:#20243a;
-  --muted:#7d8299;
-  --primary:#7357ef;
-  --border:#e8e9f2;
-  --input:#f7f7fb;
+  --text:#1d2230;
+  --muted:#7a8194;
+  --border:#e8eaf2;
+  --danger:#e5484d;
+  --shadow:0 8px 30px rgba(30,35,70,.07);
 }
-body.dark {
-  --bg:#151622;
-  --card:#212333;
-  --text:#f4f4ff;
-  --muted:#a4a6bb;
-  --primary:#927aff;
-  --border:#34364b;
-  --input:#2a2c40;
+[data-theme="dark"]{
+  --bg:#11131a;
+  --card:#1b1e28;
+  --text:#eef0f8;
+  --muted:#a0a6b8;
+  --border:#2d3140;
+  --shadow:0 8px 30px rgba(0,0,0,.18);
 }
 *{box-sizing:border-box}
-body {
+body{
   margin:0;
+  font-family:"Plus Jakarta Sans",sans-serif;
   background:var(--bg);
   color:var(--text);
-  font-family:Inter,sans-serif;
   transition:.2s;
 }
 button,input,textarea,select{font:inherit}
 button{cursor:pointer}
-.hidden{display:none!important}
-header{
-  padding:16px;
+button:disabled{opacity:.5;cursor:not-allowed}
+[hidden]{display:none!important}
+a{color:var(--primary)}
+img{max-width:100%}
+
+/* HEADER */
+.header{
+  height:68px;
+  padding:0 20px;
   display:flex;
-  justify-content:space-between;
   align-items:center;
+  justify-content:space-between;
+  background:var(--card);
+  border-bottom:1px solid var(--border);
   position:sticky;
   top:0;
-  z-index:10;
-  background:var(--bg);
+  z-index:20;
 }
-.logo{
-  font:800 27px "Baloo 2";
-  color:var(--primary);
+.brand{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  font-weight:800;
+  font-size:22px;
+  letter-spacing:-1px;
 }
-.wrap{max-width:850px;margin:auto;padding:12px 15px 100px}
+.brand-logo{
+  width:36px;height:36px;
+  display:grid;place-items:center;
+  border-radius:12px;
+  background:linear-gradient(135deg,#6d5dfc,#a78bfa);
+  color:white;
+}
+.header-actions{display:flex;align-items:center;gap:8px}
+.icon-btn{
+  width:42px;height:42px;
+  border:1px solid var(--border);
+  background:var(--card);
+  color:var(--text);
+  border-radius:13px;
+}
+.icon-btn:hover{background:var(--bg)}
+
+/* LAYOUT */
+.app-layout{
+  max-width:1100px;
+  margin:auto;
+  padding:24px 20px 100px;
+}
+.section{display:none}
+.section.active{display:block}
+.page-heading{margin-bottom:22px}
+.page-heading h1{font-size:26px;margin:0 0 7px;font-weight:800}
+.page-heading p{margin:0;color:var(--muted);font-size:14px}
 .card{
   background:var(--card);
   border:1px solid var(--border);
-  border-radius:20px;
-  padding:17px;
-  margin-bottom:15px;
+  border-radius:22px;
+  padding:22px;
+  box-shadow:var(--shadow);
+  margin-bottom:18px;
 }
-h2{font-size:18px;margin:0 0 14px}
-h3{font-size:15px}
-p{line-height:1.6}
-small,.muted{color:var(--muted)}
+.card h2,.card h3{margin-top:0}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+}
+.grid-3{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.field{margin-bottom:15px}
+.field label{
+  display:block;
+  margin-bottom:7px;
+  font-size:13px;
+  font-weight:700;
+}
 input,textarea,select{
   width:100%;
-  padding:12px;
-  background:var(--input);
-  color:var(--text);
+  padding:12px 14px;
   border:1px solid var(--border);
-  border-radius:12px;
-  margin:6px 0 12px;
+  border-radius:13px;
+  background:var(--bg);
+  color:var(--text);
   outline:none;
 }
-textarea{min-height:100px;resize:vertical}
-input[type=color]{height:45px;padding:4px}
-input[type=file]{padding:9px}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(109,93,252,.12);
+}
+textarea{min-height:110px;resize:vertical}
+input[type="color"]{
+  min-height:46px;
+  padding:5px;
+  cursor:pointer;
+}
+input[type="checkbox"]{width:18px;height:18px}
+.row{display:flex;gap:10px;align-items:center}
+.row>*{min-width:0}
 .btn{
-  border:0;
-  border-radius:12px;
-  padding:12px 16px;
-  background:var(--primary);
-  color:white;
-  font-weight:700;
-}
-.btn.secondary{
-  background:var(--input);
-  color:var(--text);
-  border:1px solid var(--border);
-}
-.btn.danger{background:#e84f65}
-.btn.small{padding:8px 12px;font-size:12px}
-.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-.row>*{flex:1}
-.tabs{
-  display:flex;
-  overflow:auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   gap:8px;
-  padding:6px 0 12px;
+  border:none;
+  border-radius:13px;
+  padding:12px 16px;
+  font-weight:700;
+  color:#fff;
+  background:var(--primary);
+  transition:.15s;
 }
-.tab{
-  flex-shrink:0;
-  padding:10px 14px;
-  border:0;
-  border-radius:12px;
-  background:var(--card);
-  color:var(--muted);
-}
-.tab.active{background:var(--primary);color:white}
-label{font-size:13px;font-weight:600}
-.link-editor{
+.btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.btn.secondary{
+  color:var(--text);
+  background:var(--bg);
   border:1px solid var(--border);
-  border-radius:15px;
-  padding:14px;
-  margin:12px 0;
-  background:var(--input);
 }
-.link-editor img{
-  width:65px;height:65px;object-fit:cover;border-radius:12px;
-}
-.preview-box{
-  min-height:100px;
-  border:1px dashed var(--border);
+.btn.danger{background:var(--danger)}
+.btn.full{width:100%}
+.btn.small{padding:8px 12px;font-size:12px;border-radius:10px}
+.muted{color:var(--muted)}
+.status{font-size:13px;margin-top:10px;white-space:pre-wrap}
+.item{
+  border:1px solid var(--border);
   border-radius:16px;
-  overflow:hidden;
-  padding:12px;
+  padding:14px;
+  margin-bottom:12px;
+  background:var(--card);
 }
-.preview-frame{
-  width:100%;
-  height:450px;
-  border:1px solid var(--border);
-  border-radius:15px;
-  background:white;
+.item-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.badge{
+  display:inline-flex;
+  background:rgba(109,93,252,.1);
+  color:var(--primary);
+  border-radius:50px;
+  padding:5px 9px;
+  font-size:11px;
+  font-weight:800;
 }
-.bio-preview{
-  padding:22px 15px;
+.small{font-size:12px}
+
+/* LOGIN */
+.login-card{max-width:460px;margin:35px auto}
+.login-card .brand{margin-bottom:22px}
+
+/* HOME PHONE SCAN */
+.scan-hero{
+  max-width:720px;
+  margin:0 auto;
+}
+.scan-icon{
+  width:70px;height:70px;
+  margin:0 auto 14px;
+  display:grid;place-items:center;
+  font-size:30px;
+  border-radius:22px;
+  background:rgba(109,93,252,.12);
+}
+.scan-hero h1{text-align:center;font-size:27px}
+.scan-hero>p{text-align:center;color:var(--muted)}
+.phone-search{
+  display:flex;gap:10px;
+}
+.phone-search input{flex:1}
+.scan-upload{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  border:2px dashed var(--border);
+  padding:20px;
   border-radius:18px;
   text-align:center;
-  min-height:250px;
+  margin-top:14px;
+}
+.scan-upload input[type=file]{border:0;background:transparent}
+#scanImagePreview{
+  max-height:260px;
+  width:auto;
+  margin:0 auto;
+  border-radius:15px;
+}
+.scan-result{margin-top:18px}
+
+/* BIO */
+.bio-preview{
+  border-radius:24px;
+  padding:24px 18px;
+  min-height:280px;
+  background:var(--bio-bg,#f3f0ff);
+  color:var(--bio-text,#222);
+  text-align:center;
   overflow:hidden;
 }
-.bio-preview .bio-btn{
-  display:block;
-  text-decoration:none;
-  margin:10px auto;
-  max-width:450px;
+.bio-preview h2{margin:8px 0}
+.bio-preview p{opacity:.8}
+.bio-link{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
   padding:14px;
-  font-weight:700;
-  overflow-wrap:anywhere;
+  margin:11px 0;
+  border-radius:15px;
+  text-decoration:none;
+  color:white;
+  font-weight:800;
+  word-break:break-word;
+  transition:transform .2s;
 }
-.bio-preview .bio-btn img{
-  display:block;
-  max-width:100%;
-  max-height:180px;
-  margin:auto;
-  border-radius:12px;
+.bio-link img{
+  max-width:55px;
+  max-height:55px;
   object-fit:contain;
+  border-radius:10px;
 }
-.wiggle{animation:wiggle 1.6s infinite}
+.wiggle{animation:wiggle .7s ease-in-out infinite}
 @keyframes wiggle{
   0%,100%{transform:rotate(0)}
-  25%{transform:rotate(-2deg) scale(1.02)}
-  75%{transform:rotate(2deg) scale(1.02)}
+  25%{transform:rotate(-2deg)}
+  75%{transform:rotate(2deg)}
 }
-.page-card{
+.bio-link:hover{transform:translateY(-2px)}
+.link-preview{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.link-preview img{
+  width:60px;height:60px;object-fit:cover;border-radius:12px;
+}
+.link-preview-info{min-width:0;overflow-wrap:anywhere}
+.link-preview-info strong{display:block}
+.link-preview-info small{display:block;color:var(--muted);margin-top:3px;word-break:break-all}
+.bio-page-link{
+  border:1px dashed var(--primary);
+  color:var(--primary);
+  background:transparent;
+}
+
+/* LANDING EDITOR */
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-bottom:10px;
+}
+.toolbar button{min-width:36px}
+.editor{
   border:1px solid var(--border);
   border-radius:14px;
-  padding:12px;
-  margin:10px 0;
+  background:var(--bg);
+  color:var(--text);
+  padding:14px;
+  min-height:220px;
+  outline:none;
+  overflow-wrap:anywhere;
 }
-#cameraVideo{
+.editor:focus{border-color:var(--primary)}
+#htmlEditor{min-height:240px;font-family:monospace;font-size:13px}
+.preview-frame{
   width:100%;
+  min-height:280px;
+  border:1px solid var(--border);
   border-radius:14px;
-  background:#000;
+  background:white;
 }
+.page-card h3{margin:0 0 8px}
+.page-card small{display:block;color:var(--muted);margin:4px 0}
+.check-row{
+  display:flex;
+  gap:9px;
+  align-items:center;
+  margin:9px 0;
+}
+
+/* BOTTOM NAV */
 .bottom-nav{
   position:fixed;
-  bottom:0;
-  left:0;right:0;
-  z-index:20;
+  bottom:0;left:0;right:0;
+  z-index:30;
+  display:flex;
+  justify-content:center;
   background:var(--card);
   border-top:1px solid var(--border);
-  display:flex;
-  justify-content:space-around;
-  padding:8px 3px env(safe-area-inset-bottom,5px);
+  padding:8px 6px calc(8px + env(safe-area-inset-bottom));
 }
-.bottom-nav button{
-  border:0;background:none;
+.bottom-nav-inner{
+  width:100%;
+  max-width:800px;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:3px;
+}
+.nav-btn{
+  border:0;
+  background:transparent;
   color:var(--muted);
+  padding:8px 3px;
+  border-radius:12px;
   font-size:11px;
-  padding:8px 5px;
+  font-weight:700;
 }
-.bottom-nav button.active{color:var(--primary);font-weight:800}
-.status{font-size:13px;margin:6px 0;color:var(--primary)}
-#loginPanel{max-width:430px;margin:35px auto;padding:20px}
-@media(min-width:650px){
-  .wrap{padding-top:20px}
-  .bottom-nav{max-width:850px;left:50%;transform:translateX(-50%);border-radius:18px 18px 0 0}
+.nav-btn span{display:block;font-size:19px;margin-bottom:3px}
+.nav-btn.active{
+  background:rgba(109,93,252,.1);
+  color:var(--primary);
+}
+#recaptcha-container{margin:12px 0}
+
+/* PUBLIC PAGE */
+.public-shell{
+  min-height:100vh;
+  background:var(--bg);
+  padding:20px;
+}
+.public-box{
+  max-width:760px;
+  margin:30px auto;
+  padding:25px;
+  border-radius:22px;
+  background:var(--card);
+  border:1px solid var(--border);
+}
+.public-box h1{margin-top:0}
+.public-error{color:var(--danger)}
+
+/* RESPONSIVE */
+@media(max-width:760px){
+  .app-layout{padding:18px 13px 100px}
+  .grid,.grid-3{grid-template-columns:1fr}
+  .card{padding:17px;border-radius:18px}
+  .page-heading h1{font-size:23px}
+  .header{padding:0 14px;height:60px}
+  .phone-search{flex-direction:column}
+  .phone-search .btn{width:100%}
+  .scan-hero h1{font-size:24px}
+  .bio-preview{padding:18px 12px}
+  .bottom-nav{padding-left:3px;padding-right:3px}
+  .nav-btn{font-size:10px}
+  .nav-btn span{font-size:18px}
 }
 </style>
 </head>
 
 <body>
 
-<header>
-  <div class="logo">POPER</div>
-  <div class="row" style="flex:0;gap:7px">
-    <button class="btn secondary small" id="themeToggle">🌙</button>
-    <button class="btn danger small hidden" id="logoutBtn">Keluar</button>
+<header class="header">
+  <div class="brand">
+    <div class="brand-logo">P</div>
+    <span>POPER</span>
+  </div>
+
+  <div class="header-actions">
+    <button class="icon-btn" id="themeBtn" title="Ubah tema">🌙</button>
+    <button class="icon-btn" id="loginOpenBtn" title="Login">👤</button>
+    <button class="icon-btn" id="logoutBtn" title="Logout" hidden>↪</button>
   </div>
 </header>
 
-<!-- LOGIN -->
-<div id="loginPanel" class="card">
-  <h2>Selamat datang di POPER 👋</h2>
-  <p class="muted">Masuk menggunakan nomor HP.</p>
-  <input id="loginPhone" placeholder="+62 81234567890" inputmode="tel">
-  <div id="recaptcha-container"></div>
-  <button class="btn" id="sendOtpBtn">Kirim OTP</button>
-  <div id="otpArea" class="hidden">
-    <input id="otpCode" placeholder="Masukkan kode OTP" inputmode="numeric">
-    <button class="btn" id="verifyOtpBtn">Verifikasi OTP</button>
+<!-- PUBLIC LANDING PAGE -->
+<div id="publicPageView" hidden class="public-shell">
+  <div class="public-box">
+    <button class="btn secondary small" id="publicBack">← Kembali</button>
+    <h1 id="publicPageTitle">Memuat...</h1>
+    <div id="publicPageContent"></div>
+    <p id="publicPageError" class="public-error"></p>
   </div>
-  <div id="loginStatus" class="status"></div>
 </div>
+
+<main class="app-layout" id="mainApp">
+
+<!-- LOGIN -->
+<section class="section active" id="loginPanel">
+  <div class="card login-card">
+    <div class="brand">
+      <div class="brand-logo">P</div> POPER
+    </div>
+    <h2>Masuk ke POPER</h2>
+    <p class="muted">Login menggunakan nomor HP untuk membuat Bio Link dan menyimpan data.</p>
+
+    <div class="field">
+      <label>Nomor HP</label>
+      <input id="phoneInput" type="tel" placeholder="08xxxxxxxxxx" autocomplete="tel">
+    </div>
+
+    <div id="recaptcha-container"></div>
+
+    <button class="btn full" id="sendOtpBtn">Kirim Kode OTP</button>
+
+    <div id="otpSection" hidden>
+      <div class="field" style="margin-top:15px">
+        <label>Kode OTP</label>
+        <input id="otpInput" inputmode="numeric" autocomplete="one-time-code" placeholder="Masukkan kode OTP">
+      </div>
+      <button class="btn full" id="verifyOtpBtn">Verifikasi & Login</button>
+    </div>
+    <p id="authStatus" class="status"></p>
+  </div>
+</section>
+
+<!-- SCAN PHONE HOME -->
+<section class="section" id="home">
+  <div class="scan-hero">
+    <div class="page-heading">
+      <div class="scan-icon">📱</div>
+      <h1>Scan Nomor HP</h1>
+      <p>Temukan Bio POPER dengan mencari nomor HP atau mengunggah gambar.</p>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>Cari berdasarkan nomor HP</label>
+        <div class="phone-search">
+          <input id="findPhone" type="tel" placeholder="Contoh: 081234567890">
+          <button class="btn" id="findBio">🔎 Cari Bio</button>
+        </div>
+      </div>
+
+      <div class="scan-upload">
+        <strong>📷 Deteksi nomor dari gambar</strong>
+        <p class="muted small">Unggah screenshot, foto nomor HP, atau kartu kontak.</p>
+        <input type="file" id="scanImage" accept="image/*">
+        <img id="scanImagePreview" hidden alt="Preview gambar">
+        <button class="btn secondary" id="detectPhoneBtn">✨ Deteksi Nomor HP</button>
+        <p id="scanStatus" class="status"></p>
+      </div>
+
+      <div class="scan-result" id="findResult"></div>
+    </div>
+  </div>
+</section>
 
 <!-- DASHBOARD -->
-<div id="dashboard" class="hidden">
-<div class="wrap">
-  <div class="tabs">
-    <button class="tab active" data-tab="bio">🔗 Bio Link</button>
-    <button class="tab" data-tab="pages">📄 Pages</button>
-    <button class="tab" data-tab="scan">📷 Scanner</button>
-    <button class="tab" data-tab="find">🔎 Cari</button>
-    <button class="tab" data-tab="qr">▦ QR</button>
-    <button class="tab" data-tab="notes">📝 Notes</button>
+<section class="section" id="dashboard">
+  <div class="page-heading">
+    <h1>Dashboard</h1>
+    <p>Kelola akun POPER kamu.</p>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <span class="badge">Akun</span>
+      <h2 id="welcome">Halo!</h2>
+      <p id="myPhone" class="muted"></p>
+    </div>
+    <div class="card">
+      <h3>🚀 Akses cepat</h3>
+      <button class="btn full" data-open-tab="bio">Kelola Bio Link</button>
+      <br><br>
+      <button class="btn secondary full" data-open-tab="pages">Landing Page Studio</button>
+    </div>
+  </div>
+</section>
+
+<!-- BIO STUDIO -->
+<section class="section" id="bio">
+  <div class="page-heading">
+    <h1>Bio Link Studio</h1>
+    <p>Buat banyak tombol Bio, atur gambar, warna, background, dan efek.</p>
   </div>
 
-  <!-- BIO LINK -->
-  <section id="tab-bio">
-    <div class="card">
-      <h2>Profil Bio Link</h2>
-      <label>Nama profil</label>
-      <input id="bioTitle" placeholder="Nama kamu">
-      <label>Deskripsi</label>
-      <textarea id="bioDesc" placeholder="Ceritakan tentang kamu"></textarea>
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>Profil</h2>
+        <div class="field">
+          <label>Nama</label>
+          <input id="bioName" placeholder="Nama profil">
+        </div>
+        <div class="field">
+          <label>Deskripsi</label>
+          <textarea id="bioDesc" placeholder="Deskripsi singkat"></textarea>
+        </div>
+      </div>
 
-      <h3>Background</h3>
-      <label>Jenis background</label>
-      <select id="bioBgType">
-        <option value="solid">Solid</option>
-        <option value="gradient">Gradient</option>
-      </select>
-      <div class="row">
-        <div><label>Warna 1</label><input id="bioBgColor" type="color" value="#7357ef"></div>
-        <div><label>Warna 2</label><input id="bioBgColor2" type="color" value="#b8aaff"></div>
+      <div class="card">
+        <h2>Warna & Tampilan</h2>
+        <div class="grid">
+          <div class="field">
+            <label>Background Bio</label>
+            <input type="color" id="bioBgColor" value="#f3f0ff">
+          </div>
+          <div class="field">
+            <label>Warna teks Bio</label>
+            <input type="color" id="bioTextColor" value="#25243a">
+          </div>
+          <div class="field">
+            <label>Warna tombol</label>
+            <input type="color" id="bioButtonColor" value="#6d5dfc">
+          </div>
+          <div class="field">
+            <label>Warna teks tombol</label>
+            <input type="color" id="bioButtonTextColor" value="#ffffff">
+          </div>
+        </div>
       </div>
-      <div class="row">
-        <div><label>Warna teks</label><input id="bioTextColor" type="color" value="#ffffff"></div>
-        <div><label>Warna tombol</label><input id="bioButtonColor" type="color" value="#ffffff"></div>
+
+      <div class="card">
+        <h2>Tambah Link</h2>
+        <div class="field">
+          <label>Nama tombol</label>
+          <input id="bioTitle" placeholder="Instagram, WhatsApp, Website">
+        </div>
+        <div class="field">
+          <label>URL</label>
+          <input id="bioUrl" type="url" placeholder="https://">
+        </div>
+        <div class="field">
+          <label>Gambar tombol (opsional)</label>
+          <input id="bioImage" type="file" accept="image/*">
+          <img id="bioImagePreview" hidden style="max-width:100px;margin-top:8px;border-radius:12px" alt="Preview">
+          <button class="btn secondary small" id="clearBioImage" type="button">Hapus Gambar</button>
+        </div>
+        <label class="check-row">
+          <input id="bioWiggle" type="checkbox">
+          Efek goyang tombol
+        </label>
+        <button class="btn full" id="addBioLink">＋ Tambah Tombol Bio</button>
+        <p id="bioStatus" class="status"></p>
       </div>
-      <div class="row">
-        <div><label>Warna teks tombol</label><input id="bioButtonTextColor" type="color" value="#333333"></div>
-        <div>
-          <label>Bentuk tombol</label>
-          <select id="bioButtonShape">
-            <option value="rounded">Rounded</option>
-            <option value="pill">Pill</option>
-            <option value="square">Square</option>
-          </select>
+
+      <div class="card">
+        <h2>Daftar Tombol</h2>
+        <div id="bioLinks"></div>
+      </div>
+
+      <div class="card">
+        <h2>Landing Page di Bio</h2>
+        <p class="muted small">Pilih Landing Page yang ingin ditampilkan sebagai tombol di Bio.</p>
+        <div id="bioLandingList"></div>
+      </div>
+
+      <button class="btn full" id="saveBio">💾 Simpan Bio</button>
+      <br><br>
+      <button class="btn secondary full" id="openMyPublicBio">👁 Preview Bio</button>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Live Preview</h2>
+        <p class="muted small">Tampilan responsive sesuai warna yang dipilih.</p>
+        <div class="bio-preview" id="bioPreview">
+          <h2 id="bioPreviewName">Nama Kamu</h2>
+          <p id="bioPreviewDesc">Deskripsi Bio</p>
+          <div id="bioPreviewLinks"></div>
         </div>
       </div>
     </div>
+  </div>
+</section>
 
-    <!-- ADD LINK -->
-    <div class="card">
-      <h2>Tambah Bio Link</h2>
-      <label>Nama link</label>
-      <input id="bioName" placeholder="Contoh: Instagram saya">
-      <label>URL link</label>
-      <input id="bioUrl" placeholder="https://...">
-      <label>Gambar tombol (opsional)</label>
-      <input id="bioImage" type="file" accept="image/*">
-      <div id="bioImagePreview"></div>
-      <label>Warna tombol</label>
-      <input id="linkColor" type="color" value="#ffffff">
-      <label>Warna tulisan</label>
-      <input id="linkTextColor" type="color" value="#333333">
-      <label>Animasi</label>
-      <select id="bioWiggle">
-        <option value="off">Diam</option>
-        <option value="on">Goyang</option>
-      </select>
-      <div class="row">
-        <button class="btn" id="addBioLink">＋ Tambah Link</button>
-        <button class="btn secondary" id="clearBioImage">Hapus gambar</button>
-      </div>
-      <div id="bioLinks"></div>
+<!-- LANDING PAGE -->
+<section class="section" id="pages">
+  <div class="page-heading">
+    <h1>Landing Page Studio</h1>
+    <p>Buat halaman terpisah, preview, edit visual atau HTML.</p>
+  </div>
+
+  <div class="card">
+    <h2>Editor Landing Page</h2>
+    <div class="field">
+      <label>Judul</label>
+      <input id="pageTitle" placeholder="Judul Landing Page">
     </div>
-
-    <!-- PREVIEW BIO -->
-    <div class="card">
-      <h2>Preview Bio Link</h2>
-      <div id="bioPreview" class="preview-box"></div>
-      <button class="btn" id="saveBio">💾 Simpan Bio Link</button>
-      <p id="bioStatus" class="status"></p>
-      <button class="btn secondary" id="openMyPublicBio">🔗 Buka Bio Link Saya</button>
+    <div class="field">
+      <label>Slug / URL halaman</label>
+      <input id="pageSlug" placeholder="judul-halaman">
     </div>
-
-    <!-- LINK PAGES IN BIO -->
-    <div class="card">
-      <h2>Landing Page di Bio</h2>
-      <p class="muted">Pilih halaman yang ingin ditampilkan di Bio Link.</p>
-      <div id="bioLandingList"></div>
-    </div>
-  </section>
-
-  <!-- PAGES -->
-  <section id="tab-pages" class="hidden">
-    <div class="card">
-      <h2>Landing Page Builder</h2>
-      <label>Judul halaman</label>
-      <input id="pageTitle" placeholder="Judul halaman">
-      <label>Nama link / slug</label>
-      <input id="pageSlug" placeholder="contoh: tentang-saya">
-      <label>Mode editor</label>
+    <div class="field">
+      <label>Mode Editor</label>
       <select id="pageMode">
-        <option value="visual">Editor teks</option>
-        <option value="html">Editor HTML</option>
+        <option value="visual">Visual Editor</option>
+        <option value="html">HTML Editor</option>
       </select>
+    </div>
 
-      <div id="visualEditorArea">
-        <label>Konten halaman</label>
-        <div class="row">
-          <button class="btn secondary small" data-format="bold"><b>B</b></button>
-          <button class="btn secondary small" data-format="italic"><i>I</i></button>
-          <button class="btn secondary small" data-format="insertUnorderedList">☷ List</button>
-        </div>
-        <div id="visualEditor" contenteditable="true" style="min-height:200px;border:1px solid var(--border);padding:12px;border-radius:12px;background:var(--input);margin:10px 0">
-          <h2>Judul halaman</h2><p>Tulis konten halaman kamu di sini...</p>
-        </div>
+    <div id="visualEditorArea">
+      <div class="toolbar">
+        <button class="btn secondary small" data-format="bold"><b>B</b></button>
+        <button class="btn secondary small" data-format="italic"><i>I</i></button>
+        <button class="btn secondary small" data-format="underline"><u>U</u></button>
+        <button class="btn secondary small" data-format="insertUnorderedList">• List</button>
+        <button class="btn secondary small" id="insertLink">🔗 Link</button>
       </div>
+      <div id="visualEditor" class="editor" contenteditable="true"></div>
+    </div>
 
-      <div id="htmlEditorArea" class="hidden">
-        <label>HTML</label>
-        <textarea id="htmlEditor" style="min-height:260px;font-family:monospace" placeholder="Tulis HTML di sini..."></textarea>
-      </div>
+    <div id="htmlEditorArea" hidden>
+      <textarea id="htmlEditor" placeholder="Tulis HTML di sini"></textarea>
+    </div>
 
-      <label>Preview halaman</label>
-      <div class="row">
-        <button class="btn" id="previewPage">👁 Preview</button>
-        <button class="btn secondary" id="clearPageEditor">Bersihkan</button>
-      </div>
-      <iframe id="pagePreviewFrame" class="preview-frame" title="Preview landing page" sandbox="allow-same-origin"></iframe>
-
-      <label style="display:flex;gap:8px;align-items:center;margin:15px 0">
-        <input type="checkbox" id="pageShowInBio" style="width:auto;margin:0">
-        Tampilkan link halaman di Bio
+    <div class="field" style="margin-top:15px">
+      <label class="check-row">
+        <input type="checkbox" id="pageShowInBio" checked>
+        Tampilkan Landing Page sebagai tombol di Bio
       </label>
-
-      <button class="btn" id="savePage">💾 Simpan Landing Page</button>
-      <div id="pageStatus" class="status"></div>
     </div>
 
-    <div class="card">
-      <h2>Landing Page Saya</h2>
-      <div id="pagesList"></div>
+    <div class="row" style="flex-wrap:wrap">
+      <button class="btn secondary" id="previewPage">👁 Preview</button>
+      <button class="btn" id="savePage">💾 Simpan / Publish</button>
+      <button class="btn secondary" id="resetPageEditor">＋ Baru</button>
     </div>
-  </section>
-
-  <!-- SCANNER -->
-  <section id="tab-scan" class="hidden">
-    <div class="card">
-      <h2>Scanner Nomor HP</h2>
-      <video id="cameraVideo" autoplay playsinline></video>
-      <div class="row">
-        <button class="btn" id="startCameraBtn">Buka Kamera</button>
-        <button class="btn secondary" id="captureBtn">Ambil Foto</button>
-        <button class="btn secondary" id="stopCameraBtn">Stop</button>
-      </div>
-      <input id="scanImageInput" type="file" accept="image/*">
-      <button class="btn" id="uploadScanBtn">Scan Gambar</button>
-      <div id="scanStatus" class="status"></div>
-      <div id="ocrResults"></div>
-      <input id="scanPhoneResult" placeholder="Nomor HP terdeteksi">
-      <button class="btn" id="searchScannedPhone">Cari Bio</button>
-    </div>
-  </section>
-
-  <!-- FIND -->
-  <section id="tab-find" class="hidden">
-    <div class="card">
-      <h2>Cari Bio berdasarkan HP</h2>
-      <input id="findPhone" placeholder="Nomor HP" inputmode="tel">
-      <button class="btn" id="findBio">Cari</button>
-      <div id="findResult"></div>
-    </div>
-  </section>
-
-  <!-- QR -->
-  <section id="tab-qr" class="hidden">
-    <div class="card">
-      <h2>QR Vault</h2>
-      <input id="qrName" placeholder="Nama QR">
-      <input id="qrUrl" placeholder="URL">
-      <button class="btn" id="saveQR">Simpan QR</button>
-      <div id="qrScanStatus"></div>
-      <div id="qrList"></div>
-    </div>
-  </section>
-
-  <!-- NOTES -->
-  <section id="tab-notes" class="hidden">
-    <div class="card">
-      <h2>Notes</h2>
-      <input id="noteTitle" placeholder="Judul catatan">
-      <textarea id="noteContent" placeholder="Isi catatan"></textarea>
-      <button class="btn" id="saveNote">Simpan catatan</button>
-      <div id="notesList"></div>
-    </div>
-  </section>
-</div>
-
-<!-- PUBLIC BIO -->
-<div id="publicPageView" class="hidden">
-  <div class="wrap">
-    <button class="btn secondary" id="publicBack">← Kembali</button>
-    <div id="publicPageError" class="status"></div>
-    <div id="publicPageContent"></div>
+    <p id="pageStatus" class="status"></p>
   </div>
-</div>
 
-<div id="bottomNav" class="bottom-nav hidden">
-  <button data-tab="bio">🔗<br>Bio</button>
-  <button data-tab="pages">📄<br>Pages</button>
-  <button data-tab="scan">📷<br>Scan</button>
-  <button data-tab="find">🔎<br>Cari</button>
-  <button data-tab="qr">▦<br>QR</button>
-  <button data-tab="notes">📝<br>Notes</button>
-</div>
-</div>
+  <div class="card">
+    <h2>Preview</h2>
+    <iframe id="pagePreview" class="preview-frame" sandbox="allow-same-origin"></iframe>
+  </div>
 
-<script type="module" src="./app.js"></script>
+  <div class="card">
+    <h2>Halaman Saya</h2>
+    <div id="pagesList"></div>
+  </div>
+</section>
+
+<!-- QR VAULT -->
+<section class="section" id="vault">
+  <div class="page-heading">
+    <h1>QR & Link Vault</h1>
+    <p>Simpan link penting kamu.</p>
+  </div>
+  <div class="card">
+    <div class="field">
+      <label>Nama</label>
+      <input id="qrName" placeholder="Nama link">
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input id="qrUrl" type="url" placeholder="https://">
+    </div>
+    <button class="btn full" id="saveQR">＋ Simpan Link</button>
+    <p id="qrScanStatus" class="status"></p>
+  </div>
+  <div class="card">
+    <h2>Link Tersimpan</h2>
+    <div id="qrList"></div>
+  </div>
+</section>
+
+<!-- NOTES -->
+<section class="section" id="notes">
+  <div class="page-heading">
+    <h1>Notes</h1>
+    <p>Catatan pribadi kamu.</p>
+  </div>
+  <div class="card">
+    <div class="field">
+      <label>Judul</label>
+      <input id="noteTitle" placeholder="Judul catatan">
+    </div>
+    <div class="field">
+      <label>Isi</label>
+      <textarea id="noteContent" placeholder="Tulis catatan..."></textarea>
+    </div>
+    <button class="btn full" id="saveNote">💾 Simpan Catatan</button>
+  </div>
+  <div class="card">
+    <h2>Catatan Saya</h2>
+    <div id="notesList"></div>
+  </div>
+</section>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottomNav" hidden>
+  <div class="bottom-nav-inner">
+    <button class="nav-btn active" data-tab="home"><span>📱</span>Scan</button>
+    <button class="nav-btn" data-tab="dashboard"><span>🏠</span>Dashboard</button>
+    <button class="nav-btn" data-tab="bio"><span>🔗</span>Bio</button>
+    <button class="nav-btn" data-tab="pages"><span>📄</span>Pages</button>
+    <button class="nav-btn" data-tab="vault"><span>🔐</span>Vault</button>
+  </div>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script type="module" src="app.js"></script>
+
 </body>
 </html>

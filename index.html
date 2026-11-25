@@ -3,8 +3,8 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#101323">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111426">
 <title>POPER — Phone Identity</title>
 
 <script>
@@ -12,457 +12,390 @@
   try {
     const theme = localStorage.getItem("poper-theme") || "dark";
     document.documentElement.setAttribute("data-theme", theme);
-  } catch(e) {}
+  } catch(e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
 })();
 </script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap');
 
-:root{
+:root {
   --bg:#101323;
   --surface:#191d31;
-  --surface2:#232941;
+  --surface2:#222740;
   --border:#303650;
   --text:#f5f5ff;
   --muted:#929ab7;
   --purple:#8158ed;
-  --blue:#5d7cff;
+  --purple2:#5d7cff;
   --nav:#171b2c;
   --input:#111528;
 }
 
-html[data-theme="light"]{
+html[data-theme="light"] {
   --bg:#f3f5fb;
-  --surface:#fff;
+  --surface:#ffffff;
   --surface2:#edf0f8;
   --border:#dce1ef;
   --text:#1c2235;
   --muted:#737c94;
   --purple:#7855dd;
-  --blue:#587bfa;
+  --purple2:#587bfa;
   --nav:#ffffff;
   --input:#f7f8fc;
 }
 
-*{
+* {
   box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
 }
 
-body{
+body {
   margin:0;
   min-height:100vh;
   background:var(--bg);
   color:var(--text);
   font-family:'Baloo 2',system-ui,sans-serif;
-  transition:.25s;
 }
 
-button,input,textarea{
+button,input,textarea {
   font:inherit;
 }
 
-button{
+button {
   cursor:pointer;
 }
 
-button:active{
-  transform:scale(.97);
+button:active {
+  transform:scale(.98);
 }
 
-.app{
+.app {
   width:100%;
   max-width:600px;
   margin:auto;
   min-height:100vh;
-  padding:15px 16px 120px;
+  padding:15px 16px 110px;
 }
 
 /* HEADER */
 
-.header{
+.header {
   display:flex;
-  align-items:center;
   justify-content:space-between;
-  padding:10px 3px 24px;
+  align-items:center;
+  padding:8px 3px 22px;
 }
 
-.logo{
+.logo {
   font-size:28px;
   font-weight:900;
   letter-spacing:-1px;
 }
 
-.logo span{
+.logo span {
   color:#9a7bff;
 }
 
-.header-right{
+.header-right {
   display:flex;
   gap:8px;
 }
 
+/* CARD */
+
+.card {
+  padding:20px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:22px;
+  margin-bottom:15px;
+}
+
+.card h2 {
+  font-size:22px;
+  margin:0 0 12px;
+}
+
+p {
+  color:var(--muted);
+  line-height:1.65;
+}
+
+/* LOGIN */
+
+#loginPanel {
+  max-width:460px;
+  margin:25px auto;
+}
+
+#recaptcha-container {
+  margin:10px 0;
+}
+
+#otpSection {
+  margin-top:15px;
+}
+
+/* INPUT */
+
+input,textarea {
+  width:100%;
+  display:block;
+  padding:14px;
+  margin:8px 0 14px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:var(--input);
+  color:var(--text);
+  outline:none;
+}
+
+input:focus,textarea:focus {
+  border-color:var(--purple);
+  box-shadow:0 0 0 3px rgba(129,88,237,.12);
+}
+
+input::placeholder,textarea::placeholder {
+  color:var(--muted);
+}
+
+textarea {
+  min-height:100px;
+  resize:vertical;
+}
+
+/* BUTTON */
+
+.primary {
+  width:100%;
+  border:0;
+  border-radius:15px;
+  padding:15px;
+  background:linear-gradient(120deg,var(--purple),var(--purple2));
+  color:white;
+  font-weight:800;
+}
+
+.secondary {
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:11px 15px;
+  background:var(--surface2);
+  color:var(--text);
+}
+
+.danger {
+  background:#482b3c;
+  color:#ffb1c1;
+}
+
+.status {
+  min-height:20px;
+  font-size:13px;
+  color:var(--muted);
+  overflow-wrap:anywhere;
+}
+
 /* PROFILE */
 
-.profile-card{
-  position:relative;
-  overflow:hidden;
-  padding:20px;
-  margin-bottom:20px;
+.profile-card {
+  padding:22px;
   border:1px solid var(--border);
   border-radius:24px;
+  margin-bottom:20px;
   background:
-    radial-gradient(circle at top right,rgba(125,91,240,.20),transparent 55%),
+    radial-gradient(circle at top right,rgba(125,91,240,.2),transparent 55%),
     var(--surface);
 }
 
-.profile-avatar{
-  width:62px;
-  height:62px;
+.profile-avatar {
+  width:70px;
+  height:70px;
   display:grid;
   place-items:center;
+  border-radius:22px;
   background:linear-gradient(135deg,#40366b,#273d68);
-  border-radius:20px;
-  font-size:28px;
+  font-size:32px;
   margin-bottom:12px;
 }
 
-.profile-card h2{
+.profile-card h2 {
   margin:0;
-  font-size:22px;
+  font-size:23px;
 }
 
-.profile-card p{
+.profile-card p {
   margin:5px 0 0;
   overflow-wrap:anywhere;
 }
 
 /* SECTIONS */
 
-.section{
+.section {
   display:none;
 }
 
-.section.active{
+.section.active {
   display:block;
-  animation:appear .2s ease;
-}
-
-@keyframes appear{
-  from{opacity:0;transform:translateY(5px)}
-  to{opacity:1;transform:translateY(0)}
-}
-
-.card{
-  padding:19px;
-  margin-bottom:15px;
-  border:1px solid var(--border);
-  border-radius:22px;
-  background:var(--surface);
-}
-
-.card h2{
-  margin:0 0 12px;
-  font-size:22px;
-}
-
-.card h3{
-  font-size:18px;
-}
-
-p{
-  color:var(--muted);
-  line-height:1.6;
-}
-
-input,textarea{
-  display:block;
-  width:100%;
-  padding:14px;
-  margin:9px 0 14px;
-  border:1px solid var(--border);
-  border-radius:14px;
-  background:var(--input);
-  color:var(--text);
-  outline:none;
-}
-
-input:focus,textarea:focus{
-  border-color:var(--purple);
-  box-shadow:0 0 0 3px rgba(129,88,237,.12);
-}
-
-input::placeholder,textarea::placeholder{
-  color:var(--muted);
-}
-
-textarea{
-  min-height:110px;
-  resize:vertical;
-}
-
-.primary{
-  display:block;
-  width:100%;
-  padding:15px;
-  border:0;
-  border-radius:15px;
-  color:white;
-  font-weight:800;
-  background:linear-gradient(120deg,var(--purple),var(--blue));
-  box-shadow:0 7px 20px rgba(105,78,220,.2);
-  margin-top:10px;
-}
-
-.secondary{
-  padding:12px 15px;
-  border:1px solid var(--border);
-  border-radius:13px;
-  background:var(--surface2);
-  color:var(--text);
-  margin-top:8px;
-}
-
-.danger{
-  background:#482b3c;
-  color:#ffb1c1;
-}
-
-#authStatus,#bioStatus,#qrScanStatus,
-#phoneScanStatus,#themeStatus{
-  min-height:20px;
-  font-size:13px;
 }
 
 /* HOME */
 
-.scan-home{
+.scan-home {
   text-align:center;
   padding:25px 18px;
   border:1px solid var(--border);
-  border-radius:27px;
+  border-radius:26px;
   background:
     radial-gradient(circle at 50% 15%,rgba(127,88,240,.15),transparent 60%),
     var(--surface);
 }
 
-.scan-eyebrow{
+.scan-eyebrow {
   font-size:11px;
-  font-weight:800;
   letter-spacing:2px;
+  font-weight:800;
   color:#a48aff;
 }
 
-.scan-home h2{
+.scan-home h2 {
+  margin:10px 0;
   font-size:25px;
-  margin:10px 0 5px;
 }
 
-.scan-home p{
+.scan-home p {
   font-size:14px;
-  margin:0 auto;
-  max-width:290px;
+  max-width:300px;
+  margin:auto;
 }
 
-.scan-circle{
-  width:200px;
-  height:200px;
-  border-radius:50%;
+.scan-circle {
+  width:190px;
+  height:190px;
   margin:25px auto;
   display:grid;
   place-items:center;
-  background:radial-gradient(circle,#33275b,#201c39 70%);
+  border-radius:50%;
   border:1px solid rgba(162,132,255,.35);
-  box-shadow:
-    0 0 0 12px rgba(125,91,240,.05),
-    0 0 45px rgba(125,91,240,.12);
+  background:radial-gradient(circle,#33275b,#201c39 70%);
+  box-shadow:0 0 0 12px rgba(125,91,240,.05),0 0 40px rgba(125,91,240,.12);
 }
 
-.scan-circle-inner{
-  width:145px;
-  height:145px;
-  border-radius:50%;
+.scan-circle-inner {
+  width:140px;
+  height:140px;
   display:grid;
   place-items:center;
+  border-radius:50%;
   border:2px solid rgba(161,133,255,.7);
   background:rgba(128,93,235,.12);
 }
 
-.scan-symbol{
-  font-size:58px;
+.scan-symbol {
+  font-size:55px;
   color:#c8b6ff;
 }
 
-.scan-hint{
-  margin:15px 0;
+.scan-hint {
   font-size:12px;
   color:var(--muted);
+  margin:15px 0;
 }
 
-.scan-start{
-  display:block;
+.scan-start {
   width:100%;
-  padding:17px;
   border:0;
-  border-radius:17px;
+  border-radius:16px;
+  padding:17px;
+  background:linear-gradient(120deg,#8058ef,#537eff);
   color:white;
   font-weight:900;
-  background:linear-gradient(120deg,#8058ef,#537eff);
 }
 
-/* HOME FEATURES */
+/* FEATURES */
 
-.feature-title{
+.feature-title {
   font-size:18px;
-  font-weight:800;
-  margin:22px 3px 13px;
+  margin:23px 3px 13px;
 }
 
-.feature-grid{
+.feature-grid {
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:12px;
 }
 
-.feature-card{
-  min-height:120px;
+.feature-card {
+  min-height:125px;
   padding:16px;
   text-align:left;
-  border:1px solid var(--border);
-  border-radius:19px;
-  background:var(--surface);
   color:var(--text);
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:var(--surface);
 }
 
-.feature-icon{
-  font-size:26px;
+.feature-icon {
+  font-size:25px;
   margin-bottom:8px;
 }
 
-.feature-card strong{
+.feature-card strong,
+.feature-card small {
   display:block;
-  font-size:15px;
 }
 
-.feature-card small{
-  display:block;
+.feature-card small {
   color:var(--muted);
   margin-top:5px;
 }
 
-/* SCANNER */
+/* TABS */
 
-.phone-scanner-card{
-  text-align:center;
-}
-
-.phone-camera-frame{
-  position:relative;
-  width:100%;
-  min-height:260px;
-  background:#080b16;
-  border-radius:23px;
-  overflow:hidden;
-  border:1px solid var(--border);
-  margin:15px 0;
-}
-
-.phone-camera-frame video{
-  display:block;
-  width:100%;
-  height:300px;
-  object-fit:cover;
-}
-
-.phone-scan-overlay{
-  position:absolute;
-  inset:0;
+.tabs {
   display:flex;
-  align-items:center;
-  justify-content:center;
-  pointer-events:none;
+  gap:8px;
+  overflow:auto;
+  padding-bottom:15px;
 }
 
-.phone-scan-guide{
-  position:relative;
-  width:88%;
-  height:95px;
-  border:2px solid #8c6bff;
-  border-radius:18px;
-  box-shadow:0 0 24px rgba(140,107,255,.2);
-}
-
-.phone-scan-guide span{
-  position:absolute;
-  bottom:-12px;
-  left:50%;
-  transform:translateX(-50%);
-  white-space:nowrap;
-  background:rgba(10,12,25,.85);
-  color:white;
-  font-size:10px;
-  padding:5px 12px;
-  border-radius:20px;
-  letter-spacing:1px;
-}
-
-.phone-scan-guide:after{
-  content:"";
-  position:absolute;
-  left:5%;
-  right:5%;
-  top:50%;
-  height:2px;
-  background:#69b9ff;
-  box-shadow:0 0 12px #69b9ff;
-  animation:scanLine 2s infinite;
-}
-
-@keyframes scanLine{
-  0%,100%{opacity:.3}
-  50%{opacity:1}
-}
-
-/* ITEMS */
-
-.item{
-  background:var(--input);
+.tab {
   border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px;
-  margin:10px 0;
-  overflow-wrap:anywhere;
+  border-radius:12px;
+  padding:11px 17px;
+  white-space:nowrap;
+  background:var(--surface2);
+  color:var(--muted);
 }
 
-.item a{
-  color:#a991ff;
+.tab.active {
+  background:var(--purple);
+  color:white;
 }
 
-.item button{
-  margin-top:8px;
-}
+/* THEME */
 
-/* BIO */
-
-.theme-setting{
-  padding:17px;
+.theme-setting {
+  padding:18px;
   border:1px solid var(--border);
   border-radius:20px;
   background:var(--surface);
   margin-bottom:15px;
 }
 
-.theme-setting h3{
-  margin:0;
+.theme-setting h3 {
+  margin:0 0 8px;
 }
 
-.theme-buttons{
+.theme-buttons {
   display:flex;
   gap:10px;
 }
 
-.theme-choice{
+.theme-choice {
   flex:1;
   padding:13px;
   border:1px solid var(--border);
@@ -471,20 +404,113 @@ textarea{
   color:var(--text);
 }
 
-.theme-choice.active{
+.theme-choice.active {
   border-color:var(--purple);
+  color:#a991ff;
+}
+
+/* ITEMS */
+
+.item {
+  padding:14px;
+  margin:10px 0;
+  background:var(--input);
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow-wrap:anywhere;
+}
+
+.item a {
+  color:#a991ff;
+}
+
+/* PHONE SCANNER */
+
+.phone-scanner-card {
+  text-align:center;
+}
+
+.phone-camera-frame {
+  position:relative;
+  width:100%;
+  min-height:260px;
+  margin:15px 0;
+  border-radius:22px;
+  overflow:hidden;
+  background:#080b16;
+  border:1px solid var(--border);
+}
+
+.phone-camera-frame video {
+  width:100%;
+  height:300px;
+  display:block;
+  object-fit:cover;
+}
+
+.phone-scan-overlay {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+
+.phone-scan-guide {
+  width:88%;
+  height:95px;
+  position:relative;
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  border:2px solid #8c6bff;
+  border-radius:18px;
+  box-shadow:0 0 24px rgba(140,107,255,.2);
+}
+
+.phone-scan-guide span {
+  margin-bottom:-12px;
+  padding:5px 12px;
+  border-radius:20px;
+  background:rgba(10,12,25,.85);
+  color:white;
+  font-size:10px;
+  letter-spacing:1px;
+}
+
+.phone-scan-guide::after {
+  content:"";
+  position:absolute;
+  left:5%;
+  right:5%;
+  top:50%;
+  height:2px;
+  background:#7fc7ff;
+  box-shadow:0 0 12px #7fc7ff;
+  animation:scanline 2s infinite;
+}
+
+@keyframes scanline {
+  0%,100% {opacity:.3}
+  50% {opacity:1}
+}
+
+#phoneScanStatus {
+  min-height:26px;
+  font-size:13px;
 }
 
 /* QR VAULT */
 
-.vault-brand{
+.vault-brand {
   display:flex;
   align-items:center;
-  gap:13px;
+  gap:12px;
   margin:10px 0 20px;
 }
 
-.vault-icon{
+.vault-icon {
   width:55px;
   height:55px;
   display:grid;
@@ -494,31 +520,31 @@ textarea{
   font-size:27px;
 }
 
-.vault-eyebrow,.vault-label{
+.vault-eyebrow,.vault-label {
   color:#a48aff;
   font-size:10px;
   letter-spacing:1.7px;
   font-weight:800;
 }
 
-.vault-brand h2{
+.vault-brand h2 {
   margin:4px 0;
   font-size:26px;
 }
 
-.vault-brand p{
+.vault-brand p {
   margin:0;
   font-size:12px;
 }
 
-.vault-hero{
-  background:var(--surface);
+.vault-hero {
+  padding:18px;
   border:1px solid var(--border);
   border-radius:23px;
-  padding:18px;
+  background:var(--surface);
 }
 
-.vault-hero-top{
+.vault-hero-top {
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -526,23 +552,23 @@ textarea{
   margin-bottom:20px;
 }
 
-.vault-hero-top h3{
+.vault-hero-top h3 {
   margin:8px 0;
 }
 
-.vault-hero-top p{
-  font-size:12px;
+.vault-hero-top p {
   margin:0;
+  font-size:12px;
 }
 
-.vault-hero-symbol{
+.vault-hero-symbol {
   font-size:32px;
   background:var(--surface2);
   padding:12px;
   border-radius:15px;
 }
 
-.vault-scan-btn{
+.vault-scan-btn {
   width:100%;
   display:flex;
   align-items:center;
@@ -555,48 +581,26 @@ textarea{
   background:linear-gradient(120deg,#7752e6,#4d78ef);
 }
 
-.vault-scan-btn strong,.vault-scan-btn small{
+.vault-scan-btn strong,
+.vault-scan-btn small {
   display:block;
 }
 
-.vault-scan-btn small{
+.vault-scan-btn small {
   margin-top:5px;
   color:#e0d8ff;
 }
 
-.btn-icon{
+.btn-icon {
   font-size:25px;
 }
 
-.btn-arrow{
+.btn-arrow {
   margin-left:auto;
   font-size:22px;
 }
 
-.vault-camera{
-  margin-top:12px;
-  padding:10px;
-  border-radius:17px;
-  background:#080b16;
-}
-
-.vault-camera video{
-  width:100%;
-  max-height:350px;
-  border-radius:13px;
-}
-
-.vault-stop-btn{
-  width:100%;
-  padding:13px;
-  margin-top:10px;
-  background:#442739;
-  color:#ffb3c1;
-  border:0;
-  border-radius:12px;
-}
-
-.vault-divider{
+.vault-divider {
   text-align:center;
   font-size:11px;
   letter-spacing:1px;
@@ -604,7 +608,7 @@ textarea{
   color:var(--muted);
 }
 
-.vault-upload{
+.vault-upload {
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -616,35 +620,58 @@ textarea{
   cursor:pointer;
 }
 
-.vault-upload strong{
+.vault-upload strong {
   margin-top:10px;
 }
 
-.vault-upload span{
+.vault-upload span {
   color:var(--muted);
   font-size:12px;
   margin-top:6px;
 }
 
-.upload-icon{
+.upload-icon {
   font-size:30px;
 }
 
-.upload-cta{
+.upload-cta {
   padding:10px 15px;
   background:#30254d;
   border-radius:11px;
   color:#c4b2ff!important;
 }
 
-.vault-preview img{
+.vault-camera {
+  margin-top:12px;
+  padding:10px;
+  border-radius:17px;
+  background:#080b16;
+}
+
+.vault-camera video {
+  width:100%;
+  max-height:350px;
+  border-radius:13px;
+}
+
+.vault-stop-btn {
+  width:100%;
+  padding:13px;
+  margin-top:10px;
+  background:#442739;
+  color:#ffb3c1;
+  border:0;
+  border-radius:12px;
+}
+
+.vault-preview img {
   max-width:100%;
   max-height:250px;
   object-fit:contain;
   margin-top:12px;
 }
 
-.vault-result{
+.vault-result {
   margin-top:18px;
   padding:15px;
   background:var(--surface2);
@@ -652,14 +679,14 @@ textarea{
   border-radius:17px;
 }
 
-.vault-input-label{
+.vault-input-label {
   display:block;
   margin-top:12px;
   font-size:12px;
   font-weight:700;
 }
 
-.vault-save-btn{
+.vault-save-btn {
   width:100%;
   padding:15px;
   border:0;
@@ -670,52 +697,48 @@ textarea{
   margin-top:12px;
 }
 
-.vault-status{
+.vault-status {
   font-size:12px;
   color:var(--muted);
   margin-top:10px;
 }
 
-.vault-list-header{
+.vault-list-header {
   display:flex;
   justify-content:space-between;
   align-items:center;
   margin:25px 0 13px;
 }
 
-.vault-list-header h3{
+.vault-list-header h3 {
   margin:5px 0;
 }
 
-.vault-list-icon{
-  font-size:23px;
-}
-
-.vault-list{
+.vault-list {
   display:flex;
   flex-direction:column;
   gap:12px;
 }
 
-.qr-link-card{
+.qr-link-card {
+  padding:16px;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:17px;
-  padding:16px;
 }
 
-.qr-link-card strong{
+.qr-link-card strong {
   display:block;
 }
 
-.qr-link-meta{
+.qr-link-meta {
   font-size:12px;
   color:var(--muted);
   overflow-wrap:anywhere;
   margin-top:8px;
 }
 
-.qr-link-button{
+.qr-link-button {
   display:block;
   width:100%;
   text-align:center;
@@ -727,13 +750,27 @@ textarea{
   margin-top:12px;
 }
 
-.qr-link-card button{
+.qr-link-card button {
   margin-top:8px;
+}
+
+.qr-empty {
+  text-align:center;
+  padding:25px;
+  color:var(--muted);
+  border:1px dashed var(--border);
+  border-radius:16px;
+}
+
+/* NOTES */
+
+.note-card p {
+  white-space:pre-wrap;
 }
 
 /* BOTTOM NAV */
 
-.app-bottom-nav{
+.app-bottom-nav {
   position:fixed;
   z-index:1000;
   bottom:0;
@@ -745,7 +782,7 @@ textarea{
   backdrop-filter:blur(20px);
 }
 
-.bottom-nav-inner{
+.bottom-nav-inner {
   max-width:600px;
   margin:auto;
   display:flex;
@@ -753,11 +790,12 @@ textarea{
   justify-content:space-around;
 }
 
-.nav-btn{
+.nav-btn {
   flex:1;
   display:flex;
   flex-direction:column;
   align-items:center;
+  justify-content:center;
   gap:3px;
   border:0;
   background:transparent;
@@ -766,43 +804,44 @@ textarea{
   font-size:10px;
 }
 
-.nav-icon{
+.nav-icon {
   font-size:21px;
-  line-height:1.4;
 }
 
-.nav-btn.active{
+.nav-btn.active {
   color:#a991ff;
 }
 
-.scan-nav .nav-icon{
-  width:52px;
-  height:52px;
-  border-radius:18px;
-  margin-top:-27px;
+.nav-btn.scan-nav {
+  flex:1.1;
+}
+
+.scan-nav .nav-icon {
+  width:55px;
+  height:55px;
   display:grid;
   place-items:center;
+  border-radius:19px;
+  margin-top:-28px;
   font-size:27px;
   color:white;
   background:linear-gradient(135deg,#885cff,#4c7aff);
-  border:4px solid var(--bg);
   box-shadow:0 7px 23px rgba(112,81,228,.35);
+  border:4px solid var(--bg);
 }
 
-/* LOGIN */
+/* GENERAL */
 
-#loginPanel{
-  max-width:460px;
-  margin:20px auto;
-}
-
-[hidden]{
+[hidden] {
   display:none!important;
 }
 
-@media(min-width:600px){
-  .app{padding-top:25px}
+@media(min-width:600px) {
+  .app {
+    padding-top:25px;
+  }
 }
+
 </style>
 </head>
 
@@ -829,11 +868,11 @@ textarea{
   <div id="recaptcha-container"></div>
 
   <div id="otpSection" hidden>
-    <input id="otpInput" type="tel" inputmode="numeric" maxlength="6" placeholder="Kode OTP 6 digit">
+    <input id="otpInput" type="text" inputmode="numeric" maxlength="6" placeholder="Kode OTP 6 digit">
     <button id="verifyOtpBtn" class="primary">Verifikasi OTP</button>
   </div>
 
-  <p id="authStatus"></p>
+  <p id="authStatus" class="status"></p>
 </section>
 
 <!-- DASHBOARD -->
@@ -851,8 +890,8 @@ textarea{
 
     <div class="scan-home">
       <span class="scan-eyebrow">PHONE IDENTITY</span>
-      <h2>Temukan Bio</h2>
-      <p>Scan nomor HP untuk menemukan profil POPER.</p>
+      <h2>Scan Nomor HP</h2>
+      <p>Temukan Bio seseorang hanya dengan memindai nomor HP.</p>
 
       <div class="scan-circle">
         <div class="scan-circle-inner">
@@ -861,17 +900,18 @@ textarea{
       </div>
 
       <div class="scan-hint">
-        Arahkan kamera ke nomor HP di layar lain
+        Arahkan kamera ke nomor HP di layar.
       </div>
 
       <button id="mainScanButton" class="scan-start">
-        📷 MULAI SCAN NOMOR
+        📷 MULAI SCAN
       </button>
     </div>
 
     <h3 class="feature-title">Jelajahi POPER</h3>
 
     <div class="feature-grid">
+
       <button class="feature-card" data-open-tab="bio">
         <div class="feature-icon">👤</div>
         <strong>Bio Saya</strong>
@@ -895,10 +935,11 @@ textarea{
         <strong>Find Bio</strong>
         <small>Cari pengguna POPER</small>
       </button>
+
     </div>
   </section>
 
-  <!-- PHONE SCANNER (ONLY ONE) -->
+  <!-- PHONE SCANNER (SINGLE) -->
   <section id="phoneScanner" class="section">
     <div class="card phone-scanner-card">
 
@@ -921,7 +962,7 @@ textarea{
         📷 Aktifkan Kamera
       </button>
 
-      <button id="stopPhoneCamera" class="secondary" style="width:100%">
+      <button id="stopPhoneCamera" class="secondary" style="width:100%;margin-top:10px">
         Tutup Kamera
       </button>
 
@@ -932,11 +973,12 @@ textarea{
         🔎 Cari POPER
       </button>
 
-      <button id="backFromScanner" class="secondary" style="width:100%">
+      <button id="backFromScanner" class="secondary" style="width:100%;margin-top:10px">
         ← Kembali
       </button>
 
       <div id="phoneScanResult"></div>
+
     </div>
   </section>
 
@@ -952,113 +994,111 @@ textarea{
         <button class="theme-choice" data-theme-choice="dark">🌙 Gelap</button>
       </div>
 
-      <p id="themeStatus">Tema tersimpan otomatis.</p>
+      <p id="themeStatus" class="status">Tema tersimpan otomatis.</p>
     </div>
 
     <div class="card">
       <h2>Profil Bio Saya</h2>
 
       <input id="bioName" placeholder="Nama">
-
       <textarea id="bioDesc" placeholder="Tentang saya"></textarea>
 
       <input id="bioTitle" placeholder="Judul link">
-
       <input id="bioUrl" type="url" placeholder="https://alamat-link.com">
 
-      <button id="addBioLink" class="secondary">+ Tambah Link</button>
+      <button id="addBioLink" class="secondary">＋ Tambah Link</button>
 
       <div id="bioLinks"></div>
 
       <button id="saveBio" class="primary">Simpan Bio Online</button>
-
-      <p id="bioStatus"></p>
+      <p id="bioStatus" class="status"></p>
     </div>
 
     <button id="openPublicBio" class="primary">
       🌐 Lihat Public Bio
     </button>
+
   </section>
 
   <!-- QR VAULT -->
   <section class="section" id="qr">
-    <div class="vault-page">
 
-      <div class="vault-brand">
-        <div class="vault-icon">✦</div>
-        <div>
-          <span class="vault-eyebrow">POPER PERSONAL VAULT</span>
-          <h2>QR Vault</h2>
-          <p>Simpan QR. Ubah menjadi link. Akses kapan saja.</p>
-        </div>
+    <div class="vault-brand">
+      <div class="vault-icon">✦</div>
+      <div>
+        <span class="vault-eyebrow">POPER PERSONAL VAULT</span>
+        <h2>QR Vault</h2>
+        <p>Simpan QR. Ubah menjadi link. Akses kapan saja.</p>
       </div>
-
-      <div class="vault-hero">
-        <div class="vault-hero-top">
-          <div>
-            <span class="vault-label">QUICK ACTION</span>
-            <h3>Masukkan QR kamu</h3>
-            <p>Scan langsung atau ambil gambar QR dari galeri.</p>
-          </div>
-          <div class="vault-hero-symbol">⌗</div>
-        </div>
-
-        <button id="startQRScanner" class="vault-scan-btn">
-          <span class="btn-icon">⌗</span>
-          <span>
-            <strong>Scan QR Kamera</strong>
-            <small>Arahkan kamera ke kode QR</small>
-          </span>
-          <span class="btn-arrow">→</span>
-        </button>
-
-        <div id="qrCameraBox" hidden class="vault-camera">
-          <video id="qrVideo" autoplay playsinline></video>
-          <button id="stopQRScanner" class="vault-stop-btn">✕ Tutup Kamera</button>
-        </div>
-
-        <div class="vault-divider">ATAU UPLOAD GAMBAR</div>
-
-        <label for="qrImageInput" class="vault-upload">
-          <div class="upload-icon">⇧</div>
-          <strong>Pilih gambar QR</strong>
-          <span>JPG, PNG, WEBP dari galeri</span>
-          <span class="upload-cta">Pilih gambar</span>
-        </label>
-
-        <input type="file" id="qrImageInput" accept="image/*" hidden>
-
-        <div id="qrPreview" class="vault-preview"></div>
-
-        <div id="qrResultBox" class="vault-result">
-          <div>
-            <span class="vault-label">HASIL QR / LINK</span>
-          </div>
-
-          <label class="vault-input-label">Nama tombol</label>
-          <input id="qrName" placeholder="Contoh: Instagram, Toko, Website">
-
-          <label class="vault-input-label">Link hasil QR</label>
-          <textarea id="qrUrl" placeholder="Link QR akan muncul di sini" rows="3"></textarea>
-
-          <button id="saveQR" class="vault-save-btn">
-            ＋ Simpan ke Vault
-          </button>
-        </div>
-
-        <div id="qrScanStatus" class="vault-status"></div>
-      </div>
-
-      <div class="vault-list-header">
-        <div>
-          <span class="vault-label">YOUR COLLECTION</span>
-          <h3>Link Tersimpan</h3>
-        </div>
-        <div class="vault-list-icon">▤</div>
-      </div>
-
-      <div id="qrList" class="vault-list"></div>
     </div>
+
+    <div class="vault-hero">
+
+      <div class="vault-hero-top">
+        <div>
+          <span class="vault-label">QUICK ACTION</span>
+          <h3>Masukkan QR kamu</h3>
+          <p>Scan langsung atau ambil gambar QR dari galeri.</p>
+        </div>
+        <div class="vault-hero-symbol">⌗</div>
+      </div>
+
+      <button id="startQRScanner" class="vault-scan-btn">
+        <span class="btn-icon">⌗</span>
+        <span>
+          <strong>Scan QR Kamera</strong>
+          <small>Arahkan kamera ke kode QR</small>
+        </span>
+        <span class="btn-arrow">→</span>
+      </button>
+
+      <div id="qrCameraBox" hidden class="vault-camera">
+        <video id="qrVideo" autoplay playsinline muted></video>
+        <button id="stopQRScanner" class="vault-stop-btn">✕ Tutup Kamera</button>
+      </div>
+
+      <div class="vault-divider">ATAU UPLOAD GAMBAR</div>
+
+      <label for="qrImageInput" class="vault-upload">
+        <div class="upload-icon">⇧</div>
+        <strong>Pilih gambar QR</strong>
+        <span>JPG, PNG, WEBP dari galeri</span>
+        <span class="upload-cta">Pilih gambar</span>
+      </label>
+
+      <input type="file" id="qrImageInput" accept="image/*" hidden>
+
+      <div id="qrPreview" class="vault-preview"></div>
+
+      <div id="qrResultBox" class="vault-result" hidden>
+        <div>
+          <span class="vault-label">QR TERDETEKSI</span>
+        </div>
+
+        <label class="vault-input-label">Nama tombol</label>
+        <input id="qrName" placeholder="Contoh: Instagram, Toko, Website">
+
+        <label class="vault-input-label">Link hasil scan</label>
+        <textarea id="qrUrl" placeholder="Link hasil QR akan muncul di sini" rows="3"></textarea>
+
+        <button id="saveQR" class="vault-save-btn">
+          ＋ Simpan ke Vault
+        </button>
+      </div>
+
+      <div id="qrScanStatus" class="vault-status"></div>
+    </div>
+
+    <div class="vault-list-header">
+      <div>
+        <span class="vault-label">YOUR COLLECTION</span>
+        <h3>Link Tersimpan</h3>
+      </div>
+      <div class="vault-list-icon">▤</div>
+    </div>
+
+    <div id="qrList" class="vault-list"></div>
+
   </section>
 
   <!-- NOTES -->
@@ -1067,7 +1107,6 @@ textarea{
       <h2>📝 Notes</h2>
 
       <input id="noteTitle" placeholder="Judul catatan">
-
       <textarea id="noteContent" placeholder="Tulis catatan..."></textarea>
 
       <button id="saveNote" class="primary">Simpan Catatan</button>
@@ -1109,7 +1148,7 @@ textarea{
 
     <button class="nav-btn scan-nav active" data-tab="scan">
       <span class="nav-icon">⌗</span>
-      <span>SCAN</span>
+      <span>HOME</span>
     </button>
 
     <button class="nav-btn" data-tab="notes">

@@ -7,6 +7,10 @@ const auth = window.POPER.auth;
 let confirmation = null;
 let links = [];
 
+/* =========================================
+   PHONE OCR VARIABLES
+========================================= */
+
 let phoneCameraStream = null;
 let phoneOCRWorker = null;
 let phoneOCRBusy = false;
@@ -19,9 +23,9 @@ let cameraActive = false;
 let cameraFrame = null;
 let scannedQRValue = "";
 
-/* =====================================
+/* =========================================
    UTILITIES
-===================================== */
+========================================= */
 
 function status(id, text, color) {
   const el = $(id);
@@ -34,7 +38,7 @@ function status(id, text, color) {
 
 function safeURL(url) {
   try {
-    const u = new URL(String(url || "").trim());
+    const u = new URL(url);
 
     if (u.protocol === "https:" || u.protocol === "http:") {
       return u.href;
@@ -54,23 +58,21 @@ function escapeHTML(value = "") {
   })[c]);
 }
 
-function currentUID() {
-  return auth.currentUser?.uid || null;
-}
-
 function phoneKey(phone) {
   return window.POPER.normalizePhone(phone)
     .replace(/\D/g, "");
 }
 
-/* =====================================
+function currentUser() {
+  return auth?.currentUser || null;
+}
+
+/* =========================================
    NAVIGATION
-===================================== */
+========================================= */
 
 function showSection(name) {
-  const target = name === "scanner"
-    ? "phoneScanner"
-    : name;
+  const target = name === "scanner" ? "phoneScanner" : name;
 
   document.querySelectorAll(".section").forEach(section => {
     section.classList.toggle("active", section.id === target);
@@ -79,22 +81,22 @@ function showSection(name) {
   document.querySelectorAll(".nav-btn").forEach(button => {
     button.classList.toggle(
       "active",
-      button.dataset.tab === name
+      button.dataset.tab === (name === "scanner" ? "scan" : name)
     );
   });
+
+  if (name !== "scanner") {
+    stopPhoneScanner();
+  }
+
+  if (name !== "qr") {
+    stopCameraScanner();
+  }
 
   window.scrollTo({
     top: 0,
     behavior: "smooth"
   });
-
-  if (target !== "phoneScanner") {
-    stopPhoneScanner();
-  }
-
-  if (target !== "qr") {
-    stopCameraScanner();
-  }
 }
 
 document.querySelectorAll("[data-tab]").forEach(button => {
@@ -110,16 +112,26 @@ document.querySelectorAll("[data-open-tab]").forEach(button => {
 });
 
 $("mainScanButton")?.addEventListener("click", () => {
-  showSection("phoneScanner");
+  showSection("scanner");
+});
+
+$("mainScanButton")?.addEventListener("click", () => {
+  startPhoneScanner();
 });
 
 $("backFromScanner")?.addEventListener("click", () => {
+  stopPhoneScanner();
   showSection("scan");
 });
 
-/* =====================================
+$("mainScanButton")?.addEventListener("click", async () => {
+  showSection("scanner");
+  await startPhoneScanner();
+});
+
+/* =========================================
    AUTH UI
-===================================== */
+========================================= */
 
 function loginUI(user) {
   const loginPanel = $("loginPanel");
@@ -128,41 +140,21 @@ function loginUI(user) {
   const bottomNav = $("appBottomNav");
 
   if (!user) {
-    if (loginPanel) {
-      loginPanel.hidden = false;
-      loginPanel.style.display = "";
-    }
-
-    if (dashboard) {
-      dashboard.hidden = true;
-      dashboard.style.display = "none";
-    }
-
+    if (loginPanel) loginPanel.hidden = false;
+    if (dashboard) dashboard.hidden = true;
     if (logoutBtn) logoutBtn.hidden = true;
     if (bottomNav) bottomNav.hidden = true;
 
     stopPhoneScanner();
     stopCameraScanner();
+
     return;
   }
 
-  if (loginPanel) {
-    loginPanel.hidden = true;
-    loginPanel.style.display = "none";
-  }
-
-  if (dashboard) {
-    dashboard.hidden = false;
-    dashboard.style.display = "";
-  }
-
-  if (logoutBtn) {
-    logoutBtn.hidden = false;
-  }
-
-  if (bottomNav) {
-    bottomNav.hidden = false;
-  }
+  if (loginPanel) loginPanel.hidden = true;
+  if (dashboard) dashboard.hidden = false;
+  if (logoutBtn) logoutBtn.hidden = false;
+  if (bottomNav) bottomNav.hidden = false;
 
   if ($("welcome")) {
     $("welcome").textContent = "Halo, pengguna POPER!";
@@ -193,7 +185,7 @@ $("sendOtpBtn")?.addEventListener("click", async () => {
       $("otpSection").hidden = false;
     }
 
-    status("authStatus", "OTP berhasil dikirim. Periksa SMS kamu.");
+    status("authStatus", "OTP berhasil dikirim. Periksa SMS.");
   } catch (error) {
     status("authStatus", error.message || "Gagal mengirim OTP.");
 
@@ -217,9 +209,10 @@ $("verifyOtpBtn")?.addEventListener("click", async () => {
     const result = await confirmation.confirm(code);
 
     loginUI(result.user);
+
     status("authStatus", "Login berhasil!");
   } catch (error) {
-    status("authStatus", error.message || "OTP salah atau kedaluwarsa.");
+    status("authStatus", error.message || "OTP salah.");
   }
 });
 
@@ -230,27 +223,27 @@ $("logoutBtn")?.addEventListener("click", async () => {
   try {
     await window.POPER.logout();
   } catch (error) {
-    status("authStatus", error.message || "Logout gagal.");
+    status("authStatus", error.message || "Gagal logout.");
   }
 });
 
-/* =====================================
+/* =========================================
    BIO LINKS
-===================================== */
+========================================= */
 
 $("addBioLink")?.addEventListener("click", () => {
   const title = $("bioTitle")?.value.trim();
   const url = safeURL($("bioUrl")?.value.trim());
 
   if (!title || !url) {
-    status("bioStatus", "Isi judul dan URL yang valid.");
+    status("bioStatus", "Isi judul dan URL valid.");
     return;
   }
 
   links.push({ title, url });
 
-  $("bioTitle").value = "";
-  $("bioUrl").value = "";
+  if ($("bioTitle")) $("bioTitle").value = "";
+  if ($("bioUrl")) $("bioUrl").value = "";
 
   renderLinks();
 });
@@ -260,7 +253,7 @@ function renderLinks() {
   if (!container) return;
 
   container.innerHTML = links.map((link, i) => `
-    <div class="item">
+    <div class="item link-item">
       <div>
         <strong>${escapeHTML(link.title)}</strong>
         <small>${escapeHTML(link.url)}</small>
@@ -278,11 +271,8 @@ function renderLinks() {
 }
 
 $("saveBio")?.addEventListener("click", async () => {
-  const user = auth.currentUser;
-  if (!user) {
-    status("bioStatus", "Silakan login terlebih dahulu.");
-    return;
-  }
+  const user = currentUser();
+  if (!user) return;
 
   try {
     const data = {
@@ -307,13 +297,14 @@ $("saveBio")?.addEventListener("click", async () => {
     );
 
     status("bioStatus", "Bio berhasil disimpan!");
+
   } catch (error) {
     status("bioStatus", error.message || "Gagal menyimpan Bio.");
   }
 });
 
 async function loadBio() {
-  const user = auth.currentUser;
+  const user = currentUser();
   if (!user) return;
 
   try {
@@ -338,9 +329,101 @@ async function loadBio() {
   }
 }
 
-/* =====================================
+/* =========================================
+   PUBLIC BIO PREVIEW
+========================================= */
+
+$("openPublicBio")?.addEventListener("click", async () => {
+  const user = currentUser();
+  if (!user) return;
+
+  try {
+    const bio = await window.POPER.getData(
+      `users/${user.uid}/publicBio`
+    );
+
+    if (!bio) {
+      status("bioStatus", "Simpan Bio terlebih dahulu.");
+      return;
+    }
+
+    const bioLinks = Array.isArray(bio.links) ? bio.links : [];
+
+    const page = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>${escapeHTML(bio.name || "POPER Bio")}</title>
+        <style>
+          body{
+            font-family:system-ui,sans-serif;
+            background:#101323;
+            color:white;
+            margin:0;
+            padding:25px;
+          }
+          .container{
+            max-width:450px;
+            margin:auto;
+            text-align:center;
+          }
+          .avatar{
+            width:90px;
+            height:90px;
+            margin:25px auto;
+            display:grid;
+            place-items:center;
+            border-radius:28px;
+            background:linear-gradient(135deg,#865cff,#4d7aff);
+            font-size:40px;
+          }
+          h1{margin-bottom:8px}
+          p{color:#adb4ce;line-height:1.6}
+          a{
+            display:block;
+            text-decoration:none;
+            color:white;
+            background:#242a43;
+            padding:17px;
+            border-radius:15px;
+            margin:12px 0;
+          }
+          .brand{color:#a48aff;font-weight:900;margin-top:30px}
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="avatar">👤</div>
+          <h1>${escapeHTML(bio.name || "Pengguna POPER")}</h1>
+          <p>${escapeHTML(bio.description || "")}</p>
+          ${bioLinks.map(link => {
+            const url = safeURL(link.url);
+            if (!url) return "";
+            return `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.title || url)}</a>`;
+          }).join("")}
+          <div class="brand">📱 POPER</div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([page], {
+      type: "text/html"
+    });
+
+    const blobURL = URL.createObjectURL(blob);
+    window.open(blobURL, "_blank");
+
+  } catch (error) {
+    status("bioStatus", error.message || "Gagal membuka Bio.");
+  }
+});
+
+/* =========================================
    FIND BIO
-===================================== */
+========================================= */
 
 async function findBioByPhone(phone, resultContainerId) {
   const container = $(resultContainerId);
@@ -405,6 +488,7 @@ async function findBioByPhone(phone, resultContainerId) {
         `;
       }).join("")}
     `;
+
   } catch (error) {
     container.textContent = error.message || "Gagal mencari Bio.";
   }
@@ -424,9 +508,9 @@ $("searchScannedPhone")?.addEventListener("click", () => {
   );
 });
 
-/* =====================================
+/* =========================================
    QR VAULT
-===================================== */
+========================================= */
 
 function stopCameraScanner() {
   cameraActive = false;
@@ -441,8 +525,9 @@ function stopCameraScanner() {
     cameraStream = null;
   }
 
-  if ($("qrVideo")) {
-    $("qrVideo").srcObject = null;
+  const video = $("qrVideo");
+  if (video) {
+    video.srcObject = null;
   }
 
   if ($("qrCameraBox")) {
@@ -452,38 +537,43 @@ function stopCameraScanner() {
 
 $("startQRScanner")?.addEventListener("click", async () => {
   if (!navigator.mediaDevices?.getUserMedia) {
-    status("qrScanStatus", "Kamera tidak didukung browser.");
+    status("qrScanStatus", "Kamera tidak didukung.");
     return;
   }
 
-  try {
-    stopCameraScanner();
+  stopCameraScanner();
 
+  try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
+      video: { facingMode: { ideal: "environment" } },
       audio: false
     });
 
-    $("qrVideo").srcObject = cameraStream;
+    const video = $("qrVideo");
+
+    video.srcObject = cameraStream;
     $("qrCameraBox").hidden = false;
 
-    await $("qrVideo").play();
+    await video.play();
 
     cameraActive = true;
     scanQRFrame();
+
   } catch (error) {
-    status("qrScanStatus", "Kamera gagal dibuka. Periksa izin kamera.");
+    status("qrScanStatus", "Kamera QR gagal dibuka.");
   }
 });
 
-$("stopQRScanner")?.addEventListener("click", stopCameraScanner);
+$("stopQRScanner")?.addEventListener("click", () => {
+  stopCameraScanner();
+});
 
 function scanQRFrame() {
   if (!cameraActive) return;
 
   const video = $("qrVideo");
 
-  if (video.readyState >= 2 && video.videoWidth) {
+  if (video && video.readyState >= 2 && video.videoWidth) {
     const canvas = document.createElement("canvas");
 
     canvas.width = video.videoWidth;
@@ -499,21 +589,19 @@ function scanQRFrame() {
     const code = window.jsQR?.(
       image.data,
       image.width,
-      image.height
+      image.height,
+      { inversionAttempts: "attemptBoth" }
     );
 
     if (code?.data) {
       scannedQRValue = code.data;
 
-      if ($("qrUrl")) {
-        $("qrUrl").value = code.data;
-      }
-
-      $("qrResultBox").hidden = false;
+      showQRResult(code.data);
 
       stopCameraScanner();
 
       status("qrScanStatus", "QR berhasil dibaca!");
+      return;
     }
   }
 
@@ -522,24 +610,30 @@ function scanQRFrame() {
   }
 }
 
-/* QR IMAGE UPLOAD */
+function showQRResult(value) {
+  const resultBox = $("qrResultBox");
+  const input = $("qrUrl");
+
+  if (input) input.value = value;
+  if (resultBox) resultBox.hidden = false;
+}
 
 $("qrImageInput")?.addEventListener("change", async event => {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  status("qrScanStatus", "Membaca gambar QR...");
-
   try {
-    const objectURL = URL.createObjectURL(file);
+    status("qrScanStatus", "Membaca gambar QR...");
+
     const img = new Image();
+    const objectURL = URL.createObjectURL(file);
 
     img.src = objectURL;
     await img.decode();
 
     const canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
 
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0);
@@ -551,44 +645,37 @@ $("qrImageInput")?.addEventListener("change", async event => {
     const code = window.jsQR?.(
       image.data,
       image.width,
-      image.height
+      image.height,
+      { inversionAttempts: "attemptBoth" }
     );
 
     URL.revokeObjectURL(objectURL);
 
     if (code?.data) {
       scannedQRValue = code.data;
+      showQRResult(code.data);
 
-      $("qrUrl").value = code.data;
-      $("qrResultBox").hidden = false;
-
-      status("qrScanStatus", "QR gambar berhasil dibaca.");
+      status("qrScanStatus", "QR gambar berhasil dibaca!");
     } else {
       status("qrScanStatus", "QR tidak ditemukan dalam gambar.");
     }
+
   } catch (error) {
-    status("qrScanStatus", "Gagal membaca gambar QR.");
+    status("qrScanStatus", "Gambar gagal dibaca.");
   }
 
   event.target.value = "";
 });
 
-/* SAVE QR */
-
 $("saveQR")?.addEventListener("click", async () => {
-  const user = auth.currentUser;
-
-  if (!user) {
-    status("qrScanStatus", "Login terlebih dahulu.");
-    return;
-  }
+  const user = currentUser();
+  if (!user) return;
 
   const name = $("qrName")?.value.trim() || "QR Link";
-  const raw = $("qrUrl")?.value.trim();
-  const url = safeURL(raw);
+  const url = safeURL($("qrUrl")?.value.trim());
 
   if (!url) {
-    status("qrScanStatus", "QR harus berisi URL HTTP/HTTPS yang valid.");
+    status("qrScanStatus", "QR harus berisi URL valid.");
     return;
   }
 
@@ -601,51 +688,53 @@ $("saveQR")?.addEventListener("click", async () => {
 
     status("qrScanStatus", "QR berhasil disimpan!");
 
-    $("qrName").value = "";
-    $("qrUrl").value = "";
-    $("qrResultBox").hidden = true;
+    if ($("qrName")) $("qrName").value = "";
 
     loadQR();
+
   } catch (error) {
     status("qrScanStatus", error.message || "Gagal menyimpan QR.");
   }
 });
 
 async function loadQR() {
-  const user = auth.currentUser;
+  const user = currentUser();
   if (!user) return;
 
   try {
     const data = await window.POPER.getData(`qrVault/${user.uid}`);
     const container = $("qrList");
-
     if (!container) return;
 
     if (!data) {
       container.innerHTML = `
-        <div class="qr-empty">Vault QR masih kosong.</div>
+        <div class="qr-empty">
+          Vault QR masih kosong.
+        </div>
       `;
       return;
     }
 
     container.innerHTML = Object.entries(data).map(([key, item]) => {
-      const safeLink = safeURL(item.url);
+      const url = safeURL(item.url);
 
       return `
-        <div class="qr-link-card">
+        <div class="qr-card">
           <strong>${escapeHTML(item.name || "QR Link")}</strong>
-          <div class="qr-link-meta">${escapeHTML(safeLink)}</div>
 
-          ${safeLink ? `
-            <a class="qr-link-button"
-               href="${escapeHTML(safeLink)}"
-               target="_blank"
-               rel="noopener noreferrer">
-               🔗 Buka Link
-            </a>
-          ` : ""}
+          <div class="qr-meta">
+            ${escapeHTML(url)}
+          </div>
 
-          <button class="secondary danger" data-delete-qr="${escapeHTML(key)}">
+          <a class="qr-link-button"
+             href="${escapeHTML(url)}"
+             target="_blank"
+             rel="noopener noreferrer">
+             🔗 Buka Link
+          </a>
+
+          <button class="secondary danger"
+            data-delete-qr="${escapeHTML(key)}">
             🗑 Hapus
           </button>
         </div>
@@ -654,28 +743,27 @@ async function loadQR() {
 
     container.querySelectorAll("[data-delete-qr]").forEach(button => {
       button.addEventListener("click", async () => {
-        try {
-          await window.POPER.deleteData(
-            `qrVault/${user.uid}/${button.dataset.deleteQr}`
-          );
+        if (!confirm("Hapus link QR ini?")) return;
 
-          loadQR();
-        } catch (error) {
-          status("qrScanStatus", "Gagal menghapus QR.");
-        }
+        await window.POPER.deleteData(
+          `qrVault/${user.uid}/${button.dataset.deleteQr}`
+        );
+
+        loadQR();
       });
     });
+
   } catch (error) {
     console.error("Load QR:", error);
   }
 }
 
-/* =====================================
+/* =========================================
    NOTES
-===================================== */
+========================================= */
 
 $("saveNote")?.addEventListener("click", async () => {
-  const user = auth.currentUser;
+  const user = currentUser();
   if (!user) return;
 
   const title = $("noteTitle")?.value.trim();
@@ -696,20 +784,22 @@ $("saveNote")?.addEventListener("click", async () => {
     $("noteTitle").value = "";
     $("noteContent").value = "";
 
+    status("notesStatus", "Catatan berhasil disimpan.");
+
     loadNotes();
+
   } catch (error) {
-    console.error(error);
+    status("notesStatus", error.message || "Gagal menyimpan.");
   }
 });
 
 async function loadNotes() {
-  const user = auth.currentUser;
+  const user = currentUser();
   if (!user) return;
 
   try {
     const data = await window.POPER.getData(`notes/${user.uid}`);
     const container = $("notesList");
-
     if (!container) return;
 
     if (!data) {
@@ -718,10 +808,12 @@ async function loadNotes() {
     }
 
     container.innerHTML = Object.entries(data).map(([key, note]) => `
-      <div class="item note-card">
+      <div class="item">
         <strong>${escapeHTML(note.title)}</strong>
-        <p>${escapeHTML(note.content)}</p>
-        <button class="secondary danger" data-delete-note="${escapeHTML(key)}">
+        <p class="note-content">${escapeHTML(note.content)}</p>
+
+        <button class="secondary danger"
+          data-delete-note="${escapeHTML(key)}">
           🗑 Hapus
         </button>
       </div>
@@ -729,78 +821,112 @@ async function loadNotes() {
 
     container.querySelectorAll("[data-delete-note]").forEach(button => {
       button.addEventListener("click", async () => {
-        try {
-          await window.POPER.deleteData(
-            `notes/${user.uid}/${button.dataset.deleteNote}`
-          );
+        if (!confirm("Hapus catatan ini?")) return;
 
-          loadNotes();
-        } catch (error) {
-          console.error(error);
-        }
+        await window.POPER.deleteData(
+          `notes/${user.uid}/${button.dataset.deleteNote}`
+        );
+
+        loadNotes();
       });
     });
+
   } catch (error) {
     console.error("Load Notes:", error);
   }
 }
 
-/* =====================================
-   PHONE OCR SCANNER
-===================================== */
+/* =========================================
+   PHONE OCR ENGINE
+========================================= */
 
-function formatDetectedPhone(raw) {
-  let digits = String(raw).replace(/\D/g, "");
+function normalizePhoneOCR(raw) {
+  let digits = String(raw || "").replace(/\D/g, "");
 
   if (digits.startsWith("62")) {
-    return "+" + digits;
+    digits = "0" + digits.slice(2);
   }
 
   if (digits.startsWith("8")) {
-    return "0" + digits;
+    digits = "0" + digits;
   }
 
   return digits;
 }
 
 function extractPhone(text) {
-  const matches = text.match(/\+?\d[\d\s().-]{7,}\d/g) || [];
+  if (!text) return "";
 
-  for (const match of matches) {
-    const digits = match.replace(/\D/g, "");
+  // Perbaiki karakter yang sering salah dibaca OCR
+  const corrected = String(text)
+    .replace(/[Oo]/g, "0")
+    .replace(/[Il|]/g, "1")
+    .replace(/[Ss]/g, "5")
+    .replace(/[Bb]/g, "8")
+    .replace(/[Zz]/g, "2");
 
-    if (digits.length >= 10 && digits.length <= 15) {
-      if (
-        digits.startsWith("08") ||
-        digits.startsWith("8") ||
-        digits.startsWith("62")
-      ) {
-        return formatDetectedPhone(digits);
-      }
+  const candidates = corrected.match(
+    /(?:\+?62|0)?[\d\s().-]{8,24}/g
+  ) || [];
+
+  for (const candidate of candidates) {
+    let digits = candidate.replace(/\D/g, "");
+
+    if (digits.startsWith("62")) {
+      digits = "0" + digits.slice(2);
+    }
+
+    if (
+      digits.startsWith("0") &&
+      digits.length >= 10 &&
+      digits.length <= 13
+    ) {
+      return digits;
+    }
+
+    if (
+      digits.startsWith("8") &&
+      digits.length >= 9 &&
+      digits.length <= 12
+    ) {
+      return "0" + digits;
     }
   }
 
-  const compact = text.replace(/\D/g, "");
+  // Fallback: coba seluruh teks sebagai kumpulan angka
+  let compact = corrected.replace(/\D/g, "");
+
+  if (compact.startsWith("62")) {
+    compact = "0" + compact.slice(2);
+  }
 
   if (
+    compact.startsWith("0") &&
     compact.length >= 10 &&
-    compact.length <= 15 &&
-    (
-      compact.startsWith("08") ||
-      compact.startsWith("8") ||
-      compact.startsWith("62")
-    )
+    compact.length <= 13
   ) {
-    return formatDetectedPhone(compact);
+    return compact;
   }
 
   return "";
 }
 
+/* =========================================
+   CAMERA START
+========================================= */
+
 async function startPhoneScanner() {
   const video = $("phoneScanVideo");
 
-  if (!video) return;
+  if (!video) {
+    status("phoneScanStatus", "Elemen kamera tidak ditemukan.");
+    return;
+  }
+
+  // Jika kamera sudah hidup, jangan membuka stream kedua
+  if (phoneOCRActive && phoneCameraStream) return;
+
+  stopPhoneScanner(false);
 
   if (!navigator.mediaDevices?.getUserMedia) {
     status("phoneScanStatus", "Browser tidak mendukung kamera.");
@@ -808,37 +934,43 @@ async function startPhoneScanner() {
   }
 
   try {
-    stopPhoneScanner();
-
     status("phoneScanStatus", "Meminta izin kamera...");
 
     phoneCameraStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
       video: {
         facingMode: { ideal: "environment" },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
-      audio: false
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
     });
 
     video.srcObject = phoneCameraStream;
     await video.play();
 
     phoneOCRActive = true;
+    lastDetectedPhone = "";
 
     status(
       "phoneScanStatus",
       "Kamera aktif. Arahkan ke nomor HP."
     );
 
-    startPhoneOCR();
+    await startPhoneOCR();
+
   } catch (error) {
+    stopPhoneScanner(false);
+
     status(
       "phoneScanStatus",
-      error.message || "Kamera tidak dapat diakses."
+      error.message || "Kamera gagal diakses. Periksa izin kamera."
     );
   }
 }
+
+/* =========================================
+   OCR WORKER
+========================================= */
 
 async function startPhoneOCR() {
   if (phoneOCRBusy || !phoneOCRActive) return;
@@ -847,98 +979,186 @@ async function startPhoneOCR() {
 
   try {
     if (!window.Tesseract) {
-      throw new Error("Library OCR belum dimuat. Refresh halaman.");
+      throw new Error("Library Tesseract belum dimuat.");
     }
 
     if (!phoneOCRWorker) {
-      status("phoneScanStatus", "Memuat mesin OCR...");
+      status("phoneScanStatus", "Mengunduh mesin OCR pertama kali...");
 
       phoneOCRWorker = await Tesseract.createWorker("eng");
 
       await phoneOCRWorker.setParameters({
-        tessedit_char_whitelist: "0123456789+-() ",
-        tessedit_pageseg_mode: "7"
+        tessedit_char_whitelist: "0123456789+",
+        tessedit_pageseg_mode: "11",
+        preserve_interword_spaces: "1"
       });
     }
 
-    phoneOCRBusy = false;
-    runPhoneOCR();
+    status(
+      "phoneScanStatus",
+      "OCR siap. Arahkan kamera ke nomor."
+    );
+
   } catch (error) {
-    phoneOCRBusy = false;
+    console.error("OCR Worker:", error);
 
     status(
       "phoneScanStatus",
-      error.message || "OCR gagal dimulai."
+      error.message || "Mesin OCR gagal."
     );
+
+    phoneOCRBusy = false;
+    return;
   }
+
+  phoneOCRBusy = false;
+  runPhoneOCR();
 }
+
+/* =========================================
+   PREPROCESS IMAGE
+   Mode 1: grayscale + contrast
+   Mode 2: threshold black & white
+========================================= */
+
+let ocrMode = 0;
+
+function prepareOCRCanvas(video, mode = 0) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d", {
+    willReadFrequently: true
+  });
+
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+
+  // Ambil 90% lebar dan 80% tinggi
+  const cropWidth = width * 0.90;
+  const cropHeight = height * 0.80;
+
+  const cropX = (width - cropWidth) / 2;
+  const cropY = (height - cropHeight) / 2;
+
+  canvas.width = 1200;
+  canvas.height = 900;
+
+  ctx.drawImage(
+    video,
+    cropX,
+    cropY,
+    cropWidth,
+    cropHeight,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  const imageData = ctx.getImageData(
+    0, 0, canvas.width, canvas.height
+  );
+
+  const pixels = imageData.data;
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    let gray =
+      0.299 * pixels[i] +
+      0.587 * pixels[i + 1] +
+      0.114 * pixels[i + 2];
+
+    if (mode === 0) {
+      // grayscale + contrast
+      gray = (gray - 128) * 1.7 + 128;
+      gray = Math.max(0, Math.min(255, gray));
+    } else {
+      // threshold
+      gray = gray > 155 ? 255 : 0;
+    }
+
+    pixels[i] = gray;
+    pixels[i + 1] = gray;
+    pixels[i + 2] = gray;
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  return canvas;
+}
+
+/* =========================================
+   OCR SCAN LOOP
+========================================= */
 
 async function runPhoneOCR() {
   if (!phoneOCRActive || phoneOCRBusy) return;
 
   const video = $("phoneScanVideo");
 
-  if (!video || video.readyState < 2 || !video.videoWidth) {
-    phoneOCRTimer = setTimeout(runPhoneOCR, 1000);
+  if (
+    !video ||
+    video.readyState < 2 ||
+    !video.videoWidth
+  ) {
+    phoneOCRTimer = setTimeout(runPhoneOCR, 600);
     return;
   }
 
   phoneOCRBusy = true;
 
   try {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    // Bergantian mode gambar untuk membantu tulisan tangan
+    ocrMode = ocrMode === 0 ? 1 : 0;
 
-    const width = video.videoWidth;
-    const height = video.videoHeight;
-
-    const cropY = Math.floor(height * 0.35);
-    const cropHeight = Math.floor(height * 0.30);
-
-    canvas.width = 900;
-    canvas.height = Math.floor(900 * cropHeight / width);
-
-    ctx.filter = "grayscale(1) contrast(1.6)";
-
-    ctx.drawImage(
-      video,
-      0,
-      cropY,
-      width,
-      cropHeight,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
+    const canvas = prepareOCRCanvas(video, ocrMode);
 
     const result = await phoneOCRWorker.recognize(canvas);
-    const detected = extractPhone(result.data.text || "");
+    const rawText = result?.data?.text || "";
+    const detected = extractPhone(rawText);
+
+    console.log("OCR TEXT:", rawText);
+    console.log("OCR PHONE:", detected);
+    console.log("OCR CONFIDENCE:", result?.data?.confidence);
 
     if (detected && detected !== lastDetectedPhone) {
       lastDetectedPhone = detected;
 
-      if ($("scannedPhoneNumber")) {
-        $("scannedPhoneNumber").value = detected;
+      const input = $("scannedPhoneNumber");
+
+      if (input) {
+        input.value = detected;
       }
 
       status(
         "phoneScanStatus",
-        "Nomor terdeteksi! Periksa lalu tekan Cari POPER."
+        "✓ Nomor terdeteksi! Periksa nomor lalu tekan Cari POPER."
       );
+
+      // Kamera otomatis berhenti setelah berhasil
+      stopPhoneScanner(false);
+      return;
     }
+
+    status(
+      "phoneScanStatus",
+      "Mencari angka... dekatkan tulisan dan pastikan cahaya cukup."
+    );
+
   } catch (error) {
-    console.error("OCR error:", error);
+    console.error("OCR Recognition:", error);
   }
 
   phoneOCRBusy = false;
 
   if (phoneOCRActive) {
-    phoneOCRTimer = setTimeout(runPhoneOCR, 1200);
+    phoneOCRTimer = setTimeout(runPhoneOCR, 1000);
   }
 }
 
-function stopPhoneScanner() {
+/* =========================================
+   STOP PHONE SCANNER
+========================================= */
+
+function stopPhoneScanner(showMessage = true) {
   phoneOCRActive = false;
 
   if (phoneOCRTimer) {
@@ -951,24 +1171,41 @@ function stopPhoneScanner() {
     phoneCameraStream = null;
   }
 
-  if ($("phoneScanVideo")) {
-    $("phoneScanVideo").srcObject = null;
+  const video = $("phoneScanVideo");
+
+  if (video) {
+    video.pause();
+    video.srcObject = null;
   }
 
   phoneOCRBusy = false;
-  lastDetectedPhone = "";
 
-  if ($("phoneScanStatus")) {
+  if (showMessage) {
     status("phoneScanStatus", "Kamera ditutup.");
   }
 }
 
 $("startPhoneCamera")?.addEventListener("click", startPhoneScanner);
-$("stopPhoneCamera")?.addEventListener("click", stopPhoneScanner);
 
-/* =====================================
+$("stopPhoneCamera")?.addEventListener("click", () => {
+  stopPhoneScanner();
+});
+
+/* =========================================
+   LOAD ALL
+========================================= */
+
+async function loadAll() {
+  await Promise.allSettled([
+    loadBio(),
+    loadQR(),
+    loadNotes()
+  ]);
+}
+
+/* =========================================
    THEME
-===================================== */
+========================================= */
 
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
@@ -992,38 +1229,17 @@ document.querySelectorAll("[data-theme-choice]").forEach(button => {
   });
 });
 
-/* =====================================
-   LOAD ALL
-===================================== */
+// Terapkan status tema tombol saat halaman dimuat
+applyTheme(
+  document.documentElement.getAttribute("data-theme") || "dark"
+);
 
-async function loadAll() {
-  await Promise.allSettled([
-    loadBio(),
-    loadQR(),
-    loadNotes()
-  ]);
-}
-
-/* =====================================
-   OPEN PUBLIC BIO
-===================================== */
-
-$("openPublicBio")?.addEventListener("click", () => {
-  const user = auth.currentUser;
-
-  if (!user) return;
-
-  const url = `${location.origin}/?bio=${encodeURIComponent(user.uid)}`;
-
-  window.open(url, "_blank");
-});
-
-/* =====================================
+/* =========================================
    AUTH STATE
-===================================== */
+========================================= */
 
 window.POPER.onAuth(user => {
   loginUI(user);
 });
 
-console.log("POPER App berhasil dimuat.");
+console.log("POPER FIX: OCR, scanner, Bio, QR Vault, Notes ready.");

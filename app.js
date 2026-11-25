@@ -2,269 +2,524 @@
 import "./firebase.js";
 
 const $ = id => document.getElementById(id);
+
 const auth = window.POPER.auth;
-const db = window.POPER.db;
 
 let confirmation = null;
 let links = [];
 
-function phoneKey(phone){
-  return window.POPER.normalizePhone(phone).replace(/\D/g,"");
+/* =========================
+   UTILITIES
+========================= */
+
+function phoneKey(phone) {
+  return window.POPER.normalizePhone(phone).replace(/\D/g, "");
 }
 
-function showStatus(id,msg){
-  const el=$(id);
-  if(el) el.textContent=msg;
+function status(id, message) {
+  const el = $(id);
+  if (el) el.textContent = message;
 }
 
-function safeURL(url){
-  try{
-    const u=new URL(url);
-    return ["http:","https:"].includes(u.protocol)?u.href:null;
-  }catch{return null}
+function safeURL(value) {
+  try {
+    const url = new URL(value.trim());
+    if (["http:", "https:"].includes(url.protocol)) {
+      return url.href;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
-function escapeHTML(str=""){
-  return String(str).replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",
-    '"':"&quot;","'":"&#39;"
-  }[c]));
+function escapeHTML(value = "") {
+  return String(value).replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
 }
 
-/* AUTH */
+function currentUID() {
+  return auth.currentUser?.uid;
+}
 
-function loginUI(user){
-  $("loginPanel").hidden=!!user;
-  $("dashboard").hidden=!user;
-  $("logoutBtn").hidden=!user;
+/* =========================
+   LOGIN OTP
+========================= */
 
-  if(user){
-    $("myPhone").textContent=user.phoneNumber||"";
-    $("welcome").textContent="Selamat datang di POPER";
+function loginUI(user) {
+  $("loginPanel").hidden = !!user;
+  $("dashboard").hidden = !user;
+  $("logoutBtn").hidden = !user;
+
+  if (user) {
+    $("myPhone").textContent = user.phoneNumber || "";
+    $("welcome").textContent = "Selamat datang di POPER";
     loadAll();
   }
 }
 
-$("sendOtpBtn").onclick=async()=>{
-  try{
-    confirmation=await window.POPER.sendOTP($("phoneInput").value);
-    $("otpSection").hidden=false;
-    showStatus("authStatus","OTP terkirim. Periksa SMS.");
-  }catch(e){
-    showStatus("authStatus",e.message);
+$("sendOtpBtn").onclick = async () => {
+  try {
+    const phone = $("phoneInput").value.trim();
+
+    if (!phone) {
+      status("authStatus", "Masukkan nomor HP.");
+      return;
+    }
+
+    $("sendOtpBtn").disabled = true;
+
+    confirmation = await window.POPER.sendOTP(phone);
+
+    $("otpSection").hidden = false;
+    status("authStatus", "OTP terkirim. Periksa SMS.");
+
+  } catch (error) {
+    status("authStatus", error.message);
     await window.POPER.resetRecaptcha();
+
+  } finally {
+    $("sendOtpBtn").disabled = false;
   }
 };
 
-$("verifyOtpBtn").onclick=async()=>{
-  try{
-    if(!confirmation)throw Error("Kirim OTP dahulu");
-    const result=await confirmation.confirm($("otpInput").value.trim());
-    confirmation=null;
+$("verifyOtpBtn").onclick = async () => {
+  try {
+    if (!confirmation) {
+      throw new Error("Kirim OTP terlebih dahulu.");
+    }
+
+    const code = $("otpInput").value.trim();
+
+    if (!/^\d{6}$/.test(code)) {
+      throw new Error("OTP harus 6 digit.");
+    }
+
+    $("verifyOtpBtn").disabled = true;
+
+    const result = await confirmation.confirm(code);
+
+    confirmation = null;
     loginUI(result.user);
-  }catch(e){
-    showStatus("authStatus","OTP salah atau kedaluwarsa.");
+
+  } catch (error) {
+    status("authStatus", error.message || "Verifikasi gagal.");
+
+  } finally {
+    $("verifyOtpBtn").disabled = false;
   }
 };
 
-$("logoutBtn").onclick=async()=>{
+$("logoutBtn").onclick = async () => {
   await window.POPER.logout();
 };
 
-/* TABS */
+/* =========================
+   NAVIGATION
+========================= */
 
-document.querySelectorAll(".tab").forEach(btn=>{
-  btn.onclick=()=>{
-    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
-    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-    btn.classList.add("active");
-    $(btn.dataset.tab).classList.add("active");
+document.querySelectorAll(".tab").forEach(button => {
+  button.onclick = () => {
+    document.querySelectorAll(".tab")
+      .forEach(item => item.classList.remove("active"));
+
+    document.querySelectorAll(".section")
+      .forEach(item => item.classList.remove("active"));
+
+    button.classList.add("active");
+    $(button.dataset.tab).classList.add("active");
   };
 });
 
-/* BIO LINKS */
+/* =========================
+   BIO LINKS
+========================= */
 
-$("addBioLink").onclick=()=>{
-  const title=$("bioTitle").value.trim();
-  const url=safeURL($("bioUrl").value.trim());
-  if(!title||!url)return alert("Isi judul dan URL valid dahulu.");
+$("addBioLink").onclick = () => {
+  const title = $("bioTitle").value.trim();
+  const url = safeURL($("bioUrl").value);
 
-  links.push({title,url});
-  $("bioTitle").value="";
-  $("bioUrl").value="";
+  if (!title || !url) {
+    alert("Isi judul dan URL yang valid.");
+    return;
+  }
+
+  links.push({ title, url });
+
+  $("bioTitle").value = "";
+  $("bioUrl").value = "";
+
   renderLinks();
 };
 
-function renderLinks(){
-  $("bioLinks").innerHTML=links.map((l,i)=>`
+function renderLinks() {
+  $("bioLinks").innerHTML = links.map((link, index) => `
     <div class="item">
-      <b>${escapeHTML(l.title)}</b><br>
-      <a href="${escapeHTML(l.url)}" target="_blank" rel="noopener">${escapeHTML(l.url)}</a>
-      <button class="secondary" data-del-link="${i}">Hapus</button>
-    </div>`).join("");
+      <b>${escapeHTML(link.title)}</b>
+      <p>
+        <a href="${escapeHTML(link.url)}"
+           target="_blank"
+           rel="noopener noreferrer">
+          ${escapeHTML(link.url)}
+        </a>
+      </p>
+      <button class="secondary"
+              data-del-link="${index}">
+        Hapus
+      </button>
+    </div>
+  `).join("");
 
-  $("bioLinks").querySelectorAll("[data-del-link]").forEach(btn=>{
-    btn.onclick=()=>{
-      links.splice(Number(btn.dataset.delLink),1);
-      renderLinks();
-    };
-  });
+  $("bioLinks").querySelectorAll("[data-del-link]")
+    .forEach(button => {
+      button.onclick = () => {
+        links.splice(Number(button.dataset.delLink), 1);
+        renderLinks();
+      };
+    });
 }
 
-$("saveBio").onclick=async()=>{
-  const user=auth.currentUser;
-  if(!user)return alert("Login dahulu");
+$("saveBio").onclick = async () => {
+  const user = auth.currentUser;
+  if (!user) return alert("Login dahulu.");
 
-  try{
-    const profile={
-      name:$("bioName").value.trim(),
-      description:$("bioDesc").value.trim(),
-      phone:user.phoneNumber,
+  try {
+    const profile = {
+      name: $("bioName").value.trim(),
+      description: $("bioDesc").value.trim(),
+      phone: user.phoneNumber,
       links,
-      updatedAt:Date.now()
+      updatedAt: Date.now()
     };
 
-    await window.POPER.saveData("users/"+user.uid+"/publicBio",profile);
-    await window.POPER.saveData("phoneLookup/"+phoneKey(user.phoneNumber),{
-      uid:user.uid,
-      phone:user.phoneNumber
-    });
+    await window.POPER.saveData(
+      `users/${user.uid}/publicBio`,
+      profile
+    );
 
-    showStatus("bioStatus","Bio berhasil disimpan online!");
-  }catch(e){
-    showStatus("bioStatus","Gagal: "+e.message);
+    await window.POPER.saveData(
+      `phoneLookup/${phoneKey(user.phoneNumber)}`,
+      {
+        uid: user.uid,
+        phone: user.phoneNumber
+      }
+    );
+
+    status("bioStatus", "Bio berhasil disimpan online!");
+
+  } catch (error) {
+    status("bioStatus", "Gagal: " + error.message);
   }
 };
 
-async function loadBio(){
-  const user=auth.currentUser;
-  if(!user)return;
+async function loadBio() {
+  const uid = currentUID();
+  if (!uid) return;
 
-  const p=await window.POPER.getData("users/"+user.uid+"/publicBio");
-  if(!p)return;
+  const profile = await window.POPER.getData(
+    `users/${uid}/publicBio`
+  );
 
-  $("bioName").value=p.name||"";
-  $("bioDesc").value=p.description||"";
-  links=Array.isArray(p.links)?p.links:[];
+  if (!profile) return;
+
+  $("bioName").value = profile.name || "";
+  $("bioDesc").value = profile.description || "";
+
+  links = Array.isArray(profile.links) ? profile.links : [];
+
   renderLinks();
 }
 
-/* QR VAULT */
+/* =========================
+   QR VAULT
+========================= */
 
-$("saveQR").onclick=async()=>{
-  const name=$("qrName").value.trim();
-  const value=$("qrUrl").value.trim();
-  if(!name||!value)return alert("Isi nama dan data QR");
-
-  try{
-    await window.POPER.pushData("qrVault/"+auth.currentUser.uid,{
-      name,value,createdAt:Date.now()
-    });
-    $("qrName").value="";
-    $("qrUrl").value="";
-    loadQR();
-  }catch(e){alert("Gagal simpan QR: "+e.message)}
+const QR_TYPES = {
+  qris: "QRIS / Pembayaran",
+  website: "Website / Link",
+  wifi: "WiFi",
+  text: "Teks / QR lainnya"
 };
 
-async function loadQR(){
-  if(!auth.currentUser)return;
-  const data=await window.POPER.getData("qrVault/"+auth.currentUser.uid);
-  $("qrList").innerHTML="";
-  if(!data)return;
+$("saveQR").onclick = async () => {
+  const uid = currentUID();
+  if (!uid) return alert("Login dahulu.");
 
-  Object.entries(data).forEach(([id,q])=>{
-    const div=document.createElement("div");
-    div.className="item";
-    div.innerHTML=`<b>${escapeHTML(q.name)}</b><p>${escapeHTML(q.value)}</p>
-      <button class="secondary danger">Hapus</button>`;
-    div.querySelector("button").onclick=async()=>{
-      await window.POPER.deleteData("qrVault/"+auth.currentUser.uid+"/"+id);
-      loadQR();
+  const name = $("qrName").value.trim();
+  const value = $("qrUrl").value.trim();
+  const type = $("qrType").value;
+
+  if (!name || !value) {
+    alert("Isi nama dan data QR terlebih dahulu.");
+    return;
+  }
+
+  try {
+    $("saveQR").disabled = true;
+
+    await window.POPER.pushData(`qrVault/${uid}`, {
+      name,
+      value,
+      type,
+      createdAt: Date.now()
+    });
+
+    $("qrName").value = "";
+    $("qrUrl").value = "";
+
+    await loadQR();
+
+    alert("Berhasil disimpan ke QR Vault!");
+
+  } catch (error) {
+    alert("Gagal menyimpan: " + error.message);
+
+  } finally {
+    $("saveQR").disabled = false;
+  }
+};
+
+async function loadQR() {
+  const uid = currentUID();
+  if (!uid) return;
+
+  const data = await window.POPER.getData(`qrVault/${uid}`);
+  const container = $("qrList");
+
+  container.innerHTML = "";
+
+  if (!data || Object.keys(data).length === 0) {
+    container.innerHTML = `
+      <div class="qr-empty">
+        <div style="font-size:35px">🗂️</div>
+        <p>Vault masih kosong.</p>
+        <small>Simpan QRIS, link, WiFi atau data QR di sini.</small>
+      </div>
+    `;
+    return;
+  }
+
+  Object.entries(data).reverse().forEach(([id, item]) => {
+    const card = document.createElement("div");
+    card.className = "qr-card";
+
+    const typeLabel = QR_TYPES[item.type] || "Data QR";
+    const validURL = safeURL(item.value);
+
+    card.innerHTML = `
+      <div class="qr-card-title">${escapeHTML(item.name)}</div>
+      <span class="qr-badge">${escapeHTML(typeLabel)}</span>
+      <div class="qr-data">${escapeHTML(item.value)}</div>
+
+      <div class="qr-actions">
+        <button class="secondary" data-copy>Salin</button>
+        ${validURL ? `<button class="secondary" data-open>Buka</button>` : ""}
+        <button class="secondary" data-addbio>+ Bio</button>
+        <button class="secondary danger" data-delete>Hapus</button>
+      </div>
+    `;
+
+    // COPY
+    card.querySelector("[data-copy]").onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(item.value);
+        alert("Data berhasil disalin!");
+      } catch {
+        prompt("Salin data berikut:", item.value);
+      }
     };
-    $("qrList").appendChild(div);
+
+    // OPEN URL (only valid http/https)
+    const openButton = card.querySelector("[data-open]");
+    if (openButton && validURL) {
+      openButton.onclick = () => {
+        window.open(validURL, "_blank", "noopener,noreferrer");
+      };
+    }
+
+    // ADD TO BIO
+    card.querySelector("[data-addbio]").onclick = () => {
+      const url = safeURL(item.value);
+
+      if (!url) {
+        alert(
+          "Data ini bukan URL website. " +
+          "Data QR tetap tersimpan di Vault, " +
+          "tetapi tidak bisa dijadikan link Bio secara langsung."
+        );
+        return;
+      }
+
+      const alreadyExists = links.some(link => link.url === url);
+
+      if (alreadyExists) {
+        alert("Link tersebut sudah ada di Bio.");
+        return;
+      }
+
+      links.push({
+        title: item.name,
+        url
+      });
+
+      renderLinks();
+
+      alert("Ditambahkan ke Bio. Tekan Simpan Bio Online untuk menyimpan perubahan.");
+    };
+
+    // DELETE
+    card.querySelector("[data-delete]").onclick = async () => {
+      if (!confirm(`Hapus "${item.name}" dari Vault?`)) return;
+
+      try {
+        await window.POPER.deleteData(`qrVault/${uid}/${id}`);
+        await loadQR();
+      } catch (error) {
+        alert("Gagal menghapus: " + error.message);
+      }
+    };
+
+    container.appendChild(card);
   });
 }
 
-/* NOTES */
+/* =========================
+   NOTES
+========================= */
 
-$("saveNote").onclick=async()=>{
-  const title=$("noteTitle").value.trim();
-  const content=$("noteContent").value.trim();
-  if(!title||!content)return alert("Isi judul dan catatan");
+$("saveNote").onclick = async () => {
+  const uid = currentUID();
+  if (!uid) return alert("Login dahulu.");
 
-  try{
-    await window.POPER.pushData("notes/"+auth.currentUser.uid,{
-      title,content,createdAt:Date.now()
+  const title = $("noteTitle").value.trim();
+  const content = $("noteContent").value.trim();
+
+  if (!title || !content) {
+    alert("Isi judul dan catatan.");
+    return;
+  }
+
+  try {
+    await window.POPER.pushData(`notes/${uid}`, {
+      title,
+      content,
+      createdAt: Date.now()
     });
-    $("noteTitle").value="";
-    $("noteContent").value="";
-    loadNotes();
-  }catch(e){alert("Gagal simpan: "+e.message)}
+
+    $("noteTitle").value = "";
+    $("noteContent").value = "";
+
+    await loadNotes();
+
+  } catch (error) {
+    alert("Gagal menyimpan: " + error.message);
+  }
 };
 
-async function loadNotes(){
-  if(!auth.currentUser)return;
-  const data=await window.POPER.getData("notes/"+auth.currentUser.uid);
-  $("notesList").innerHTML="";
-  if(!data)return;
+async function loadNotes() {
+  const uid = currentUID();
+  if (!uid) return;
 
-  Object.entries(data).reverse().forEach(([id,n])=>{
-    const div=document.createElement("div");
-    div.className="item";
-    div.innerHTML=`<b>${escapeHTML(n.title)}</b><p>${escapeHTML(n.content)}</p>
-      <button class="secondary danger">Hapus</button>`;
-    div.querySelector("button").onclick=async()=>{
-      await window.POPER.deleteData("notes/"+auth.currentUser.uid+"/"+id);
+  const data = await window.POPER.getData(`notes/${uid}`);
+  const container = $("notesList");
+
+  container.innerHTML = "";
+
+  if (!data) return;
+
+  Object.entries(data).reverse().forEach(([id, note]) => {
+    const card = document.createElement("div");
+    card.className = "item";
+
+    card.innerHTML = `
+      <b>${escapeHTML(note.title)}</b>
+      <p>${escapeHTML(note.content)}</p>
+      <button class="secondary danger">Hapus</button>
+    `;
+
+    card.querySelector("button").onclick = async () => {
+      if (!confirm("Hapus catatan ini?")) return;
+
+      await window.POPER.deleteData(`notes/${uid}/${id}`);
       loadNotes();
     };
-    $("notesList").appendChild(div);
+
+    container.appendChild(card);
   });
 }
 
-/* FIND BIO */
+/* =========================
+   FIND BIO BY PHONE
+========================= */
 
-$("findBio").onclick=async()=>{
-  const phone=$("findPhone").value.trim();
-  if(!phone)return alert("Masukkan nomor HP");
+$("findBio").onclick = async () => {
+  const phone = $("findPhone").value.trim();
+  if (!phone) return alert("Masukkan nomor HP.");
 
-  $("findResult").textContent="Mencari...";
-  try{
-    const key=phoneKey(phone);
-    const lookup=await window.POPER.getData("phoneLookup/"+key);
-    if(!lookup){
-      $("findResult").textContent="Bio tidak ditemukan.";
+  const result = $("findResult");
+  result.textContent = "Mencari Bio...";
+
+  try {
+    const lookup = await window.POPER.getData(
+      `phoneLookup/${phoneKey(phone)}`
+    );
+
+    if (!lookup) {
+      result.textContent = "Bio tidak ditemukan.";
       return;
     }
 
-    const p=await window.POPER.getData("users/"+lookup.uid+"/publicBio");
-    if(!p){
-      $("findResult").textContent="Profil tidak tersedia.";
+    const profile = await window.POPER.getData(
+      `users/${lookup.uid}/publicBio`
+    );
+
+    if (!profile) {
+      result.textContent = "Profil tidak tersedia.";
       return;
     }
 
-    $("findResult").innerHTML=`
+    result.innerHTML = `
       <div class="item">
         <div class="avatar">👤</div>
-        <h2>${escapeHTML(p.name||"POPER User")}</h2>
-        <p>${escapeHTML(p.description||"")}</p>
-        <small>${escapeHTML(p.phone||"")}</small>
-        ${(p.links||[]).map(l=>`
-          <p><a href="${escapeHTML(l.url)}" target="_blank" rel="noopener">${escapeHTML(l.title)}</a></p>
+        <h2>${escapeHTML(profile.name || "POPER User")}</h2>
+        <p>${escapeHTML(profile.description || "")}</p>
+        <small>${escapeHTML(profile.phone || "")}</small>
+        ${(profile.links || []).map(link => `
+          <p>
+            <a href="${escapeHTML(link.url)}"
+               target="_blank"
+               rel="noopener noreferrer">
+              ${escapeHTML(link.title)}
+            </a>
+          </p>
         `).join("")}
-      </div>`;
-  }catch(e){
-    $("findResult").textContent="Gagal mencari Bio: "+e.message;
+      </div>
+    `;
+
+  } catch (error) {
+    result.textContent = "Gagal mencari: " + error.message;
   }
 };
 
-/* LOAD */
+/* =========================
+   LOAD
+========================= */
 
-async function loadAll(){
-  await Promise.all([loadBio(),loadQR(),loadNotes()]);
+async function loadAll() {
+  await Promise.all([
+    loadBio(),
+    loadQR(),
+    loadNotes()
+  ]);
 }
 
-window.POPER.onAuth(user=>{
+window.POPER.onAuth(user => {
   loginUI(user);
 });
 
-console.log("POPER APP siap");
+console.log("POPER QR Vault v2 siap.");

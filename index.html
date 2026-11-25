@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111426">
+<meta name="theme-color" content="#101323">
 <title>POPER — Phone Identity</title>
 
 <script>
@@ -12,9 +12,7 @@
   try {
     const theme = localStorage.getItem("poper-theme") || "dark";
     document.documentElement.setAttribute("data-theme", theme);
-  } catch(e) {
-    document.documentElement.setAttribute("data-theme", "dark");
-  }
+  } catch(e) {}
 })();
 </script>
 
@@ -54,10 +52,11 @@ html[data-theme="light"] {
 
 body {
   margin:0;
-  min-height:100vh;
   background:var(--bg);
   color:var(--text);
   font-family:'Baloo 2',system-ui,sans-serif;
+  min-height:100vh;
+  transition:.25s;
 }
 
 button,input,textarea {
@@ -69,11 +68,14 @@ button {
 }
 
 button:active {
-  transform:scale(.98);
+  transform:scale(.97);
+}
+
+[hidden] {
+  display:none!important;
 }
 
 .app {
-  width:100%;
   max-width:600px;
   margin:auto;
   min-height:100vh;
@@ -86,7 +88,7 @@ button:active {
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:8px 3px 22px;
+  padding:8px 2px 22px;
 }
 
 .logo {
@@ -102,15 +104,16 @@ button:active {
 .header-right {
   display:flex;
   gap:8px;
+  align-items:center;
 }
 
 /* CARD */
 
 .card {
-  padding:20px;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:22px;
+  padding:20px;
   margin-bottom:15px;
 }
 
@@ -121,33 +124,51 @@ button:active {
 
 p {
   color:var(--muted);
-  line-height:1.65;
+  line-height:1.6;
 }
 
-/* LOGIN */
+/* PROFILE */
 
-#loginPanel {
-  max-width:460px;
-  margin:25px auto;
+.profile-card {
+  background:
+    radial-gradient(circle at top right,rgba(125,91,240,.18),transparent 55%),
+    var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:20px;
+  margin-bottom:20px;
 }
 
-#recaptcha-container {
-  margin:10px 0;
+.profile-avatar {
+  width:65px;
+  height:65px;
+  display:grid;
+  place-items:center;
+  border-radius:20px;
+  background:linear-gradient(135deg,#40366b,#273d68);
+  font-size:30px;
+  margin-bottom:12px;
 }
 
-#otpSection {
-  margin-top:15px;
+.profile-card h2 {
+  font-size:22px;
+  margin:0;
 }
 
-/* INPUT */
+.profile-card p {
+  margin:5px 0 0;
+  overflow-wrap:anywhere;
+}
+
+/* INPUTS */
 
 input,textarea {
   width:100%;
   display:block;
   padding:14px;
-  margin:8px 0 14px;
-  border-radius:14px;
+  margin:9px 0 14px;
   border:1px solid var(--border);
+  border-radius:14px;
   background:var(--input);
   color:var(--text);
   outline:none;
@@ -167,29 +188,30 @@ textarea {
   resize:vertical;
 }
 
-/* BUTTON */
+/* BUTTONS */
 
 .primary {
   width:100%;
+  padding:15px;
   border:0;
   border-radius:15px;
-  padding:15px;
   background:linear-gradient(120deg,var(--purple),var(--purple2));
-  color:white;
+  color:#fff;
   font-weight:800;
+  box-shadow:0 7px 20px rgba(105,78,220,.18);
 }
 
 .secondary {
+  padding:12px 15px;
   border:1px solid var(--border);
-  border-radius:12px;
-  padding:11px 15px;
+  border-radius:13px;
   background:var(--surface2);
   color:var(--text);
 }
 
 .danger {
-  background:#482b3c;
-  color:#ffb1c1;
+  background:#482b3c!important;
+  color:#ffb1c1!important;
 }
 
 .status {
@@ -199,77 +221,50 @@ textarea {
   overflow-wrap:anywhere;
 }
 
-/* PROFILE */
-
-.profile-card {
-  padding:22px;
-  border:1px solid var(--border);
-  border-radius:24px;
-  margin-bottom:20px;
-  background:
-    radial-gradient(circle at top right,rgba(125,91,240,.2),transparent 55%),
-    var(--surface);
-}
-
-.profile-avatar {
-  width:70px;
-  height:70px;
-  display:grid;
-  place-items:center;
-  border-radius:22px;
-  background:linear-gradient(135deg,#40366b,#273d68);
-  font-size:32px;
-  margin-bottom:12px;
-}
-
-.profile-card h2 {
-  margin:0;
-  font-size:23px;
-}
-
-.profile-card p {
-  margin:5px 0 0;
-  overflow-wrap:anywhere;
-}
-
-/* SECTIONS */
+/* SECTION */
 
 .section {
   display:none;
+  animation:appear .2s ease;
 }
 
 .section.active {
   display:block;
 }
 
+@keyframes appear {
+  from {opacity:0;transform:translateY(5px)}
+  to {opacity:1;transform:translateY(0)}
+}
+
 /* HOME */
 
 .scan-home {
   text-align:center;
-  padding:25px 18px;
+  padding:26px 18px;
   border:1px solid var(--border);
-  border-radius:26px;
+  border-radius:27px;
   background:
     radial-gradient(circle at 50% 15%,rgba(127,88,240,.15),transparent 60%),
     var(--surface);
 }
 
 .scan-eyebrow {
-  font-size:11px;
-  letter-spacing:2px;
-  font-weight:800;
   color:#a48aff;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:2px;
 }
 
 .scan-home h2 {
-  margin:10px 0;
   font-size:25px;
+  margin:10px 0 5px;
 }
 
 .scan-home p {
   font-size:14px;
-  max-width:300px;
-  margin:auto;
+  max-width:290px;
+  margin:0 auto;
 }
 
 .scan-circle {
@@ -281,12 +276,13 @@ textarea {
   border-radius:50%;
   border:1px solid rgba(162,132,255,.35);
   background:radial-gradient(circle,#33275b,#201c39 70%);
-  box-shadow:0 0 0 12px rgba(125,91,240,.05),0 0 40px rgba(125,91,240,.12);
+  box-shadow:0 0 0 12px rgba(125,91,240,.05),
+             0 0 40px rgba(125,91,240,.12);
 }
 
 .scan-circle-inner {
-  width:140px;
-  height:140px;
+  width:145px;
+  height:145px;
   display:grid;
   place-items:center;
   border-radius:50%;
@@ -295,21 +291,21 @@ textarea {
 }
 
 .scan-symbol {
-  font-size:55px;
+  font-size:60px;
   color:#c8b6ff;
 }
 
 .scan-hint {
-  font-size:12px;
   color:var(--muted);
-  margin:15px 0;
+  font-size:12px;
+  margin-bottom:18px;
 }
 
 .scan-start {
   width:100%;
-  border:0;
-  border-radius:16px;
   padding:17px;
+  border:0;
+  border-radius:17px;
   background:linear-gradient(120deg,#8058ef,#537eff);
   color:white;
   font-weight:900;
@@ -319,7 +315,8 @@ textarea {
 
 .feature-title {
   font-size:18px;
-  margin:23px 3px 13px;
+  font-weight:800;
+  margin:22px 3px 13px;
 }
 
 .feature-grid {
@@ -332,57 +329,134 @@ textarea {
   min-height:125px;
   padding:16px;
   text-align:left;
-  color:var(--text);
   border:1px solid var(--border);
-  border-radius:18px;
+  border-radius:19px;
   background:var(--surface);
+  color:var(--text);
 }
 
 .feature-icon {
   font-size:25px;
-  margin-bottom:8px;
+  margin-bottom:9px;
 }
 
-.feature-card strong,
+.feature-card strong {
+  display:block;
+  font-size:15px;
+}
+
 .feature-card small {
   display:block;
-}
-
-.feature-card small {
   color:var(--muted);
   margin-top:5px;
 }
 
-/* TABS */
+/* SCANNER */
 
-.tabs {
-  display:flex;
-  gap:8px;
-  overflow:auto;
-  padding-bottom:15px;
+.scanner-card {
+  text-align:center;
 }
 
-.tab {
+.camera-frame {
+  width:100%;
+  position:relative;
+  overflow:hidden;
+  border-radius:22px;
+  background:#080b16;
   border:1px solid var(--border);
-  border-radius:12px;
-  padding:11px 17px;
-  white-space:nowrap;
-  background:var(--surface2);
-  color:var(--muted);
+  margin:16px 0;
 }
 
-.tab.active {
-  background:var(--purple);
+.camera-frame video {
+  width:100%;
+  height:330px;
+  display:block;
+  object-fit:cover;
+}
+
+.camera-overlay {
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  pointer-events:none;
+}
+
+.scan-guide {
+  width:90%;
+  height:115px;
+  border:2px solid #8b6cff;
+  border-radius:17px;
+  position:relative;
+  box-shadow:0 0 25px rgba(139,108,255,.2);
+}
+
+.scan-guide::after {
+  content:"";
+  position:absolute;
+  left:5%;
+  right:5%;
+  top:50%;
+  height:2px;
+  background:#69b9ff;
+  box-shadow:0 0 12px #69b9ff;
+  animation:scanline 2s infinite;
+}
+
+@keyframes scanline {
+  0%,100% {opacity:.3}
+  50% {opacity:1}
+}
+
+.scan-guide-label {
+  position:absolute;
+  bottom:-12px;
+  left:50%;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  background:#111323;
+  padding:4px 12px;
+  border-radius:20px;
+  font-size:10px;
+  letter-spacing:1px;
   color:white;
 }
 
-/* THEME */
+.scanner-buttons {
+  display:grid;
+  gap:10px;
+}
+
+.scanner-buttons .secondary {
+  width:100%;
+}
+
+.scanner-tip {
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:15px;
+  padding:13px;
+  font-size:13px;
+  text-align:left;
+  margin:14px 0;
+}
+
+.scanner-tip strong {
+  color:var(--text);
+}
+
+#phoneScanStatus {
+  min-height:35px;
+  font-size:13px;
+}
+
+/* BIO */
 
 .theme-setting {
-  padding:18px;
+  background:var(--surface);
   border:1px solid var(--border);
   border-radius:20px;
-  background:var(--surface);
+  padding:18px;
   margin-bottom:15px;
 }
 
@@ -409,14 +483,12 @@ textarea {
   color:#a991ff;
 }
 
-/* ITEMS */
-
 .item {
-  padding:14px;
-  margin:10px 0;
   background:var(--input);
   border:1px solid var(--border);
   border-radius:14px;
+  padding:14px;
+  margin:10px 0;
   overflow-wrap:anywhere;
 }
 
@@ -424,81 +496,21 @@ textarea {
   color:#a991ff;
 }
 
-/* PHONE SCANNER */
-
-.phone-scanner-card {
-  text-align:center;
-}
-
-.phone-camera-frame {
-  position:relative;
-  width:100%;
-  min-height:260px;
-  margin:15px 0;
-  border-radius:22px;
-  overflow:hidden;
-  background:#080b16;
-  border:1px solid var(--border);
-}
-
-.phone-camera-frame video {
-  width:100%;
-  height:300px;
+.item small {
   display:block;
-  object-fit:cover;
+  color:var(--muted);
+  margin-top:5px;
 }
 
-.phone-scan-overlay {
-  position:absolute;
-  inset:0;
+.item button {
+  margin-top:10px;
+}
+
+.link-item {
   display:flex;
   align-items:center;
-  justify-content:center;
-  pointer-events:none;
-}
-
-.phone-scan-guide {
-  width:88%;
-  height:95px;
-  position:relative;
-  display:flex;
-  justify-content:center;
-  align-items:flex-end;
-  border:2px solid #8c6bff;
-  border-radius:18px;
-  box-shadow:0 0 24px rgba(140,107,255,.2);
-}
-
-.phone-scan-guide span {
-  margin-bottom:-12px;
-  padding:5px 12px;
-  border-radius:20px;
-  background:rgba(10,12,25,.85);
-  color:white;
-  font-size:10px;
-  letter-spacing:1px;
-}
-
-.phone-scan-guide::after {
-  content:"";
-  position:absolute;
-  left:5%;
-  right:5%;
-  top:50%;
-  height:2px;
-  background:#7fc7ff;
-  box-shadow:0 0 12px #7fc7ff;
-  animation:scanline 2s infinite;
-}
-
-@keyframes scanline {
-  0%,100% {opacity:.3}
-  50% {opacity:1}
-}
-
-#phoneScanStatus {
-  min-height:26px;
-  font-size:13px;
+  justify-content:space-between;
+  gap:10px;
 }
 
 /* QR VAULT */
@@ -506,7 +518,7 @@ textarea {
 .vault-brand {
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:13px;
   margin:10px 0 20px;
 }
 
@@ -520,16 +532,8 @@ textarea {
   font-size:27px;
 }
 
-.vault-eyebrow,.vault-label {
-  color:#a48aff;
-  font-size:10px;
-  letter-spacing:1.7px;
-  font-weight:800;
-}
-
 .vault-brand h2 {
   margin:4px 0;
-  font-size:26px;
 }
 
 .vault-brand p {
@@ -537,35 +541,18 @@ textarea {
   font-size:12px;
 }
 
+.vault-eyebrow {
+  color:#a48aff;
+  font-size:10px;
+  letter-spacing:1.7px;
+  font-weight:800;
+}
+
 .vault-hero {
-  padding:18px;
+  background:var(--surface);
   border:1px solid var(--border);
   border-radius:23px;
-  background:var(--surface);
-}
-
-.vault-hero-top {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom:20px;
-}
-
-.vault-hero-top h3 {
-  margin:8px 0;
-}
-
-.vault-hero-top p {
-  margin:0;
-  font-size:12px;
-}
-
-.vault-hero-symbol {
-  font-size:32px;
-  background:var(--surface2);
-  padding:12px;
-  border-radius:15px;
+  padding:18px;
 }
 
 .vault-scan-btn {
@@ -573,12 +560,12 @@ textarea {
   display:flex;
   align-items:center;
   gap:12px;
-  text-align:left;
+  padding:15px;
   border:1px solid #8b6cff;
   border-radius:17px;
-  padding:15px;
-  color:white;
   background:linear-gradient(120deg,#7752e6,#4d78ef);
+  color:white;
+  text-align:left;
 }
 
 .vault-scan-btn strong,
@@ -587,12 +574,8 @@ textarea {
 }
 
 .vault-scan-btn small {
-  margin-top:5px;
+  margin-top:4px;
   color:#e0d8ff;
-}
-
-.btn-icon {
-  font-size:25px;
 }
 
 .btn-arrow {
@@ -600,10 +583,32 @@ textarea {
   font-size:22px;
 }
 
+.vault-camera {
+  margin-top:12px;
+  padding:10px;
+  background:#080b16;
+  border-radius:17px;
+}
+
+.vault-camera video {
+  width:100%;
+  max-height:350px;
+  border-radius:13px;
+}
+
+.vault-stop-btn {
+  width:100%;
+  padding:13px;
+  margin-top:10px;
+  background:#442739;
+  color:#ffb3c1;
+  border:0;
+  border-radius:12px;
+}
+
 .vault-divider {
   text-align:center;
   font-size:11px;
-  letter-spacing:1px;
   margin:22px 0;
   color:var(--muted);
 }
@@ -630,60 +635,12 @@ textarea {
   margin-top:6px;
 }
 
-.upload-icon {
-  font-size:30px;
-}
-
-.upload-cta {
-  padding:10px 15px;
-  background:#30254d;
-  border-radius:11px;
-  color:#c4b2ff!important;
-}
-
-.vault-camera {
-  margin-top:12px;
-  padding:10px;
-  border-radius:17px;
-  background:#080b16;
-}
-
-.vault-camera video {
-  width:100%;
-  max-height:350px;
-  border-radius:13px;
-}
-
-.vault-stop-btn {
-  width:100%;
-  padding:13px;
-  margin-top:10px;
-  background:#442739;
-  color:#ffb3c1;
-  border:0;
-  border-radius:12px;
-}
-
-.vault-preview img {
-  max-width:100%;
-  max-height:250px;
-  object-fit:contain;
-  margin-top:12px;
-}
-
 .vault-result {
   margin-top:18px;
   padding:15px;
   background:var(--surface2);
   border:1px solid var(--border);
   border-radius:17px;
-}
-
-.vault-input-label {
-  display:block;
-  margin-top:12px;
-  font-size:12px;
-  font-weight:700;
 }
 
 .vault-save-btn {
@@ -697,16 +654,7 @@ textarea {
   margin-top:12px;
 }
 
-.vault-status {
-  font-size:12px;
-  color:var(--muted);
-  margin-top:10px;
-}
-
 .vault-list-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
   margin:25px 0 13px;
 }
 
@@ -720,18 +668,18 @@ textarea {
   gap:12px;
 }
 
-.qr-link-card {
-  padding:16px;
+.qr-card {
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:17px;
+  padding:16px;
 }
 
-.qr-link-card strong {
+.qr-card strong {
   display:block;
 }
 
-.qr-link-meta {
+.qr-meta {
   font-size:12px;
   color:var(--muted);
   overflow-wrap:anywhere;
@@ -750,7 +698,7 @@ textarea {
   margin-top:12px;
 }
 
-.qr-link-card button {
+.qr-card button {
   margin-top:8px;
 }
 
@@ -764,7 +712,7 @@ textarea {
 
 /* NOTES */
 
-.note-card p {
+.note-content {
   white-space:pre-wrap;
 }
 
@@ -792,10 +740,10 @@ textarea {
 
 .nav-btn {
   flex:1;
+  min-width:0;
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:center;
   gap:3px;
   border:0;
   background:transparent;
@@ -806,6 +754,7 @@ textarea {
 
 .nav-icon {
   font-size:21px;
+  line-height:1.4;
 }
 
 .nav-btn.active {
@@ -819,10 +768,10 @@ textarea {
 .scan-nav .nav-icon {
   width:55px;
   height:55px;
-  display:grid;
-  place-items:center;
   border-radius:19px;
   margin-top:-28px;
+  display:grid;
+  place-items:center;
   font-size:27px;
   color:white;
   background:linear-gradient(135deg,#885cff,#4c7aff);
@@ -830,10 +779,15 @@ textarea {
   border:4px solid var(--bg);
 }
 
-/* GENERAL */
+/* LOGIN */
 
-[hidden] {
-  display:none!important;
+#loginPanel {
+  max-width:460px;
+  margin:20px auto;
+}
+
+#logoutBtn {
+  border-radius:12px;
 }
 
 @media(min-width:600px) {
@@ -857,18 +811,29 @@ textarea {
 </header>
 
 <!-- LOGIN -->
-<section id="loginPanel" class="card">
+
+<section id="loginPanel" class="card" hidden>
   <h2>Login POPER</h2>
   <p>Masuk menggunakan nomor HP kamu.</p>
 
-  <input id="phoneInput" type="tel" inputmode="tel" placeholder="+628xxxxxxxxxx">
+  <input
+    id="phoneInput"
+    type="tel"
+    autocomplete="tel"
+    placeholder="+628xxxxxxxxxx atau 08xxxxxxxxxx"
+  >
 
   <button id="sendOtpBtn" class="primary">Kirim OTP</button>
 
   <div id="recaptcha-container"></div>
 
   <div id="otpSection" hidden>
-    <input id="otpInput" type="text" inputmode="numeric" maxlength="6" placeholder="Kode OTP 6 digit">
+    <input
+      id="otpInput"
+      inputmode="numeric"
+      maxlength="6"
+      placeholder="Kode OTP"
+    >
     <button id="verifyOtpBtn" class="primary">Verifikasi OTP</button>
   </div>
 
@@ -876,9 +841,9 @@ textarea {
 </section>
 
 <!-- DASHBOARD -->
+
 <main id="dashboard" hidden>
 
-  <!-- PROFILE -->
   <div class="profile-card">
     <div class="profile-avatar">👤</div>
     <h2 id="welcome">Selamat datang di POPER</h2>
@@ -886,12 +851,13 @@ textarea {
   </div>
 
   <!-- HOME -->
+
   <section class="section active" id="scan">
 
     <div class="scan-home">
       <span class="scan-eyebrow">PHONE IDENTITY</span>
       <h2>Scan Nomor HP</h2>
-      <p>Temukan Bio seseorang hanya dengan memindai nomor HP.</p>
+      <p>Temukan Bio POPER dengan memindai nomor HP tulisan atau layar.</p>
 
       <div class="scan-circle">
         <div class="scan-circle-inner">
@@ -900,7 +866,7 @@ textarea {
       </div>
 
       <div class="scan-hint">
-        Arahkan kamera ke nomor HP di layar.
+        Arahkan kamera ke nomor HP
       </div>
 
       <button id="mainScanButton" class="scan-start">
@@ -911,7 +877,6 @@ textarea {
     <h3 class="feature-title">Jelajahi POPER</h3>
 
     <div class="feature-grid">
-
       <button class="feature-card" data-open-tab="bio">
         <div class="feature-icon">👤</div>
         <strong>Bio Saya</strong>
@@ -935,46 +900,64 @@ textarea {
         <strong>Find Bio</strong>
         <small>Cari pengguna POPER</small>
       </button>
-
     </div>
   </section>
 
-  <!-- PHONE SCANNER (SINGLE) -->
+  <!-- PHONE SCANNER - ONLY ONE -->
+
   <section id="phoneScanner" class="section">
-    <div class="card phone-scanner-card">
+    <div class="card scanner-card">
 
       <h2>📷 Phone Scanner</h2>
-      <p>Arahkan kamera ke nomor HP yang ingin kamu cari.</p>
+      <p>Arahkan kamera ke nomor HP tulisan tangan, layar, atau kertas.</p>
 
-      <div class="phone-camera-frame">
+      <div class="camera-frame">
         <video id="phoneScanVideo" autoplay playsinline muted></video>
 
-        <div class="phone-scan-overlay">
-          <div class="phone-scan-guide">
-            <span>SCAN NOMOR HP</span>
+        <div class="camera-overlay">
+          <div class="scan-guide">
+            <div class="scan-guide-label">ARAHKAN NOMOR KE SINI</div>
           </div>
         </div>
       </div>
 
-      <p id="phoneScanStatus">Kamera belum aktif.</p>
+      <p id="phoneScanStatus" class="status">
+        Kamera belum aktif.
+      </p>
 
-      <button id="startPhoneCamera" class="primary">
-        📷 Aktifkan Kamera
-      </button>
+      <div class="scanner-tip">
+        <strong>Tips agar tulisan terbaca</strong>
+        <p>
+          Gunakan tulisan hitam tebal, cahaya terang, jangan terlalu jauh.
+          Usahakan nomor berada di dalam kotak scan.
+        </p>
+      </div>
 
-      <button id="stopPhoneCamera" class="secondary" style="width:100%;margin-top:10px">
-        Tutup Kamera
-      </button>
+      <div class="scanner-buttons">
+        <button id="startPhoneCamera" class="primary">
+          📷 Aktifkan Kamera
+        </button>
 
-      <label for="scannedPhoneNumber">Nomor HP Terbaca</label>
-      <input id="scannedPhoneNumber" type="tel" placeholder="Nomor hasil scan">
+        <button id="stopPhoneCamera" class="secondary">
+          ✕ Tutup Kamera
+        </button>
+      </div>
+
+      <label for="scannedPhoneNumber">Nomor HP hasil OCR</label>
+
+      <input
+        id="scannedPhoneNumber"
+        type="tel"
+        autocomplete="tel"
+        placeholder="Nomor hasil scan akan muncul di sini"
+      >
 
       <button id="searchScannedPhone" class="primary">
         🔎 Cari POPER
       </button>
 
       <button id="backFromScanner" class="secondary" style="width:100%;margin-top:10px">
-        ← Kembali
+        ← Kembali ke Home
       </button>
 
       <div id="phoneScanResult"></div>
@@ -983,18 +966,21 @@ textarea {
   </section>
 
   <!-- BIO -->
+
   <section class="section" id="bio">
 
     <div class="theme-setting">
       <h3>🎨 Tampilan POPER</h3>
-      <p>Pilih tampilan yang nyaman untukmu.</p>
+      <p>Pilih tema aplikasi.</p>
 
       <div class="theme-buttons">
         <button class="theme-choice" data-theme-choice="light">☀️ Terang</button>
         <button class="theme-choice" data-theme-choice="dark">🌙 Gelap</button>
       </div>
 
-      <p id="themeStatus" class="status">Tema tersimpan otomatis.</p>
+      <p id="themeStatus" class="status">
+        Tema tersimpan otomatis.
+      </p>
     </div>
 
     <div class="card">
@@ -1021,6 +1007,7 @@ textarea {
   </section>
 
   <!-- QR VAULT -->
+
   <section class="section" id="qr">
 
     <div class="vault-brand">
@@ -1034,67 +1021,59 @@ textarea {
 
     <div class="vault-hero">
 
-      <div class="vault-hero-top">
-        <div>
-          <span class="vault-label">QUICK ACTION</span>
-          <h3>Masukkan QR kamu</h3>
-          <p>Scan langsung atau ambil gambar QR dari galeri.</p>
-        </div>
-        <div class="vault-hero-symbol">⌗</div>
-      </div>
+      <h3>Masukkan QR kamu</h3>
+      <p>Scan QR dengan kamera atau upload gambar.</p>
 
       <button id="startQRScanner" class="vault-scan-btn">
-        <span class="btn-icon">⌗</span>
+        <span>⌗</span>
         <span>
           <strong>Scan QR Kamera</strong>
-          <small>Arahkan kamera ke kode QR</small>
+          <small>Arahkan kamera ke QR</small>
         </span>
         <span class="btn-arrow">→</span>
       </button>
 
       <div id="qrCameraBox" hidden class="vault-camera">
         <video id="qrVideo" autoplay playsinline muted></video>
-        <button id="stopQRScanner" class="vault-stop-btn">✕ Tutup Kamera</button>
+        <button id="stopQRScanner" class="vault-stop-btn">
+          ✕ Tutup Kamera
+        </button>
       </div>
 
-      <div class="vault-divider">ATAU UPLOAD GAMBAR</div>
+      <div class="vault-divider">ATAU UPLOAD GAMBAR QR</div>
 
       <label for="qrImageInput" class="vault-upload">
-        <div class="upload-icon">⇧</div>
+        <div style="font-size:30px">⇧</div>
         <strong>Pilih gambar QR</strong>
-        <span>JPG, PNG, WEBP dari galeri</span>
-        <span class="upload-cta">Pilih gambar</span>
+        <span>JPG, PNG, WEBP</span>
+        <span style="margin-top:12px;padding:10px;background:#30254d;border-radius:10px;color:#c4b2ff">
+          Pilih gambar
+        </span>
       </label>
 
       <input type="file" id="qrImageInput" accept="image/*" hidden>
 
-      <div id="qrPreview" class="vault-preview"></div>
+      <div id="qrPreview"></div>
 
       <div id="qrResultBox" class="vault-result" hidden>
-        <div>
-          <span class="vault-label">QR TERDETEKSI</span>
-        </div>
 
-        <label class="vault-input-label">Nama tombol</label>
-        <input id="qrName" placeholder="Contoh: Instagram, Toko, Website">
+        <label>Nama QR</label>
+        <input id="qrName" placeholder="Instagram, Toko, Website">
 
-        <label class="vault-input-label">Link hasil scan</label>
-        <textarea id="qrUrl" placeholder="Link hasil QR akan muncul di sini" rows="3"></textarea>
+        <label>Link hasil scan</label>
+        <textarea id="qrUrl" placeholder="Link QR terdeteksi"></textarea>
 
         <button id="saveQR" class="vault-save-btn">
           ＋ Simpan ke Vault
         </button>
       </div>
 
-      <div id="qrScanStatus" class="vault-status"></div>
+      <p id="qrScanStatus" class="status"></p>
     </div>
 
     <div class="vault-list-header">
-      <div>
-        <span class="vault-label">YOUR COLLECTION</span>
-        <h3>Link Tersimpan</h3>
-      </div>
-      <div class="vault-list-icon">▤</div>
+      <span class="vault-eyebrow">YOUR COLLECTION</span>
+      <h3>Link Tersimpan</h3>
     </div>
 
     <div id="qrList" class="vault-list"></div>
@@ -1102,6 +1081,7 @@ textarea {
   </section>
 
   <!-- NOTES -->
+
   <section class="section" id="notes">
     <div class="card">
       <h2>📝 Notes</h2>
@@ -1111,11 +1091,14 @@ textarea {
 
       <button id="saveNote" class="primary">Simpan Catatan</button>
 
+      <p id="notesStatus" class="status"></p>
+
       <div id="notesList"></div>
     </div>
   </section>
 
   <!-- FIND BIO -->
+
   <section class="section" id="find">
     <div class="card">
       <h2>🔎 Find Bio</h2>
@@ -1133,6 +1116,7 @@ textarea {
 </div>
 
 <!-- BOTTOM NAV -->
+
 <nav class="app-bottom-nav" id="appBottomNav" hidden>
   <div class="bottom-nav-inner">
 
@@ -1148,7 +1132,7 @@ textarea {
 
     <button class="nav-btn scan-nav active" data-tab="scan">
       <span class="nav-icon">⌗</span>
-      <span>HOME</span>
+      <span>SCAN</span>
     </button>
 
     <button class="nav-btn" data-tab="notes">
@@ -1164,11 +1148,8 @@ textarea {
   </div>
 </nav>
 
-<!-- LIBRARIES -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
-<!-- APP -->
 <script type="module" src="app.js"></script>
 
 </body>

@@ -6,137 +6,162 @@ const auth = window.POPER.auth;
 
 let confirmation = null;
 let links = [];
-let pages = [];
-let pageBlocks = [];
-let editorMode = "visual";
+let landingPages = [];
+let selectedBioImage = "";
+let editingPageId = null;
 
-let phoneCameraStream = null;
-let phoneOCRWorker = null;
-let phoneOCRBusy = false;
-let phoneOCRActive = false;
-let phoneOCRTimer = null;
-let lastDetectedPhone = "";
+/* =========================================
+   HELPERS
+========================================= */
 
-let cameraStream = null;
-let cameraActive = false;
-let cameraFrame = null;
-
-let scannedQRValue = "";
-
-/* ===============================
-   UTILITIES
-================================ */
-
-function status(id, message, color) {
+function msg(id, text){
   const el = $(id);
-  if (!el) return;
-  el.textContent = message;
-  if (color) el.style.color = color;
+  if(el) el.textContent = text || "";
 }
 
-function escapeHTML(value = "") {
-  return String(value).replace(/[&<>"']/g, c => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[c]);
+function esc(s=""){
+  return String(s).replace(/[&<>"']/g,c=>({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  }[c]));
 }
 
-function safeURL(value) {
-  try {
-    const u = new URL(String(value).trim());
-    if (["http:", "https:"].includes(u.protocol)) return u.href;
-  } catch {}
+function validURL(value){
+  try{
+    const u = new URL(value);
+    if(["https:","http:"].includes(u.protocol)) return u.href;
+  }catch{}
   return "";
 }
 
-function phoneKey(phone) {
-  return window.POPER.normalizePhone(phone).replace(/\D/g, "");
+function phoneKey(phone=""){
+  return window.POPER.normalizePhone(phone).replace(/\D/g,"");
 }
 
-function uid() {
-  return auth.currentUser?.uid || "";
+function makeId(){
+  return "p" + Date.now().toString(36) +
+    Math.random().toString(36).slice(2,7);
 }
 
-function basePath() {
-  return `users/${uid()}`;
-}
-
-function animationClass(animation) {
-  const allowed = ["shake", "pulse", "bounce", "glow"];
-  return allowed.includes(animation) ? `anim-${animation}` : "";
-}
-
-function makeSlug(text) {
-  return String(text || "")
-    .toLowerCase()
+function slugify(value=""){
+  return value.toLowerCase()
     .trim()
-    .replace(/[^a-z0-9 -]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
+    .replace(/[^a-z0-9 -]/g,"")
+    .replace(/\s+/g,"-")
+    .replace(/-+/g,"-")
+    .slice(0,50);
 }
 
-function escapeAttr(value) {
-  return escapeHTML(value);
+function baseURL(){
+  return location.href.split("?")[0].split("#")[0];
 }
 
-/* ===============================
+function pageURL(slug){
+  return baseURL() + "?page=" + encodeURIComponent(slug);
+}
+
+function setTheme(theme){
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem("poper-theme",theme);
+}
+
+/* =========================================
+   PUBLIC PAGE MODE
+========================================= */
+
+async function openPublicPage(slug){
+  $("mainApp").hidden = true;
+  $("publicPageView").hidden = false;
+  $("publicPageError").textContent = "";
+  $("publicPageContent").innerHTML = "Memuat halaman...";
+
+  try{
+    const page = await window.POPER.getData(`publicPages/${slug}`);
+
+    if(!page || !page.published){
+      $("publicPageContent").innerHTML = "";
+      $("publicPageError").textContent = "Landing Page tidak ditemukan atau belum dipublikasikan.";
+      return;
+    }
+
+    renderPublicHTML(page.content || "", $("publicPageContent"));
+    document.title = page.title || "POPER Landing Page";
+  }catch(error){
+    $("publicPageContent").innerHTML = "";
+    $("publicPageError").textContent =
+      error.message || "Gagal membuka halaman.";
+  }
+}
+
+function renderPublicHTML(html,container){
+  container.innerHTML = html;
+
+  // Link external open in new tab
+  container.querySelectorAll("a").forEach(a=>{
+    const url = validURL(a.href);
+    if(url){
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+    }
+  });
+}
+
+$("publicBack")?.addEventListener("click",()=>{
+  location.href = baseURL();
+});
+
+const publicSlug = new URLSearchParams(location.search).get("page");
+
+if(publicSlug){
+  openPublicPage(publicSlug);
+}
+
+/* =========================================
    NAVIGATION
-================================ */
+========================================= */
 
-function showSection(name) {
-  const target = name === "scanner" ? "phoneScanner" : name;
+function showTab(name){
+  if(publicSlug) return;
 
-  document.querySelectorAll(".section").forEach(section => {
-    section.classList.toggle("active", section.id === target);
+  document.querySelectorAll(".section").forEach(section=>{
+    section.classList.toggle("active",section.id===name);
   });
 
-  document.querySelectorAll(".nav-btn").forEach(button => {
-    button.classList.toggle("active", button.dataset.tab === name);
+  document.querySelectorAll(".nav-btn").forEach(button=>{
+    button.classList.toggle("active",button.dataset.tab===name);
   });
 
-  if (name !== "scanner") {
-    stopPhoneScanner();
-  }
-
-  if (name !== "qr") stopCameraScanner();
-
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
-document.querySelectorAll("[data-tab]").forEach(button => {
-  button.addEventListener("click", () => showSection(button.dataset.tab));
+document.querySelectorAll("[data-tab]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    showTab(button.dataset.tab);
+  });
 });
 
-document.querySelectorAll("[data-open-tab]").forEach(button => {
-  button.addEventListener("click", () => showSection(button.dataset.openTab));
+document.querySelectorAll("[data-open-tab]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    showTab(button.dataset.openTab);
+  });
 });
 
-$("mainScanButton")?.addEventListener("click", () => showSection("scanner"));
-
-$("backFromScanner")?.addEventListener("click", () => showSection("scan"));
-
-/* ===============================
+/* =========================================
    AUTH
-================================ */
+========================================= */
 
-function loginUI(user) {
-  if (!user) {
-    $("loginPanel").hidden = false;
-    $("dashboard").hidden = true;
-    $("appBottomNav").hidden = true;
-    $("logoutBtn").hidden = true;
-    stopPhoneScanner();
-    stopCameraScanner();
-    return;
-  }
+function loginUI(user){
+  if(publicSlug) return;
 
-  $("loginPanel").hidden = true;
-  $("dashboard").hidden = false;
-  $("appBottomNav").hidden = false;
-  $("logoutBtn").hidden = false;
+  $("loginPanel").hidden = !user;
+  $("dashboard").hidden = !user;
+  $("bottomNav").hidden = !user;
+  $("logoutBtn").hidden = !user;
+
+  if(!user) return;
 
   $("welcome").textContent = "Halo, pengguna POPER!";
   $("myPhone").textContent = user.phoneNumber || "";
@@ -144,1067 +169,758 @@ function loginUI(user) {
   loadAll();
 }
 
-$("sendOtpBtn")?.addEventListener("click", async () => {
-  const phone = $("phoneInput")?.value.trim();
+$("sendOtpBtn")?.addEventListener("click",async()=>{
+  const phone = $("phoneInput").value.trim();
 
-  if (!phone) {
-    status("authStatus", "Masukkan nomor HP.");
+  if(!phone){
+    msg("authStatus","Masukkan nomor HP.");
     return;
   }
 
-  try {
-    status("authStatus", "Mengirim OTP...");
+  try{
+    msg("authStatus","Mengirim OTP...");
     confirmation = await window.POPER.sendOTP(phone);
     $("otpSection").hidden = false;
-    status("authStatus", "OTP terkirim. Periksa SMS.");
-  } catch (error) {
-    status("authStatus", error.message || "Gagal mengirim OTP.");
-    try { window.POPER.resetRecaptcha(); } catch {}
+    msg("authStatus","OTP telah dikirim.");
+  }catch(e){
+    msg("authStatus",e.message || "OTP gagal dikirim.");
+    try{window.POPER.resetRecaptcha();}catch{}
   }
 });
 
-$("verifyOtpBtn")?.addEventListener("click", async () => {
-  const code = $("otpInput")?.value.trim();
+$("verifyOtpBtn")?.addEventListener("click",async()=>{
+  const code = $("otpInput").value.trim();
 
-  if (!confirmation || !code) {
-    status("authStatus", "Masukkan OTP.");
+  if(!confirmation || !code){
+    msg("authStatus","Masukkan kode OTP.");
     return;
   }
 
-  try {
-    status("authStatus", "Memverifikasi...");
+  try{
     const result = await confirmation.confirm(code);
     loginUI(result.user);
-    status("authStatus", "Login berhasil.");
-  } catch (error) {
-    status("authStatus", error.message || "OTP salah.");
+    msg("authStatus","Login berhasil.");
+  }catch(e){
+    msg("authStatus",e.message || "OTP salah.");
   }
 });
 
-$("logoutBtn")?.addEventListener("click", async () => {
-  stopPhoneScanner();
-  stopCameraScanner();
+$("logoutBtn")?.addEventListener("click",async()=>{
   await window.POPER.logout();
 });
 
-/* ===============================
-   BIO
-================================ */
-
-$("saveBio")?.addEventListener("click", async () => {
-  if (!uid()) return;
-
-  try {
-    await window.POPER.saveData(`${basePath()}/publicBio`, {
-      name: $("bioName").value.trim(),
-      description: $("bioDesc").value.trim(),
-      phone: auth.currentUser.phoneNumber || "",
-      links,
-      updatedAt: Date.now()
-    });
-
-    await window.POPER.saveData(
-      `phoneLookup/${phoneKey(auth.currentUser.phoneNumber)}`,
-      {
-        uid: uid(),
-        phone: auth.currentUser.phoneNumber
-      }
-    );
-
-    status("bioStatus", "Profil berhasil disimpan!");
-    renderBioLinks();
-    renderBioPreview();
-  } catch (error) {
-    status("bioStatus", error.message || "Gagal menyimpan profil.");
-  }
+window.POPER.onAuth(user=>{
+  loginUI(user);
 });
 
-async function loadBio() {
-  if (!uid()) return;
+/* =========================================
+   BIO LINKS - MULTI
+========================================= */
 
-  try {
-    const data = await window.POPER.getData(`${basePath()}/publicBio`);
-    if (!data) return;
+$("bioImage")?.addEventListener("change",async e=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
 
-    $("bioName").value = data.name || "";
-    $("bioDesc").value = data.description || "";
-
-    links = Array.isArray(data.links) ? data.links : [];
-
-    renderBioLinks();
-    renderBuilderLinks();
-    renderBioPreview();
-  } catch (error) {
-    console.error("Load bio:", error);
+  if(file.size > 1024*1024*2){
+    msg("bioStatus","Gambar maksimal 2MB.");
+    e.target.value="";
+    return;
   }
+
+  selectedBioImage = await imageToDataURL(file);
+
+  $("bioImagePreview").src = selectedBioImage;
+  $("bioImagePreview").hidden = false;
+});
+
+$("clearBioImage")?.addEventListener("click",()=>{
+  selectedBioImage = "";
+  $("bioImage").value = "";
+  $("bioImagePreview").hidden = true;
+  $("bioImagePreview").src = "";
+});
+
+function imageToDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
-$("openPublicBio")?.addEventListener("click", () => {
-  renderBioPreview();
-  showSection("builder");
-});
+$("addBioLink")?.addEventListener("click",()=>{
+  const title = $("bioTitle").value.trim();
+  const url = validURL($("bioUrl").value.trim());
 
-/* ===============================
-   LINK BUILDER
-================================ */
-
-$("addBioLink")?.addEventListener("click", () => {
-  const title = $("linkTitle").value.trim();
-  const url = safeURL($("linkURL").value);
-  const type = $("linkType").value;
-  const image = safeURL($("linkImage").value);
-  const animation = $("linkAnimation").value;
-
-  if (!title) {
-    status("builderStatus", "Masukkan nama tombol.");
-    return;
-  }
-
-  if (!url) {
-    status("builderStatus", "URL tujuan harus valid dan menggunakan http/https.");
-    return;
-  }
-
-  if (type === "image" && !image) {
-    status("builderStatus", "Tombol gambar membutuhkan URL gambar.");
+  if(!title || !url){
+    msg("bioStatus","Isi nama tombol dan URL valid.");
     return;
   }
 
   links.push({
-    id: crypto.randomUUID(),
+    id:makeId(),
     title,
     url,
-    type,
-    image,
-    animation
+    image:selectedBioImage,
+    wiggle:$("bioWiggle").checked
   });
 
-  $("linkTitle").value = "";
-  $("linkURL").value = "";
-  $("linkImage").value = "";
+  $("bioTitle").value="";
+  $("bioUrl").value="";
+  $("bioWiggle").checked=false;
+  selectedBioImage="";
+  $("bioImage").value="";
+  $("bioImagePreview").hidden=true;
 
   renderBioLinks();
-  renderBuilderLinks();
-  renderBioPreview();
-
-  status("builderStatus", "Link ditambahkan. Tekan Simpan Profil untuk menyimpan online.");
 });
 
-function renderBioLinks() {
+function renderBioLinks(){
   const container = $("bioLinks");
-  if (!container) return;
+  if(!container) return;
 
-  if (!links.length) {
-    container.innerHTML = "<p>Belum ada link.</p>";
-    return;
-  }
-
-  container.innerHTML = links.map(link => `
+  container.innerHTML = links.map((link,i)=>`
     <div class="item">
-      <strong>${escapeHTML(link.title)}</strong>
-      ${link.type === "image" && safeURL(link.image)
-        ? `<img src="${escapeAttr(link.image)}" alt="">`
-        : ""}
-      <a class="builder-link ${animationClass(link.animation)}"
-         href="${escapeAttr(safeURL(link.url))}"
-         target="_blank" rel="noopener noreferrer">
-        ${escapeHTML(link.title)}
-      </a>
-    </div>
-  `).join("");
-}
-
-function renderBuilderLinks() {
-  const container = $("builderLinks");
-  if (!container) return;
-
-  container.innerHTML = links.map((link, index) => `
-    <div class="item">
-      <strong>${escapeHTML(link.title)}</strong>
-      <small>${escapeHTML(link.url)}</small>
-      <p>Jenis: ${escapeHTML(link.type)} · Animasi: ${escapeHTML(link.animation || "none")}</p>
-      ${link.type === "image" && safeURL(link.image)
-        ? `<img src="${escapeAttr(link.image)}" style="width:100%;border-radius:12px">`
-        : ""}
-      <div class="item-actions">
-        <button class="secondary small" data-edit-link="${index}">Edit</button>
-        <button class="danger small" data-delete-link="${index}">Hapus</button>
-        <button class="secondary small" data-up-link="${index}">↑</button>
-        <button class="secondary small" data-down-link="${index}">↓</button>
+      <div class="link-preview">
+        ${link.image ? `<img src="${link.image}" alt="">` : ""}
+        <div class="link-preview-info">
+          <strong>${esc(link.title)}</strong>
+          <small>${esc(link.url)}</small>
+          <small>${link.wiggle?"✨ Goyang":"◻ Diam"}</small>
+        </div>
+      </div>
+      <div class="item-actions" style="margin-top:10px">
+        <button class="secondary" data-up="${i}">↑</button>
+        <button class="secondary" data-down="${i}">↓</button>
+        <button class="secondary" data-toggle="${i}">
+          ${link.wiggle?"Matikan Goyang":"Aktifkan Goyang"}
+        </button>
+        <button class="secondary danger" data-del="${i}">Hapus</button>
       </div>
     </div>
   `).join("");
 
-  container.querySelectorAll("[data-delete-link]").forEach(button => {
-    button.onclick = () => {
-      links.splice(Number(button.dataset.deleteLink), 1);
-      renderBuilderLinks();
+  container.querySelectorAll("[data-del]").forEach(b=>{
+    b.onclick=()=>{
+      links.splice(Number(b.dataset.del),1);
       renderBioLinks();
-      renderBioPreview();
     };
   });
 
-  container.querySelectorAll("[data-edit-link]").forEach(button => {
-    button.onclick = () => {
-      const i = Number(button.dataset.editLink);
-      const link = links[i];
-
-      $("linkTitle").value = link.title || "";
-      $("linkURL").value = link.url || "";
-      $("linkType").value = link.type || "text";
-      $("linkImage").value = link.image || "";
-      $("linkAnimation").value = link.animation || "none";
-
-      links.splice(i, 1);
-      renderBuilderLinks();
-      renderBioLinks();
-      renderBioPreview();
-
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-  });
-
-  container.querySelectorAll("[data-up-link]").forEach(button => {
-    button.onclick = () => {
-      const i = Number(button.dataset.upLink);
-      if (i <= 0) return;
-      [links[i - 1], links[i]] = [links[i], links[i - 1]];
-      renderBuilderLinks();
-      renderBioLinks();
-      renderBioPreview();
-    };
-  });
-
-  container.querySelectorAll("[data-down-link]").forEach(button => {
-    button.onclick = () => {
-      const i = Number(button.dataset.downLink);
-      if (i >= links.length - 1) return;
-      [links[i + 1], links[i]] = [links[i], links[i + 1]];
-      renderBuilderLinks();
-      renderBioLinks();
-      renderBioPreview();
-    };
-  });
-}
-
-function renderBioPreview() {
-  const container = $("bioPreview");
-  if (!container) return;
-
-  const name = $("bioName")?.value || "Nama kamu";
-  const desc = $("bioDesc")?.value || "";
-
-  container.innerHTML = `
-    <div class="preview-profile">
-      <div class="preview-name">${escapeHTML(name)}</div>
-      <div class="preview-desc">${escapeHTML(desc)}</div>
-    </div>
-    ${links.map(link => {
-      const url = safeURL(link.url);
-      if (!url) return "";
-
-      if (link.type === "image" && safeURL(link.image)) {
-        return `
-          <a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">
-            <img class="link-image ${animationClass(link.animation)}"
-                 src="${escapeAttr(link.image)}"
-                 alt="${escapeAttr(link.title)}">
-          </a>
-        `;
+  container.querySelectorAll("[data-up]").forEach(b=>{
+    b.onclick=()=>{
+      const i=Number(b.dataset.up);
+      if(i>0){
+        [links[i-1],links[i]]=[links[i],links[i-1]];
+        renderBioLinks();
       }
-
-      return `
-        <a class="link-button ${animationClass(link.animation)}"
-           href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">
-           ${escapeHTML(link.title)}
-        </a>
-      `;
-    }).join("")}
-  `;
-}
-
-/* ===============================
-   PAGE BUILDER
-================================ */
-
-function setEditorMode(mode) {
-  editorMode = mode;
-
-  $("visualEditor").hidden = mode !== "visual";
-  $("textEditor").hidden = mode !== "text";
-  $("htmlEditor").hidden = mode !== "html";
-}
-
-document.querySelectorAll("[data-editor-mode]").forEach(button => {
-  button.addEventListener("click", () => {
-    setEditorMode(button.dataset.editorMode);
+    };
   });
-});
 
-$("addPageBlock")?.addEventListener("click", () => {
-  const type = $("blockType").value;
-  const content = $("blockContent").value.trim();
-  const extra = $("blockExtra").value.trim();
+  container.querySelectorAll("[data-down]").forEach(b=>{
+    b.onclick=()=>{
+      const i=Number(b.dataset.down);
+      if(i<links.length-1){
+        [links[i+1],links[i]]=[links[i],links[i+1]];
+        renderBioLinks();
+      }
+    };
+  });
 
-  if (!content) {
-    status("pageStatus", "Isi konten blok terlebih dahulu.");
+  container.querySelectorAll("[data-toggle]").forEach(b=>{
+    b.onclick=()=>{
+      links[Number(b.dataset.toggle)].wiggle =
+        !links[Number(b.dataset.toggle)].wiggle;
+      renderBioLinks();
+    };
+  });
+}
+
+/* =========================================
+   LANDING PAGE BIO DISPLAY SETTINGS
+========================================= */
+
+function renderBioLandingList(){
+  const container = $("bioLandingList");
+  if(!container) return;
+
+  const visiblePages = landingPages.filter(p=>p.published);
+
+  if(!visiblePages.length){
+    container.innerHTML="<p>Belum ada Landing Page yang dipublikasikan.</p>";
     return;
   }
 
-  pageBlocks.push({
-    id: crypto.randomUUID(),
-    type,
-    content,
-    extra
-  });
-
-  $("blockContent").value = "";
-  $("blockExtra").value = "";
-
-  renderPageBlocks();
-  previewPage();
-});
-
-function renderPageBlocks() {
-  const container = $("pageBlocks");
-  if (!container) return;
-
-  container.innerHTML = pageBlocks.map((block, index) => `
-    <div class="page-block">
-      <strong>${escapeHTML(block.type.toUpperCase())}</strong>
-      <p>${escapeHTML(block.content.slice(0, 200))}</p>
-      ${block.extra ? `<small>${escapeHTML(block.extra)}</small>` : ""}
-      <button class="danger small" data-delete-block="${index}">Hapus</button>
-    </div>
+  container.innerHTML = visiblePages.map(p=>`
+    <label class="check-row">
+      <input type="checkbox"
+        data-page-bio="${esc(p.id)}"
+        ${p.showInBio?"checked":""}>
+      ${esc(p.title)}
+    </label>
   `).join("");
 
-  container.querySelectorAll("[data-delete-block]").forEach(button => {
-    button.onclick = () => {
-      pageBlocks.splice(Number(button.dataset.deleteBlock), 1);
-      renderPageBlocks();
-      previewPage();
+  container.querySelectorAll("[data-page-bio]").forEach(c=>{
+    c.onchange=()=>{
+      const page=landingPages.find(p=>p.id===c.dataset.pageBio);
+      if(page) page.showInBio=c.checked;
     };
   });
 }
 
-function renderBlocksHTML(blocks) {
-  return blocks.map(block => {
-    const content = escapeHTML(block.content);
-    const extra = safeURL(block.extra);
+/* =========================================
+   SAVE BIO
+========================================= */
 
-    switch (block.type) {
-      case "heading":
-        return `<h2>${content}</h2>`;
+$("saveBio")?.addEventListener("click",async()=>{
+  const user=auth.currentUser;
+  if(!user) return;
 
-      case "text":
-        return `<p>${content.replace(/\n/g, "<br>")}</p>`;
+  try{
+    const bio={
+      name:$("bioName").value.trim(),
+      description:$("bioDesc").value.trim(),
+      phone:user.phoneNumber||"",
+      links,
+      landingPages:landingPages
+        .filter(p=>p.published && p.showInBio)
+        .map(p=>({
+          id:p.id,
+          title:p.title,
+          slug:p.slug,
+          wiggle:p.wiggle||false
+        })),
+      updatedAt:Date.now()
+    };
 
-      case "image":
-        return extra
-          ? `<img src="${escapeAttr(extra)}" alt="${content}">`
-          : "";
+    await window.POPER.saveData(`users/${user.uid}/publicBio`,bio);
+    await window.POPER.saveData(
+      `phoneLookup/${phoneKey(user.phoneNumber)}`,
+      {uid:user.uid,phone:user.phoneNumber}
+    );
 
-      case "button":
-        return extra
-          ? `<a href="${escapeAttr(extra)}">${content}</a>`
-          : "";
+    msg("bioStatus","Bio berhasil disimpan!");
+  }catch(e){
+    msg("bioStatus",e.message||"Gagal menyimpan Bio.");
+  }
+});
 
-      case "html":
-        return sanitizeHTML(block.content);
+async function loadBio(){
+  const user=auth.currentUser;
+  if(!user) return;
 
-      default:
-        return `<p>${content}</p>`;
-    }
-  }).join("");
+  const data=await window.POPER.getData(`users/${user.uid}/publicBio`);
+  if(!data) return;
+
+  $("bioName").value=data.name||"";
+  $("bioDesc").value=data.description||"";
+  links=Array.isArray(data.links)?data.links:[[];
+
+  // Backward compatibility with old data format
+  links=links.map(link=>({
+    id:link.id||makeId(),
+    title:link.title||"",
+    url:link.url||"",
+    image:link.image||"",
+    wiggle:!!link.wiggle
+  }));
+
+  renderBioLinks();
 }
 
-/* Basic sanitization for user HTML preview/public display */
-function sanitizeHTML(html) {
-  const template = document.createElement("template");
-  template.innerHTML = String(html || "");
+/* =========================================
+   LANDING PAGE EDITOR
+========================================= */
 
-  template.content.querySelectorAll(
-    "script,iframe,object,embed,form,base,meta,link"
-  ).forEach(el => el.remove());
+$("pageTitle")?.addEventListener("input",()=>{
+  if(!$("pageSlug").dataset.manual){
+    $("pageSlug").value=slugify($("pageTitle").value);
+  }
+});
 
-  template.content.querySelectorAll("*").forEach(el => {
-    [...el.attributes].forEach(attr => {
-      const name = attr.name.toLowerCase();
-      const value = attr.value.trim().toLowerCase();
+$("pageSlug")?.addEventListener("input",()=>{
+  $("pageSlug").dataset.manual="1";
+});
 
-      if (name.startsWith("on")) el.removeAttribute(attr.name);
-      if ((name === "href" || name === "src") &&
-          value.startsWith("javascript:")) {
-        el.removeAttribute(attr.name);
-      }
-    });
+$("pageMode")?.addEventListener("change",()=>{
+  const visual=$("pageMode").value==="visual";
+  $("visualEditorArea").hidden=!visual;
+  $("htmlEditorArea").hidden=visual;
+});
+
+document.querySelectorAll("[data-format]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    $("visualEditor").focus();
+    document.execCommand(button.dataset.format,false,null);
   });
+});
 
-  return template.innerHTML;
+$("insertLink")?.addEventListener("click",()=>{
+  const url=prompt("Masukkan URL link:");
+  if(url && validURL(url)){
+    $("visualEditor").focus();
+    document.execCommand("createLink",false,url);
+  }
+});
+
+function getEditorContent(){
+  if($("pageMode").value==="html"){
+    return $("htmlEditor").value;
+  }
+  return $("visualEditor").innerHTML;
 }
 
-function currentPageContent() {
-  if (editorMode === "html") {
-    return {
-      mode: "html",
-      html: sanitizeHTML($("pageHTML").value),
-      text: "",
-      blocks: []
-    };
-  }
+function setEditorContent(mode,content){
+  $("pageMode").value=mode;
+  $("visualEditorArea").hidden=mode!=="visual";
+  $("htmlEditorArea").hidden=mode!=="html";
 
-  if (editorMode === "text") {
-    return {
-      mode: "text",
-      html: "",
-      text: $("pageText").value,
-      blocks: []
-    };
+  if(mode==="html"){
+    $("htmlEditor").value=content||"";
+  }else{
+    $("visualEditor").innerHTML=content||"";
   }
-
-  return {
-    mode: "visual",
-    html: "",
-    text: "",
-    blocks: pageBlocks
-  };
 }
 
-function previewPage() {
-  const container = $("pagePreview");
-  if (!container) return;
+function previewHTML(html){
+  const frame=$("pagePreview");
+  const doc=frame.contentDocument;
 
-  const data = currentPageContent();
-
-  let html = "";
-
-  if (data.mode === "html") {
-    html = sanitizeHTML(data.html);
-  } else if (data.mode === "text") {
-    html = `<div>${escapeHTML(data.text).replace(/\n/g, "<br>")}</div>`;
-  } else {
-    html = renderBlocksHTML(data.blocks);
-  }
-
-  container.innerHTML = html;
+  doc.open();
+  doc.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <style>
+        body{font-family:Arial,sans-serif;padding:16px;margin:0;color:#222}
+        img{max-width:100%;height:auto}
+        a{color:#6655dd}
+      </style>
+    </head>
+    <body>${html}</body>
+    </html>
+  `);
+  doc.close();
 }
 
-$("previewPage")?.addEventListener("click", previewPage);
+$("previewPage")?.addEventListener("click",()=>{
+  previewHTML(getEditorContent());
+});
 
-function collectPage() {
-  const title = $("pageTitle").value.trim();
-  const slug = makeSlug($("pageSlug").value || title);
-  const type = $("pageType").value;
+/* =========================================
+   SAVE LANDING PAGE
+========================================= */
 
-  return {
-    id: $("editingPageId")?.value || crypto.randomUUID(),
+$("savePage")?.addEventListener("click",async()=>{
+  const user=auth.currentUser;
+  if(!user) return;
+
+  const title=$("pageTitle").value.trim();
+  const slug=slugify($("pageSlug").value.trim()||title);
+  const content=getEditorContent();
+
+  if(!title || !slug || !content.trim()){
+    msg("pageStatus","Isi judul, slug, dan konten halaman.");
+    return;
+  }
+
+  if(landingPages.some(p=>p.slug===slug && p.id!==editingPageId)){
+    msg("pageStatus","Slug sudah digunakan. Buat nama link yang berbeda.");
+    return;
+  }
+
+  const page={
+    id:editingPageId||makeId(),
     title,
     slug,
-    type,
-    ...currentPageContent(),
-    published: false,
-    updatedAt: Date.now()
+    mode:$("pageMode").value,
+    content,
+    showInBio:$("pageShowInBio").checked,
+    wiggle:false,
+    published:true,
+    updatedAt:Date.now()
   };
-}
 
-/* Create hidden editing ID if not already present */
-if (!$("editingPageId")) {
-  const hidden = document.createElement("input");
-  hidden.id = "editingPageId";
-  hidden.type = "hidden";
-  document.body.appendChild(hidden);
-}
+  try{
+    // Save private owner's page collection
+    const index=landingPages.findIndex(p=>p.id===page.id);
+    if(index>=0) landingPages[index]=page;
+    else landingPages.push(page);
 
-async function savePage(publish = false) {
-  if (!uid()) {
-    status("pageStatus", "Login terlebih dahulu.");
-    return;
-  }
-
-  const page = collectPage();
-
-  if (!page.title) {
-    status("pageStatus", "Isi nama halaman.");
-    return;
-  }
-
-  if (!page.slug) {
-    status("pageStatus", "Slug halaman tidak valid.");
-    return;
-  }
-
-  page.published = publish;
-  page.updatedAt = Date.now();
-
-  try {
     await window.POPER.saveData(
-      `${basePath()}/pages/${page.id}`,
+      `users/${user.uid}/landingPages/${page.id}`,
       page
     );
 
-    const existing = pages.findIndex(p => p.id === page.id);
-    if (existing >= 0) pages[existing] = page;
-    else pages.push(page);
-
-    status(
-      "pageStatus",
-      publish ? "Halaman berhasil dipublikasikan!" : "Draft berhasil disimpan!"
+    // Public page entry
+    await window.POPER.saveData(
+      `publicPages/${page.slug}`,
+      {
+        title:page.title,
+        content:page.content,
+        owner: user.uid,
+        published:true,
+        updatedAt:page.updatedAt
+      }
     );
 
-    renderMyPages();
-  } catch (error) {
-    status("pageStatus", error.message || "Gagal menyimpan halaman.");
+    renderPages();
+    renderBioLandingList();
+    msg("pageStatus","Landing Page berhasil disimpan!");
+
+    resetPageEditor();
+  }catch(error){
+    msg("pageStatus",
+      "Gagal menyimpan. Periksa Firebase Rules: "+(error.message||""));
   }
+});
+
+function resetPageEditor(){
+  editingPageId=null;
+  $("pageTitle").value="";
+  $("pageSlug").value="";
+  delete $("pageSlug").dataset.manual;
+  $("pageMode").value="visual";
+  $("visualEditor").innerHTML="";
+  $("htmlEditor").value="";
+  $("pageShowInBio").checked=true;
+  $("visualEditorArea").hidden=false;
+  $("htmlEditorArea").hidden=true;
 }
 
-$("savePage")?.addEventListener("click", () => savePage(false));
-$("publishPage")?.addEventListener("click", () => savePage(true));
+/* =========================================
+   PAGE COLLECTION
+========================================= */
 
-async function loadPages() {
-  if (!uid()) return;
+function renderPages(){
+  const container=$("pagesList");
+  if(!container) return;
 
-  try {
-    const data = await window.POPER.getData(`${basePath()}/pages`);
-    pages = data ? Object.values(data) : [];
-    renderMyPages();
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-function renderMyPages() {
-  const container = $("myPages");
-  if (!container) return;
-
-  if (!pages.length) {
-    container.innerHTML = "<p>Belum ada halaman.</p>";
+  if(!landingPages.length){
+    container.innerHTML="<p>Belum ada Landing Page.</p>";
     return;
   }
 
-  container.innerHTML = pages.map(page => `
-    <div class="item">
-      <strong>${escapeHTML(page.title)}</strong>
-      <p>${escapeHTML(page.slug)} · ${page.published ? "Published" : "Draft"}</p>
-      <div class="item-actions">
-        <button class="secondary small" data-edit-page="${escapeAttr(page.id)}">Edit</button>
-        <button class="secondary small" data-preview-page="${escapeAttr(page.id)}">Preview</button>
-        <button class="danger small" data-delete-page="${escapeAttr(page.id)}">Hapus</button>
+  container.innerHTML=landingPages.map(page=>`
+    <div class="page-card">
+      <h3>${esc(page.title)}</h3>
+      <small>Link: ${esc(page.slug)}</small>
+      <small>Status: ${page.published?"Publik":"Draft"}</small>
+      <small>Bio: ${page.showInBio?"Ditampilkan":"Disembunyikan"}</small>
+
+      <div class="page-actions">
+        <button class="secondary" data-copy="${esc(page.slug)}">Copy Link</button>
+        <button class="secondary" data-open="${esc(page.slug)}">Buka</button>
+        <button class="secondary" data-edit="${esc(page.id)}">Edit</button>
+        <button class="secondary danger" data-delete="${esc(page.id)}">Hapus</button>
       </div>
     </div>
   `).join("");
 
-  container.querySelectorAll("[data-edit-page]").forEach(button => {
-    button.onclick = () => editPage(button.dataset.editPage);
+  container.querySelectorAll("[data-copy]").forEach(b=>{
+    b.onclick=()=>{
+      const link=pageURL(b.dataset.copy);
+      navigator.clipboard.writeText(link)
+        .then(()=>alert("Link disalin:\n"+link))
+        .catch(()=>prompt("Salin link ini:",link));
+    };
   });
 
-  container.querySelectorAll("[data-preview-page]").forEach(button => {
-    button.onclick = () => previewSavedPage(button.dataset.previewPage);
+  container.querySelectorAll("[data-open]").forEach(b=>{
+    b.onclick=()=>window.open(pageURL(b.dataset.open),"_blank");
   });
 
-  container.querySelectorAll("[data-delete-page]").forEach(button => {
-    button.onclick = async () => {
-      const id = button.dataset.deletePage;
-      if (!confirm("Hapus halaman ini?")) return;
+  container.querySelectorAll("[data-edit]").forEach(b=>{
+    b.onclick=()=>{
+      const p=landingPages.find(x=>x.id===b.dataset.edit);
+      if(!p) return;
 
-      await window.POPER.deleteData(`${basePath()}/pages/${id}`);
-      pages = pages.filter(p => p.id !== id);
-      renderMyPages();
+      editingPageId=p.id;
+      $("pageTitle").value=p.title;
+      $("pageSlug").value=p.slug;
+      delete $("pageSlug").dataset.manual;
+      $("pageMode").value=p.mode||"visual";
+      $("pageShowInBio").checked=!!p.showInBio;
+
+      setEditorContent(p.mode||"visual",p.content||"");
+      showTab("pages");
+      previewHTML(p.content||"");
+    };
+  });
+
+  container.querySelectorAll("[data-delete]").forEach(b=>{
+    b.onclick=async()=>{
+      if(!confirm("Hapus Landing Page ini?")) return;
+
+      const user=auth.currentUser;
+      const p=landingPages.find(x=>x.id===b.dataset.delete);
+      if(!p) return;
+
+      try{
+        await window.POPER.deleteData(`users/${user.uid}/landingPages/${p.id}`);
+        await window.POPER.deleteData(`publicPages/${p.slug}`);
+
+        landingPages=landingPages.filter(x=>x.id!==p.id);
+        renderPages();
+        renderBioLandingList();
+      }catch(e){
+        alert("Gagal menghapus: "+e.message);
+      }
     };
   });
 }
 
-function editPage(id) {
-  const page = pages.find(p => p.id === id);
-  if (!page) return;
+/* =========================================
+   PUBLIC BIO VIEW
+========================================= */
 
-  $("editingPageId").value = page.id;
-  $("pageTitle").value = page.title || "";
-  $("pageSlug").value = page.slug || "";
-  $("pageType").value = page.type || "landing";
-
-  setEditorMode(page.mode || "visual");
-
-  pageBlocks = Array.isArray(page.blocks) ? page.blocks : [];
-  $("pageText").value = page.text || "";
-  $("pageHTML").value = page.html || "";
-
-  renderPageBlocks();
-  previewPage();
-
-  showSection("pages");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function previewSavedPage(id) {
-  const page = pages.find(p => p.id === id);
-  if (!page) return;
-
-  let html = "";
-  if (page.mode === "html") html = sanitizeHTML(page.html || "");
-  else if (page.mode === "text") html = escapeHTML(page.text || "").replace(/\n/g, "<br>");
-  else html = renderBlocksHTML(page.blocks || []);
-
-  $("pagePreview").innerHTML = `<h2>${escapeHTML(page.title)}</h2>${html}`;
-  showSection("pages");
-}
-
-/* ===============================
-   FIND BIO
-================================ */
-
-async function findBioByPhone(phone, containerId) {
-  const container = $(containerId);
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  if (!phone.trim()) {
-    container.textContent = "Masukkan nomor HP.";
-    return;
-  }
-
-  try {
-    container.textContent = "Mencari...";
-    const key = phoneKey(phone);
-    const lookup = await window.POPER.getData(`phoneLookup/${key}`);
-
-    if (!lookup?.uid) {
-      container.textContent = "Bio POPER tidak ditemukan.";
-      return;
-    }
-
-    const bio = await window.POPER.getData(
-      `users/${lookup.uid}/publicBio`
-    );
-
-    if (!bio) {
-      container.textContent = "Bio belum tersedia.";
-      return;
-    }
-
-    container.innerHTML = `
-      <div class="item">
-        <h3>${escapeHTML(bio.name || "Pengguna POPER")}</h3>
-        <p>${escapeHTML(bio.description || "")}</p>
-        <small>${escapeHTML(bio.phone || "")}</small>
-        ${Array.isArray(bio.links) ? bio.links.map(link => {
-          const url = safeURL(link.url);
-          if (!url) return "";
-          return `<a class="link-button ${animationClass(link.animation)}"
-            href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">
-            ${escapeHTML(link.title || "Buka Link")}
-          </a>`;
-        }).join("") : ""}
-      </div>
+function publicBioHTML(bio){
+  const bioLinks=(bio.links||[]).map(link=>{
+    const url=validURL(link.url);
+    if(!url) return "";
+    return `
+      <a class="bio-button ${link.wiggle?"wiggle":""}"
+         href="${esc(url)}" target="_blank" rel="noopener">
+         ${link.image?`<img src="${link.image}" alt="">`:""}
+         ${esc(link.title)}
+      </a>
     `;
-  } catch (error) {
-    container.textContent = error.message || "Pencarian gagal.";
-  }
+  }).join("");
+
+  const pages=(bio.landingPages||[]).map(page=>`
+    <a class="bio-button ${page.wiggle?"wiggle":""}"
+       href="${pageURL(page.slug)}">
+       🌐 ${esc(page.title)}
+    </a>
+  `).join("");
+
+  return `
+    <div style="max-width:550px;margin:20px auto;padding:18px">
+      <div style="text-align:center">
+        <h1>${esc(bio.name||"POPER User")}</h1>
+        <p>${esc(bio.description||"")}</p>
+      </div>
+      ${bioLinks}
+      ${pages}
+    </div>
+  `;
 }
 
-$("findBio")?.addEventListener("click", () => {
-  findBioByPhone($("findPhone").value, "findResult");
+$("openMyPublicBio")?.addEventListener("click",async()=>{
+  const user=auth.currentUser;
+  if(!user) return;
+
+  try{
+    const bio=await window.POPER.getData(`users/${user.uid}/publicBio`);
+    if(!bio){
+      alert("Simpan Bio terlebih dahulu.");
+      return;
+    }
+
+    const win=window.open("","_blank");
+    if(!win){
+      alert("Browser memblokir popup. Izinkan popup untuk preview.");
+      return;
+    }
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>${esc(bio.name)}</title>
+      <style>
+      body{margin:0;font-family:Arial;background:#f3f4f8;color:#222}
+      .bio-button{display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;padding:15px;margin:10px 0;background:#7357ef;color:#fff;border-radius:15px;font-weight:bold}
+      .bio-button img{max-width:60px;max-height:40px;object-fit:contain}
+      .wiggle{animation:w .8s infinite}
+      @keyframes w{0%,100%{transform:rotate(0)}25%{transform:rotate(-2deg)}75%{transform:rotate(2deg)}}
+      </style></head><body>${publicBioHTML(bio)}</body></html>
+    `);
+    win.document.close();
+  }catch(e){
+    alert(e.message||"Gagal membuka bio.");
+  }
 });
 
-$("searchScannedPhone")?.addEventListener("click", () => {
-  findBioByPhone($("scannedPhoneNumber").value, "phoneScanResult");
+/* =========================================
+   FIND BIO BY PHONE
+========================================= */
+
+$("findBio")?.addEventListener("click",async()=>{
+  const phone=$("findPhone").value.trim();
+  const container=$("findResult");
+  container.innerHTML="Mencari...";
+
+  if(!phone){
+    container.textContent="Masukkan nomor HP.";
+    return;
+  }
+
+  try{
+    const lookup=await window.POPER.getData(`phoneLookup/${phoneKey(phone)}`);
+    if(!lookup?.uid){
+      container.innerHTML="<div class='item'>Bio tidak ditemukan.</div>";
+      return;
+    }
+
+    const bio=await window.POPER.getData(`users/${lookup.uid}/publicBio`);
+    if(!bio){
+      container.textContent="Bio belum tersedia.";
+      return;
+    }
+
+    container.innerHTML=publicBioHTML(bio);
+  }catch(e){
+    container.textContent=e.message||"Gagal mencari Bio.";
+  }
 });
 
-/* ===============================
+/* =========================================
    QR VAULT
-================================ */
+========================================= */
 
-function stopCameraScanner() {
-  cameraActive = false;
+$("saveQR")?.addEventListener("click",async()=>{
+  const user=auth.currentUser;
+  if(!user) return;
 
-  if (cameraFrame) {
-    cancelAnimationFrame(cameraFrame);
-    cameraFrame = null;
-  }
+  const name=$("qrName").value.trim()||"QR Link";
+  const url=validURL($("qrUrl").value.trim());
 
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-    cameraStream = null;
-  }
-
-  if ($("qrVideo")) $("qrVideo").srcObject = null;
-  if ($("qrCameraBox")) $("qrCameraBox").hidden = true;
-}
-
-$("startQRScanner")?.addEventListener("click", async () => {
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-      audio: false
-    });
-
-    $("qrVideo").srcObject = cameraStream;
-    $("qrCameraBox").hidden = false;
-    await $("qrVideo").play();
-
-    cameraActive = true;
-    scanQRFrame();
-  } catch (error) {
-    status("qrScanStatus", error.message || "Kamera gagal dibuka.");
-  }
-});
-
-$("stopQRScanner")?.addEventListener("click", stopCameraScanner);
-
-function scanQRFrame() {
-  if (!cameraActive) return;
-
-  const video = $("qrVideo");
-
-  if (video.readyState >= 2) {
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0);
-
-    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = window.jsQR?.(image.data, image.width, image.height);
-
-    if (code?.data) {
-      scannedQRValue = code.data;
-      $("qrResultBox").value = code.data;
-      stopCameraScanner();
-      status("qrScanStatus", "QR berhasil terbaca.");
-    }
-  }
-
-  if (cameraActive) cameraFrame = requestAnimationFrame(scanQRFrame);
-}
-
-$("qrImageInput")?.addEventListener("change", async event => {
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  try {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.src = url;
-    await img.decode();
-
-    const canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0);
-
-    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = window.jsQR?.(image.data, image.width, image.height);
-
-    if (code?.data) {
-      $("qrResultBox").value = code.data;
-      status("qrScanStatus", "QR gambar berhasil dibaca.");
-    } else {
-      status("qrScanStatus", "QR tidak ditemukan.");
-    }
-
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    status("qrScanStatus", "Gambar gagal diproses.");
-  }
-});
-
-$("saveQR")?.addEventListener("click", async () => {
-  if (!uid()) return;
-
-  const name = $("qrName").value.trim() || "QR Link";
-  const raw = $("qrResultBox").value.trim();
-  const url = safeURL(raw);
-
-  if (!url) {
-    status("qrScanStatus", "Link QR harus URL http/https.");
+  if(!url){
+    msg("qrScanStatus","Masukkan URL valid.");
     return;
   }
 
-  try {
-    await window.POPER.pushData(`qrVault/${uid()}`, {
-      name,
-      url,
-      createdAt: Date.now()
+  try{
+    await window.POPER.pushData(`qrVault/${user.uid}`,{
+      name,url,createdAt:Date.now()
     });
-
-    status("qrScanStatus", "QR berhasil disimpan!");
+    $("qrName").value="";
+    $("qrUrl").value="";
+    msg("qrScanStatus","QR Link berhasil disimpan.");
     loadQR();
-  } catch (error) {
-    status("qrScanStatus", error.message || "Gagal menyimpan QR.");
+  }catch(e){
+    msg("qrScanStatus",e.message||"Gagal.");
   }
 });
 
-async function loadQR() {
-  if (!uid()) return;
+async function loadQR(){
+  const user=auth.currentUser;
+  if(!user) return;
 
-  const data = await window.POPER.getData(`qrVault/${uid()}`);
-  const container = $("qrList");
+  const data=await window.POPER.getData(`qrVault/${user.uid}`);
+  const container=$("qrList");
+  if(!container) return;
 
-  if (!data) {
-    container.innerHTML = "<p>Vault kosong.</p>";
+  if(!data){
+    container.innerHTML="<p>Vault kosong.</p>";
     return;
   }
 
-  container.innerHTML = Object.entries(data).map(([key, item]) => `
+  container.innerHTML=Object.entries(data).map(([key,item])=>`
     <div class="item">
-      <strong>${escapeHTML(item.name)}</strong>
-      <a class="link-button" href="${escapeAttr(safeURL(item.url))}"
-        target="_blank" rel="noopener noreferrer">Buka Link</a>
-      <button class="danger small" data-delete-qr="${escapeAttr(key)}">Hapus</button>
+      <strong>${esc(item.name)}</strong>
+      <p>${esc(item.url)}</p>
+      <a href="${esc(validURL(item.url))}" target="_blank">Buka</a>
+      <button class="secondary danger" data-qr-del="${esc(key)}">Hapus</button>
     </div>
   `).join("");
 
-  container.querySelectorAll("[data-delete-qr]").forEach(button => {
-    button.onclick = async () => {
-      await window.POPER.deleteData(`qrVault/${uid()}/${button.dataset.deleteQr}`);
+  container.querySelectorAll("[data-qr-del]").forEach(b=>{
+    b.onclick=async()=>{
+      await window.POPER.deleteData(`qrVault/${user.uid}/${b.dataset.qrDel}`);
       loadQR();
     };
   });
 }
 
-/* ===============================
+/* =========================================
    NOTES
-================================ */
+========================================= */
 
-$("saveNote")?.addEventListener("click", async () => {
-  if (!uid()) return;
+$("saveNote")?.addEventListener("click",async()=>{
+  const user=auth.currentUser;
+  if(!user) return;
 
-  const title = $("noteTitle").value.trim();
-  const content = $("noteContent").value.trim();
+  const title=$("noteTitle").value.trim();
+  const content=$("noteContent").value.trim();
 
-  if (!title || !content) {
-    status("notesStatus", "Isi judul dan isi catatan.");
+  if(!title||!content){
+    alert("Isi judul dan catatan.");
     return;
   }
 
-  try {
-    await window.POPER.pushData(`notes/${uid()}`, {
-      title,
-      content,
-      createdAt: Date.now()
+  try{
+    await window.POPER.pushData(`notes/${user.uid}`,{
+      title,content,createdAt:Date.now()
     });
-
-    $("noteTitle").value = "";
-    $("noteContent").value = "";
-
-    status("notesStatus", "Catatan tersimpan.");
+    $("noteTitle").value="";
+    $("noteContent").value="";
     loadNotes();
-  } catch (error) {
-    status("notesStatus", error.message || "Gagal.");
+  }catch(e){
+    alert(e.message||"Gagal menyimpan.");
   }
 });
 
-async function loadNotes() {
-  if (!uid()) return;
+async function loadNotes(){
+  const user=auth.currentUser;
+  if(!user) return;
 
-  const data = await window.POPER.getData(`notes/${uid()}`);
-  const container = $("notesList");
+  const data=await window.POPER.getData(`notes/${user.uid}`);
+  const container=$("notesList");
 
-  if (!data) {
-    container.innerHTML = "<p>Belum ada catatan.</p>";
+  if(!data){
+    container.innerHTML="<p>Belum ada catatan.</p>";
     return;
   }
 
-  container.innerHTML = Object.entries(data).map(([key, note]) => `
+  container.innerHTML=Object.entries(data).map(([key,note])=>`
     <div class="item">
-      <strong>${escapeHTML(note.title)}</strong>
-      <p>${escapeHTML(note.content)}</p>
-      <button class="danger small" data-delete-note="${escapeAttr(key)}">Hapus</button>
+      <strong>${esc(note.title)}</strong>
+      <p>${esc(note.content)}</p>
+      <button class="secondary danger" data-note-del="${esc(key)}">Hapus</button>
     </div>
   `).join("");
 
-  container.querySelectorAll("[data-delete-note]").forEach(button => {
-    button.onclick = async () => {
-      await window.POPER.deleteData(`notes/${uid()}/${button.dataset.deleteNote}`);
+  container.querySelectorAll("[data-note-del]").forEach(b=>{
+    b.onclick=async()=>{
+      await window.POPER.deleteData(`notes/${user.uid}/${b.dataset.noteDel}`);
       loadNotes();
     };
   });
 }
 
-/* ===============================
-   PHONE OCR SCANNER
-================================ */
+/* =========================================
+   LOAD ALL
+========================================= */
 
-function formatDetectedPhone(raw) {
-  let digits = String(raw).replace(/\D/g, "");
+async function loadPages(){
+  const user=auth.currentUser;
+  if(!user) return;
 
-  if (digits.startsWith("62")) return "+" + digits;
-  if (digits.startsWith("8")) return "0" + digits;
-  return digits;
+  const data=await window.POPER.getData(`users/${user.uid}/landingPages`);
+  landingPages=data?Object.values(data):[];
+
+  renderPages();
+  renderBioLandingList();
 }
 
-function extractPhone(text) {
-  const matches = text.match(/\+?\d[\d\s().-]{7,}\d/g) || [];
+async function loadAll(){
+  const user=auth.currentUser;
+  if(!user) return;
 
-  for (const match of matches) {
-    const digits = match.replace(/\D/g, "");
-    if (digits.length >= 10 && digits.length <= 15 &&
-        (digits.startsWith("08") || digits.startsWith("8") || digits.startsWith("62"))) {
-      return formatDetectedPhone(digits);
-    }
-  }
-
-  const compact = text.replace(/\D/g, "");
-
-  if (compact.length >= 10 && compact.length <= 15 &&
-      (compact.startsWith("08") || compact.startsWith("8") || compact.startsWith("62"))) {
-    return formatDetectedPhone(compact);
-  }
-
-  return "";
-}
-
-async function startPhoneScanner() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    status("phoneScanStatus", "Browser tidak mendukung kamera.");
-    return;
-  }
-
-  try {
-    status("phoneScanStatus", "Meminta akses kamera...");
-    phoneCameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
-      audio: false
-    });
-
-    $("phoneScanVideo").srcObject = phoneCameraStream;
-    await $("phoneScanVideo").play();
-
-    phoneOCRActive = true;
-    status("phoneScanStatus", "Kamera aktif. Arahkan ke nomor HP.");
-    startPhoneOCR();
-  } catch (error) {
-    status("phoneScanStatus", error.message || "Kamera tidak dapat dibuka.");
+  try{
+    await Promise.allSettled([
+      loadBio(),
+      loadQR(),
+      loadNotes(),
+      loadPages()
+    ]);
+  }catch(e){
+    console.error(e);
   }
 }
 
-async function startPhoneOCR() {
-  if (phoneOCRBusy || !phoneOCRActive) return;
-  phoneOCRBusy = true;
-
-  try {
-    if (!window.Tesseract) throw new Error("Library OCR belum tersedia.");
-
-    if (!phoneOCRWorker) {
-      status("phoneScanStatus", "Menyiapkan OCR...");
-
-      phoneOCRWorker = await Tesseract.createWorker("eng");
-
-      await phoneOCRWorker.setParameters({
-        tessedit_char_whitelist: "0123456789+-() ",
-        tessedit_pageseg_mode: "6"
-      });
-    }
-
-    phoneOCRBusy = false;
-    runPhoneOCR();
-  } catch (error) {
-    phoneOCRBusy = false;
-    status("phoneScanStatus", error.message || "OCR gagal.");
-  }
-}
-
-async function runPhoneOCR() {
-  if (!phoneOCRActive || phoneOCRBusy) return;
-
-  const video = $("phoneScanVideo");
-
-  if (!video || video.readyState < 2 || !video.videoWidth) {
-    phoneOCRTimer = setTimeout(runPhoneOCR, 1000);
-    return;
-  }
-
-  phoneOCRBusy = true;
-
-  try {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    const w = video.videoWidth;
-    const h = video.videoHeight;
-
-    canvas.width = 1200;
-    canvas.height = 300;
-
-    ctx.filter = "grayscale(1) contrast(2)";
-    ctx.drawImage(video, 0, h * .25, w, h * .5, 0, 0, canvas.width, canvas.height);
-
-    const result = await phoneOCRWorker.recognize(canvas);
-    const detected = extractPhone(result.data.text || "");
-
-    if (detected && detected !== lastDetectedPhone) {
-      lastDetectedPhone = detected;
-      $("scannedPhoneNumber").value = detected;
-      status("phoneScanStatus", "Nomor terdeteksi. Periksa lalu tekan Cari Bio.");
-    }
-  } catch (error) {
-    console.warn("OCR:", error);
-  }
-
-  phoneOCRBusy = false;
-  if (phoneOCRActive) phoneOCRTimer = setTimeout(runPhoneOCR, 1000);
-}
-
-function stopPhoneScanner() {
-  phoneOCRActive = false;
-
-  if (phoneOCRTimer) {
-    clearTimeout(phoneOCRTimer);
-    phoneOCRTimer = null;
-  }
-
-  if (phoneCameraStream) {
-    phoneCameraStream.getTracks().forEach(track => track.stop());
-    phoneCameraStream = null;
-  }
-
-  if ($("phoneScanVideo")) $("phoneScanVideo").srcObject = null;
-
-  phoneOCRBusy = false;
-  lastDetectedPhone = "";
-}
-
-$("startPhoneCamera")?.addEventListener("click", startPhoneScanner);
-$("stopPhoneCamera")?.addEventListener("click", stopPhoneScanner);
-
-/* ===============================
-   THEME
-================================ */
-
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  localStorage.setItem("poper-theme", theme);
-
-  document.querySelectorAll("[data-theme-choice]").forEach(button => {
-    button.classList.toggle("active", button.dataset.themeChoice === theme);
-  });
-}
-
-document.querySelectorAll("[data-theme-choice]").forEach(button => {
-  button.addEventListener("click", () => {
-    applyTheme(button.dataset.themeChoice);
-    status("themeStatus", "Tema diubah.");
-  });
-});
-
-/* ===============================
-   LOAD
-================================ */
-
-async function loadAll() {
-  await Promise.allSettled([
-    loadBio(),
-    loadQR(),
-    loadNotes(),
-    loadPages()
-  ]);
-}
-
-window.POPER.onAuth(user => {
-  loginUI(user);
-});
-
-console.log("POPER Bio Link Builder siap.");
+console.log("POPER Bio Link & Landing Page Studio siap.");

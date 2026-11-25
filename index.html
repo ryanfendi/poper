@@ -2,272 +2,169 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#101323">
-  <title>POPER — Login</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111426">
+<title>POPER — Phone Identity</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      padding: 20px;
-      background: #101323;
-      color: #f4f5ff;
-      font-family: system-ui, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 430px;
-    }
-
-    .logo {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .logo-icon {
-      width: 75px;
-      height: 75px;
-      margin: auto;
-      border-radius: 25px;
-      display: grid;
-      place-items: center;
-      font-size: 35px;
-      background: linear-gradient(135deg, #8b5cf6, #4e7bff);
-    }
-
-    .logo h1 {
-      font-size: 30px;
-      margin: 12px 0 5px;
-    }
-
-    .logo p {
-      color: #a3a7c2;
-      margin: 0;
-    }
-
-    .card {
-      background: #1b2035;
-      border: 1px solid #303650;
-      border-radius: 22px;
-      padding: 24px;
-    }
-
-    .card h2 {
-      margin: 0 0 8px;
-      font-size: 22px;
-    }
-
-    .subtitle {
-      color: #a5aac4;
-      margin: 0 0 22px;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    input {
-      width: 100%;
-      padding: 15px;
-      margin-bottom: 14px;
-      border: 1px solid #3b415d;
-      background: #101528;
-      color: white;
-      border-radius: 12px;
-      outline: none;
-      font-size: 16px;
-    }
-
-    input:focus {
-      border-color: #8b5cf6;
-    }
-
-    button {
-      width: 100%;
-      border: 0;
-      border-radius: 12px;
-      padding: 15px;
-      background: linear-gradient(135deg, #8b5cf6, #557cff);
-      color: white;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-bottom: 12px;
-    }
-
-    button:disabled {
-      opacity: .6;
-      cursor: wait;
-    }
-
-    button.secondary {
-      background: #2a3049;
-    }
-
-    #recaptcha-container {
-      margin: 15px 0;
-      display: flex;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .auth-status {
-      margin-top: 12px;
-      font-size: 14px;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
-    }
-
-    .auth-status.error {
-      color: #ff929e;
-    }
-
-    .auth-status.success {
-      color: #80e4b2;
-    }
-
-    [hidden] {
-      display: none !important;
-    }
-
-    .account {
-      text-align: center;
-    }
-
-    .account-avatar {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      margin: 0 auto 15px;
-      display: grid;
-      place-items: center;
-      background: #2c3654;
-      font-size: 30px;
-    }
-
-    .account-number {
-      padding: 14px;
-      margin: 20px 0;
-      background: #101528;
-      border-radius: 12px;
-      overflow-wrap: anywhere;
-    }
-
-    .footer {
-      text-align: center;
-      color: #747b98;
-      font-size: 12px;
-      margin-top: 20px;
-    }
-  </style>
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;background:#101323;color:#f4f5ff;
+font-family:system-ui,sans-serif
+}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.app{max-width:600px;margin:auto;padding:18px}
+.header{
+display:flex;align-items:center;justify-content:space-between;
+padding:12px 0 22px
+}
+.logo{font-size:25px;font-weight:900}
+.logo span{color:#9b7cff}
+.card{
+background:#1a1f33;border:1px solid #303650;
+border-radius:20px;padding:18px;margin-bottom:15px
+}
+h2{font-size:19px;margin:0 0 12px}
+p{color:#aab0c9;line-height:1.6}
+input,textarea{
+width:100%;background:#101528;color:white;
+border:1px solid #3a405a;border-radius:12px;
+padding:13px;margin:7px 0 13px;outline:none
+}
+textarea{min-height:100px;resize:vertical}
+button.primary{
+width:100%;padding:14px;border:0;border-radius:12px;
+background:linear-gradient(120deg,#8b5cf6,#537dff);
+color:white;font-weight:800;margin:5px 0
+}
+button.secondary{
+background:#2a3047;color:#fff;border:0;
+border-radius:10px;padding:11px
+}
+button.danger{background:#442837;color:#ffabb8}
+.tabs{
+display:flex;gap:8px;overflow:auto;margin-bottom:15px
+}
+.tab{
+flex:1;min-width:75px;border:0;padding:12px 8px;
+border-radius:12px;background:#20253a;color:#aab0c9
+}
+.tab.active{background:#7958d8;color:#fff}
+.section{display:none}
+.section.active{display:block}
+.item{
+background:#101528;padding:13px;border-radius:12px;
+margin:9px 0;overflow-wrap:anywhere
+}
+.item a{color:#a991ff}
+small{color:#8e95b2}
+#status{font-size:13px;min-height:20px}
+.avatar{
+width:70px;height:70px;border-radius:50%;
+display:grid;place-items:center;font-size:30px;
+background:#2d3653;margin-bottom:10px
+}
+[hidden]{display:none!important}
+</style>
 </head>
 
 <body>
+<div class="app">
 
-<div class="container">
+<header class="header">
+  <div class="logo">📱 POP<span>ER</span></div>
+  <button id="logoutBtn" class="secondary" hidden>Logout</button>
+</header>
 
-  <header class="logo">
-    <div class="logo-icon">📱</div>
-    <h1>POPER</h1>
-    <p>Your phone number is your identity</p>
-  </header>
+<!-- LOGIN -->
+<section id="loginPanel" class="card">
+  <h2>Login POPER</h2>
+  <p>Masuk menggunakan nomor HP kamu.</p>
 
-  <!-- LOGIN -->
-  <section class="card" id="loginPanel">
+  <input id="phoneInput" type="tel" placeholder="08xxxxxxxxxx">
+  <button id="sendOtpBtn" class="primary">Kirim OTP</button>
 
-    <h2>Masuk ke POPER</h2>
+  <div id="recaptcha-container"></div>
 
-    <p class="subtitle">
-      Gunakan nomor HP untuk masuk atau membuat akun.
-      Kami akan mengirim kode verifikasi melalui SMS.
-    </p>
-
-    <label for="phoneInput">Nomor HP</label>
-
-    <input
-      type="tel"
-      id="phoneInput"
-      placeholder="08xxxxxxxxxx"
-      autocomplete="tel"
-    >
-
-    <button id="sendOtpBtn">
-      Kirim OTP
-    </button>
-
-    <!-- Firebase reCAPTCHA -->
-    <div id="recaptcha-container"></div>
-
-    <!-- OTP -->
-    <div id="otpSection" hidden>
-
-      <label for="otpInput">Kode OTP 6 digit</label>
-
-      <input
-        type="text"
-        id="otpInput"
-        inputmode="numeric"
-        autocomplete="one-time-code"
-        maxlength="6"
-        placeholder="123456"
-      >
-
-      <button id="verifyOtpBtn">
-        Verifikasi OTP
-      </button>
-
-    </div>
-
-    <div id="authStatus" class="auth-status"></div>
-
-  </section>
-
-  <!-- ACCOUNT -->
-  <section class="card account" id="accountPanel" hidden>
-
-    <div class="account-avatar">👤</div>
-
-    <h2>Login Berhasil!</h2>
-
-    <p class="subtitle">
-      Nomor HP kamu sudah terverifikasi.
-    </p>
-
-    <div class="account-number">
-      <strong id="accountPhone">-</strong>
-    </div>
-
-    <button id="logoutBtn" class="secondary">
-      Logout
-    </button>
-
-    <div id="accountStatus" class="auth-status"></div>
-
-  </section>
-
-  <div class="footer">
-    POPER · Phone Identity Platform
+  <div id="otpSection" hidden>
+    <input id="otpInput" inputmode="numeric" maxlength="6"
+      placeholder="Kode OTP 6 digit">
+    <button id="verifyOtpBtn" class="primary">Verifikasi OTP</button>
   </div>
+  <div id="authStatus"></div>
+</section>
+
+<!-- DASHBOARD -->
+<main id="dashboard" hidden>
+
+  <div class="card">
+    <div class="avatar">👤</div>
+    <h2 id="welcome">Selamat datang</h2>
+    <small id="myPhone"></small>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="bio">Bio</button>
+    <button class="tab" data-tab="qr">QR Vault</button>
+    <button class="tab" data-tab="notes">Notes</button>
+    <button class="tab" data-tab="find">Find Bio</button>
+  </nav>
+
+  <!-- BIO -->
+  <section class="section active" id="bio">
+    <div class="card">
+      <h2>Profil Bio Saya</h2>
+      <input id="bioName" placeholder="Nama">
+      <textarea id="bioDesc" placeholder="Tentang saya"></textarea>
+      <input id="bioTitle" placeholder="Judul link">
+      <input id="bioUrl" placeholder="https://alamat-link.com">
+      <button id="addBioLink" class="secondary">+ Tambah Link</button>
+      <div id="bioLinks"></div>
+      <button id="saveBio" class="primary">Simpan Bio Online</button>
+      <p id="bioStatus"></p>
+    </div>
+  </section>
+
+  <!-- QR VAULT -->
+  <section class="section" id="qr">
+    <div class="card">
+      <h2>QR Vault</h2>
+      <p>Simpan link QRIS, QR WiFi, dan link QR lainnya.</p>
+      <input id="qrName" placeholder="Nama QR (contoh: QRIS Saya)">
+      <input id="qrUrl" placeholder="URL atau isi QR">
+      <button id="saveQR" class="primary">Simpan QR / Link</button>
+      <div id="qrList"></div>
+    </div>
+  </section>
+
+  <!-- NOTES -->
+  <section class="section" id="notes">
+    <div class="card">
+      <h2>Notes</h2>
+      <input id="noteTitle" placeholder="Judul catatan">
+      <textarea id="noteContent" placeholder="Tulis catatan..."></textarea>
+      <button id="saveNote" class="primary">Simpan Catatan</button>
+      <div id="notesList"></div>
+    </div>
+  </section>
+
+  <!-- FIND BIO -->
+  <section class="section" id="find">
+    <div class="card">
+      <h2>Find Bio by Phone</h2>
+      <p>Cari Bio Link pengguna menggunakan nomor HP.</p>
+      <input id="findPhone" type="tel" placeholder="Masukkan nomor HP">
+      <button id="findBio" class="primary">Cari Bio</button>
+      <div id="findResult"></div>
+    </div>
+  </section>
+
+</main>
 
 </div>
 
-<script type="module" src="auth.js"></script>
-
+<script type="module" src="app.js"></script>
 </body>
 </html>

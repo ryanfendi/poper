@@ -145,7 +145,7 @@ async function loadBio(){
 
   $("bioName").value=p.name||"";
   $("bioDesc").value=p.description||"";
-  links=Array.isArray(p.links)?p.links:[[];
+  links=Array.isArray(p.links)?p.links:[];
   renderLinks();
 }
 

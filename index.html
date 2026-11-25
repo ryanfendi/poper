@@ -3,365 +3,474 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>POPER - Bio Link</title>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7158e8">
+<title>POPER — Your Digital Space</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
-*{box-sizing:border-box}
 :root{
-  --bg:#0c1020;
-  --card:#161c32;
-  --card2:#1c2540;
-  --text:#f2f5ff;
-  --muted:#929dbb;
-  --primary:#7565f7;
-  --primary2:#a195ff;
-  --green:#33d69a;
-  --red:#ff637a;
-  --border:rgba(255,255,255,.09);
+  --bg:#f5f6fb;
+  --surface:#ffffff;
+  --surface2:#f0f1f8;
+  --text:#20243a;
+  --muted:#858ca5;
+  --border:#e8eaf2;
+  --accent:#7158e8;
+  --accent2:#927fff;
+  --success:#13b981;
+  --danger:#f05b72;
+  --shadow:0 8px 30px rgba(29,35,65,.06);
 }
+body.dark{
+  --bg:#101321;
+  --surface:#191d2e;
+  --surface2:#222840;
+  --text:#f2f3fb;
+  --muted:#a0a7bd;
+  --border:#2b3148;
+  --accent:#8873ff;
+  --accent2:#a293ff;
+  --shadow:0 8px 30px rgba(0,0,0,.15);
+}
+*{box-sizing:border-box}
 body{
   margin:0;
   font-family:Inter,sans-serif;
   background:var(--bg);
   color:var(--text);
+  transition:background .2s,color .2s;
 }
-button,input,textarea,select{
-  font-family:inherit;
-}
-button{
-  border:0;
-  cursor:pointer;
-}
-button:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
 .hidden{display:none!important}
+a{color:var(--accent)}
+#mainApp{min-height:100vh}
 .app{
-  max-width:900px;
+  width:100%;
+  max-width:1100px;
   margin:auto;
-  padding:16px;
+  padding:16px 16px 110px;
 }
-header{
+.topbar{
   display:flex;
-  align-items:center;
   justify-content:space-between;
-  margin:10px 0 20px;
+  align-items:center;
+  padding:10px 0 22px;
 }
-.logo{
+.brand{
   font-family:"Baloo 2",sans-serif;
-  font-size:29px;
+  font-size:30px;
   font-weight:800;
-  color:#a195ff;
+  letter-spacing:-1px;
+  color:var(--accent);
 }
+.brand small{
+  font:500 11px Inter,sans-serif;
+  color:var(--muted);
+  display:block;
+  letter-spacing:1px;
+}
+.top-actions{display:flex;gap:8px}
+.iconbtn{
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text);
+  width:42px;height:42px;
+  border-radius:13px;
+}
+h1,h2,h3,h4{
+  font-family:"Baloo 2",sans-serif;
+  margin:0 0 12px;
+}
+h1{font-size:26px}
+h2{font-size:22px}
+h3{font-size:18px}
+p{line-height:1.6;color:var(--muted)}
+small,.muted{color:var(--muted)}
 .card{
-  background:var(--card);
+  background:var(--surface);
   border:1px solid var(--border);
   border-radius:20px;
   padding:18px;
-  margin-bottom:15px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow);
 }
-h2,h3,h4{
-  font-family:"Baloo 2",sans-serif;
-  margin-top:0;
+.hero{
+  background:linear-gradient(130deg,#7158e8,#9d84ff);
+  color:white;
+  border-radius:22px;
+  padding:22px;
+  margin-bottom:16px;
 }
-p{color:var(--muted)}
+.hero p{color:rgba(255,255,255,.78);margin-bottom:0}
+.hero h2{font-size:25px}
+label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  margin:8px 0;
+}
 input,textarea,select{
   width:100%;
-  background:#0e1429;
-  color:white;
   border:1px solid var(--border);
-  border-radius:12px;
-  padding:13px;
+  background:var(--surface2);
+  color:var(--text);
+  padding:13px 14px;
+  border-radius:13px;
+  margin:6px 0 13px;
   outline:none;
-  margin:6px 0 12px;
 }
-input:focus,textarea:focus{
-  border-color:var(--primary);
+input:focus,textarea:focus,select:focus{
+  border-color:var(--accent);
 }
-textarea{
-  min-height:110px;
-  resize:vertical;
+input[type=color]{
+  padding:5px;
+  height:48px;
 }
+input[type=checkbox]{
+  width:auto;
+  margin-right:8px;
+}
+textarea{min-height:120px;resize:vertical}
 .btn{
-  padding:12px 16px;
-  border-radius:12px;
-  background:var(--primary);
-  color:white;
+  background:var(--accent);
+  color:#fff;
+  padding:13px 16px;
+  border-radius:13px;
+  border:0;
   font-weight:700;
-  margin:4px 0;
 }
 .btn.secondary{
-  background:var(--card2);
+  background:var(--surface2);
+  color:var(--text);
   border:1px solid var(--border);
 }
-.btn.danger{background:#9d3047}
-.btn.green{background:#158a61}
-.btn.small{padding:8px 12px;font-size:12px}
+.btn.success{background:var(--success)}
+.btn.danger{background:var(--danger)}
+.btn.small{padding:9px 12px;font-size:12px}
 .btn.full{width:100%}
-.row{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
-.row>*{flex:1}
+.row{display:flex;gap:9px;align-items:center}
+.row>*{flex:1;min-width:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .status{
   font-size:13px;
-  color:var(--green);
+  line-height:1.5;
+  color:var(--success);
   white-space:pre-wrap;
   margin:8px 0;
 }
-.muted{color:var(--muted);font-size:13px}
-#dashboard{padding-bottom:100px}
+.sectionTitle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin:10px 0 15px;
+}
 .tab{display:none}
 .tab.active{display:block}
 .nav{
   position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  background:#11172a;
+  z-index:90;
+  left:0;right:0;bottom:0;
+  background:var(--surface);
   border-top:1px solid var(--border);
-  display:flex;
-  justify-content:center;
-  z-index:50;
-  padding:8px 4px env(safe-area-inset-bottom,8px);
+  padding:7px 3px calc(7px + env(safe-area-inset-bottom));
 }
-.nav-inner{
-  width:100%;
-  max-width:900px;
+.navinner{
   display:flex;
   justify-content:space-around;
+  max-width:800px;
+  margin:auto;
 }
 .nav button{
-  background:transparent;
-  color:var(--muted);
-  padding:9px 5px;
-  font-size:11px;
   flex:1;
+  background:none;
+  color:var(--muted);
+  padding:7px 2px;
+  font-size:10px;
 }
-.nav button.active{color:#a195ff}
-.nav button span{display:block;font-size:20px;margin-bottom:3px}
-.preview{
-  background:#0e1429;
-  border:1px solid var(--border);
-  border-radius:15px;
-  padding:12px;
+.nav button span{
+  display:block;
+  font-size:20px;
+  margin-bottom:4px;
 }
-.bioItem,.listItem{
-  background:#202943;
-  border-radius:13px;
-  padding:12px;
-  margin:8px 0;
+.nav button.active{color:var(--accent);font-weight:700}
+.listItem{
   display:flex;
-  align-items:center;
   gap:10px;
+  align-items:center;
+  padding:12px;
+  background:var(--surface2);
+  border-radius:14px;
+  margin:8px 0;
+  overflow:hidden;
 }
-.bioItem img{
-  width:48px;
-  height:48px;
-  object-fit:cover;
-  border-radius:10px;
+.listItem .info{flex:1;min-width:0;overflow-wrap:anywhere}
+.listItem p{font-size:12px;margin:5px 0}
+.actions{display:flex;gap:5px;flex-wrap:wrap}
+.actions button{
+  background:var(--surface);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:9px;
+  padding:8px;
 }
-.bioItem .itemText{flex:1;min-width:0}
-.bioItem .itemText strong{display:block;word-break:break-word}
-.bioItem .itemText small{color:var(--muted)}
-.actions{display:flex;gap:6px}
-.actions button{background:#323d5b;color:white;padding:7px;border-radius:8px}
-.wiggle{
-  animation:wiggle 1s infinite ease-in-out;
-}
-@keyframes wiggle{
-  0%,100%{transform:rotate(-2deg)}
-  50%{transform:rotate(2deg)}
+.previewbox{
+  border:1px solid var(--border);
+  background:var(--surface2);
+  padding:12px;
+  border-radius:14px;
 }
 #cameraVideo{
   width:100%;
-  background:black;
-  border-radius:14px;
-  max-height:400px;
+  border-radius:16px;
+  background:#000;
+  margin:10px 0;
 }
 #pagePreviewFrame{
   width:100%;
-  height:450px;
+  height:420px;
   background:white;
-  border:0;
-  border-radius:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
 }
 #visualEditor{
+  background:var(--surface2);
   min-height:220px;
-  background:#0e1429;
-  padding:15px;
+  padding:14px;
   border-radius:12px;
   border:1px solid var(--border);
+  outline:none;
 }
-#visualEditor[contenteditable=true]:empty:before{
-  content:"Tulis konten landing page di sini...";
-  color:#69748f;
-}
-.qrItem img{
-  width:100px;
-  height:100px;
-  background:white;
-}
-hr{border:0;border-top:1px solid var(--border);margin:15px 0}
-.publicBio{
-  max-width:450px;
-  margin:30px auto;
+.bioPreview{
+  padding:22px;
+  border-radius:20px;
   text-align:center;
+  overflow-wrap:anywhere;
 }
-.publicBio .bioPublicLink{
+.bioPreviewLink{
   display:block;
-  padding:15px;
-  border-radius:15px;
-  background:#7162e9;
-  color:white;
-  margin:12px 0;
+  padding:14px;
+  margin:10px 0;
   text-decoration:none;
   font-weight:700;
+  transition:.2s;
 }
-.publicBio .bioPublicLink img{
+.bioPreviewLink img{
+  max-width:100%;
+  display:block;
+  margin:0 auto 8px;
+  border-radius:12px;
+}
+.wiggle{
+  animation:poperWiggle 1s ease-in-out infinite;
+}
+@keyframes poperWiggle{
+  0%,100%{transform:rotate(-2deg)}
+  50%{transform:rotate(2deg)}
+}
+#bioImagePreview{
+  max-width:100px;
+  border-radius:12px;
+  display:block;
+  margin:10px 0;
+}
+.ocrChoice{
+  display:block;
+  width:100%;
+  padding:13px;
+  text-align:left;
+  margin:8px 0;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:13px;
+  color:var(--text);
+}
+.ocrChoice.selected{
+  border:2px solid var(--accent);
+}
+#publicPageView{
+  max-width:850px;
+  margin:20px auto;
+  padding:15px;
+}
+.publicBio{
+  max-width:520px;
+  margin:20px auto;
+  text-align:center;
+}
+.publicLink{
+  display:block;
+  text-decoration:none;
+  padding:15px;
+  border-radius:15px;
+  background:#7158e8;
+  color:white;
+  font-weight:700;
+  margin:10px 0;
+}
+.publicLink img{
+  display:block;
   width:100%;
   border-radius:12px;
-  margin-bottom:8px;
+  margin-bottom:10px;
 }
-@media(min-width:700px){
-  .app{padding:25px}
+.themePreview{
+  min-height:60px;
+  border-radius:13px;
+  margin:8px 0;
+}
+details summary{cursor:pointer;padding:10px}
+@media(min-width:720px){
+  .app{padding:24px 24px 110px}
+  .card{padding:22px}
 }
 </style>
 </head>
 
 <body>
+<div id="mainApp">
 <div class="app">
 
-<header>
-  <div class="logo">⚡ POPER</div>
-  <button class="btn secondary small hidden" id="logoutBtn">Keluar</button>
-</header>
-
-<!-- PUBLIC PAGE -->
-<section id="publicPageView" class="hidden">
-  <div class="card">
-    <button class="btn secondary" id="publicBack">← Kembali</button>
-    <div id="publicPageError" class="status"></div>
-    <div id="publicPageContent"></div>
+<header class="topbar">
+  <div class="brand">POPER<small>YOUR DIGITAL SPACE</small></div>
+  <div class="top-actions">
+    <button class="iconbtn" id="themeToggle" title="Ganti tema">☀️</button>
+    <button class="iconbtn hidden" id="logoutBtn" title="Keluar">↪</button>
   </div>
-</section>
-
-<!-- MAIN APP -->
-<main id="mainApp">
+</header>
 
 <!-- LOGIN -->
 <section id="loginPanel" class="card">
-  <h2>Selamat datang di POPER 👋</h2>
-  <p>Login menggunakan nomor HP untuk membuat Bio Link dan landing page.</p>
-
+  <h2>Selamat datang 👋</h2>
+  <p>Buat Bio Link, landing page, dan temukan kontak dengan mudah.</p>
   <label>Nomor HP</label>
   <input id="phoneInput" type="tel" placeholder="+628123456789">
-
-  <button class="btn full" id="sendOtpBtn">Kirim kode OTP</button>
-
+  <button class="btn full" id="sendOtpBtn">Kirim OTP</button>
   <div id="recaptcha-container"></div>
-
   <div id="otpSection" class="hidden">
-    <hr>
     <label>Kode OTP</label>
-    <input id="otpInput" inputmode="numeric" autocomplete="one-time-code" placeholder="Masukkan kode SMS">
-    <button class="btn green full" id="verifyOtpBtn">Verifikasi & Login</button>
+    <input id="otpInput" inputmode="numeric" autocomplete="one-time-code" placeholder="Kode 6 digit">
+    <button class="btn success full" id="verifyOtpBtn">Verifikasi & Masuk</button>
   </div>
-
   <div id="authStatus" class="status"></div>
 </section>
 
 <!-- DASHBOARD -->
-<main id="dashboard" class="hidden">
-
-  <div class="card">
-    <h3 id="welcome">Dashboard</h3>
-    <div class="muted">Nomor akun: <span id="myPhone">-</span></div>
+<div id="dashboard" class="hidden">
+  <div class="hero">
+    <h2 id="welcome">Dashboard POPER</h2>
+    <p>Kelola semua ruang digitalmu di satu tempat.</p>
+    <small id="myPhone" style="color:white"></small>
   </div>
 
   <!-- SCAN -->
   <section id="scan" class="tab active">
     <div class="card">
-      <h2>📷 Scan Nomor HP</h2>
-      <p>Scan nomor HP dari gambar, screenshot, kartu nama, atau tulisan.</p>
+      <div class="sectionTitle"><h2>Smart Scanner</h2>📷</div>
+      <p>Deteksi nomor HP dari gambar, screenshot, kartu nama, atau foto.</p>
 
       <button class="btn full" id="startCameraBtn">Buka Kamera</button>
       <video id="cameraVideo" class="hidden" autoplay playsinline></video>
-
       <div class="row">
-        <button class="btn secondary" id="captureBtn">📸 Foto & Scan</button>
-        <button class="btn danger" id="stopCameraBtn">Matikan Kamera</button>
+        <button class="btn secondary" id="captureBtn">Foto & Scan</button>
+        <button class="btn danger" id="stopCameraBtn">Matikan</button>
       </div>
 
-      <input type="file" id="scanImageInput" accept="image/*" capture="environment">
-      <button class="btn full" id="uploadScanBtn">🖼️ Scan Gambar</button>
-
+      <label>Upload gambar</label>
+      <input id="scanImageInput" type="file" accept="image/*">
+      <button class="btn full" id="uploadScanBtn">Upload & Deteksi Nomor</button>
       <div id="scanStatus" class="status"></div>
       <div id="ocrResults"></div>
 
-      <hr>
-
-      <h3>Nomor HP hasil scan</h3>
-      <input id="scanPhoneResult" type="tel" placeholder="Nomor HP yang ditemukan">
-
-      <button class="btn green full" id="searchScannedPhone">🔍 Cari Bio Link nomor ini</button>
+      <label>Nomor terpilih</label>
+      <input id="scanPhoneResult" type="tel" placeholder="Nomor HP hasil scan">
+      <button class="btn success full" id="searchScannedPhone">Cari Bio Link</button>
     </div>
   </section>
 
   <!-- BIO -->
   <section id="bio" class="tab">
     <div class="card">
-      <h2>🔗 Bio Link Saya</h2>
-      <p>Tambahkan link sebanyak yang kamu butuhkan.</p>
-
-      <input id="bioTitle" placeholder="Nama / Judul Bio">
-      <textarea id="bioDesc" placeholder="Deskripsi profil"></textarea>
+      <h2>Bio Link</h2>
+      <p>Atur profil dan tombol link kamu.</p>
+      <label>Nama / Judul</label>
+      <input id="bioTitle" placeholder="Contoh: Ryan | Digital Creator">
+      <label>Deskripsi</label>
+      <textarea id="bioDesc" placeholder="Ceritakan tentang dirimu"></textarea>
 
       <hr>
-      <h3>Tambah Link</h3>
+      <h3>Desain Bio</h3>
+      <label>Background</label>
+      <input id="bioBgColor" type="color" value="#f3f0ff">
+      <label>Warna teks</label>
+      <input id="bioTextColor" type="color" value="#25233a">
+      <label>Warna tombol default</label>
+      <input id="bioButtonColor" type="color" value="#7158e8">
+      <label>Warna teks tombol</label>
+      <input id="bioButtonTextColor" type="color" value="#ffffff">
+      <label>Jenis background</label>
+      <select id="bioBgType">
+        <option value="solid">Warna solid</option>
+        <option value="gradient">Gradient</option>
+      </select>
+      <label>Warna gradient kedua</label>
+      <input id="bioBgColor2" type="color" value="#d9ceff">
+      <label>Bentuk tombol</label>
+      <select id="bioButtonShape">
+        <option value="rounded">Rounded</option>
+        <option value="pill">Pill</option>
+        <option value="square">Kotak</option>
+      </select>
+      <div id="bioStylePreview" class="themePreview"></div>
 
+      <hr>
+      <h3>Tambah tombol Bio</h3>
       <input id="bioName" placeholder="Nama tombol">
-      <input id="bioUrl" placeholder="https:// atau nomor WhatsApp">
+      <input id="bioUrl" placeholder="URL atau WhatsApp">
+      <label>Gambar tombol (opsional)</label>
       <input id="bioImage" type="file" accept="image/*">
-      <img id="bioImagePreview" class="hidden" style="width:100px;border-radius:12px">
+      <img id="bioImagePreview" class="hidden">
       <button class="btn secondary small" id="clearBioImage">Hapus gambar</button>
-
-      <label>Animasi tombol</label>
+      <label>Warna tombol ini</label>
+      <input id="linkColor" type="color" value="#7158e8">
+      <label>Warna teks tombol ini</label>
+      <input id="linkTextColor" type="color" value="#ffffff">
+      <label>Animasi</label>
       <select id="bioWiggle">
         <option value="false">Diam</option>
         <option value="true">Goyang</option>
       </select>
-
-      <button class="btn full" id="addBioLink">+ Tambahkan Link</button>
-
+      <button class="btn full" id="addBioLink">+ Tambah Tombol</button>
       <div id="bioLinks"></div>
 
       <hr>
-      <h3>Landing Page terhubung ke Bio</h3>
+      <h3>Landing page yang ditampilkan di Bio</h3>
       <div id="bioLandingList"></div>
 
-      <button class="btn green full" id="saveBio">💾 Simpan Bio Link</button>
+      <hr>
+      <h3>Preview Bio Link</h3>
+      <div class="previewbox">
+        <div id="bioPreview" class="bioPreview"></div>
+      </div>
+
+      <button class="btn success full" id="saveBio">Simpan Bio Link</button>
       <div id="bioStatus" class="status"></div>
-      <button class="btn secondary full" id="openMyPublicBio">🌐 Lihat Bio Link Saya</button>
+      <button class="btn secondary full" id="openMyPublicBio">Lihat Bio Publik</button>
     </div>
   </section>
 
-  <!-- LANDING PAGES -->
+  <!-- PAGES -->
   <section id="pages" class="tab">
     <div class="card">
-      <h2>📝 Landing Page Builder</h2>
-
-      <input id="pageTitle" placeholder="Judul halaman">
-      <input id="pageSlug" placeholder="Slug / nama URL halaman">
-
+      <h2>Landing Page Studio</h2>
+      <input id="pageTitle" placeholder="Judul landing page">
+      <input id="pageSlug" placeholder="Slug / URL halaman">
       <label>Mode editor</label>
       <select id="pageMode">
-        <option value="visual">Editor Teks</option>
-        <option value="html">Edit HTML</option>
+        <option value="visual">Visual</option>
+        <option value="html">HTML</option>
       </select>
 
       <div id="visualEditorArea">
@@ -374,45 +483,38 @@ hr{border:0;border-top:1px solid var(--border);margin:15px 0}
       </div>
 
       <div id="htmlEditorArea" class="hidden">
-        <textarea id="htmlEditor" style="min-height:300px" placeholder="Tulis HTML halaman di sini"></textarea>
+        <textarea id="htmlEditor" placeholder="Tulis HTML lengkap..." style="min-height:300px"></textarea>
       </div>
 
-      <button class="btn secondary full" id="previewPage">👁 Preview</button>
+      <button class="btn secondary full" id="previewPage">Preview</button>
       <iframe id="pagePreviewFrame" sandbox="allow-same-origin"></iframe>
-
-      <label>
-        <input type="checkbox" id="pageShowInBio">
-        Tampilkan link halaman ini di Bio
-      </label>
-
-      <button class="btn green full" id="savePage">💾 Simpan Landing Page</button>
+      <label><input type="checkbox" id="pageShowInBio"> Tampilkan di Bio</label>
+      <button class="btn success full" id="savePage">Simpan Landing Page</button>
       <div id="pageStatus" class="status"></div>
     </div>
-
     <div class="card">
-      <h3>Landing Page Saya</h3>
+      <h3>Halaman Saya</h3>
       <div id="pagesList"></div>
     </div>
   </section>
 
-  <!-- FIND BIO -->
+  <!-- FIND -->
   <section id="find" class="tab">
     <div class="card">
-      <h2>🔎 Cari Bio Link</h2>
-      <p>Masukkan nomor HP atau gunakan nomor hasil scan.</p>
+      <h2>Cari Bio Link</h2>
       <input id="findPhone" type="tel" placeholder="Nomor HP">
-      <button class="btn full" id="findBio">Cari Bio</button>
+      <button class="btn full" id="findBio">Cari</button>
       <div id="findResult"></div>
     </div>
   </section>
 
-  <!-- QR VAULT -->
+  <!-- QR -->
   <section id="qr" class="tab">
     <div class="card">
-      <h2>📱 QR Vault</h2>
+      <h2>QR Vault</h2>
       <input id="qrName" placeholder="Nama QR">
       <input id="qrUrl" placeholder="URL">
-      <button class="btn full" id="saveQR">Simpan QR</button>
+      <button class="btn full" id="saveQR">Simpan</button>
       <div id="qrScanStatus" class="status"></div>
       <div id="qrList"></div>
     </div>
@@ -421,30 +523,36 @@ hr{border:0;border-top:1px solid var(--border);margin:15px 0}
   <!-- NOTES -->
   <section id="notes" class="tab">
     <div class="card">
-      <h2>📒 Catatan</h2>
-      <input id="noteTitle" placeholder="Judul">
+      <h2>Notes</h2>
+      <input id="noteTitle" placeholder="Judul catatan">
       <textarea id="noteContent" placeholder="Isi catatan"></textarea>
       <button class="btn full" id="saveNote">Simpan Catatan</button>
       <div id="notesList"></div>
     </div>
   </section>
-
-</main>
-</main>
+</div>
 </div>
 
+<!-- PUBLIC VIEW -->
+<section id="publicPageView" class="hidden">
+  <div class="card">
+    <button class="btn secondary" id="publicBack">← Kembali</button>
+    <div id="publicPageError" class="status"></div>
+    <div id="publicPageContent"></div>
+  </div>
+</section>
+
 <nav id="bottomNav" class="nav hidden">
-  <div class="nav-inner">
+  <div class="navinner">
     <button data-tab="scan" class="active"><span>📷</span>Scan</button>
     <button data-tab="bio"><span>🔗</span>Bio</button>
     <button data-tab="pages"><span>📝</span>Pages</button>
     <button data-tab="find"><span>🔍</span>Cari</button>
-    <button data-tab="qr"><span>📱</span>QR</button>
+    <button data-tab="qr"><span>▦</span>QR</button>
     <button data-tab="notes"><span>📒</span>Notes</button>
   </div>
 </nav>
 
-<!-- OCR engine -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script type="module" src="./app.js"></script>
 </body>

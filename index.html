@@ -1,403 +1,538 @@
 
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#111426">
 <title>POPER — Phone Identity</title>
 
+<!-- ==================================
+     THEME INIT
+================================== -->
 <script>
 (function () {
-  const savedTheme = localStorage.getItem("poper-theme") || "dark";
-  document.documentElement.setAttribute("data-theme", savedTheme);
+  try {
+    const theme = localStorage.getItem("poper-theme") || "dark";
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
 })();
-
-  /* =========================================
-   POPER LIGHT MODE — FIX
-   Override warna hardcoded lama
-========================================= */
-
-html[data-theme="light"] body {
-  background: #f4f6fb !important;
-  color: #1c2235 !important;
-}
-
-html[data-theme="light"] .app {
-  background: transparent !important;
-  color: #1c2235 !important;
-}
-
-html[data-theme="light"] .card,
-html[data-theme="light"] .theme-setting {
-  background: #ffffff !important;
-  color: #1c2235 !important;
-  border-color: #dfe4ef !important;
-  box-shadow: 0 5px 22px rgba(30, 40, 80, 0.06);
-}
-
-html[data-theme="light"] h1,
-html[data-theme="light"] h2,
-html[data-theme="light"] h3,
-html[data-theme="light"] strong,
-html[data-theme="light"] .logo {
-  color: #1c2235 !important;
-}
-
-html[data-theme="light"] p,
-html[data-theme="light"] small,
-html[data-theme="light"] label {
-  color: #6d758c !important;
-}
-
-html[data-theme="light"] input,
-html[data-theme="light"] textarea,
-html[data-theme="light"] select,
-html[data-theme="light"] #qrType,
-html[data-theme="light"] #qrImageInput {
-  background: #f7f8fc !important;
-  color: #1c2235 !important;
-  border-color: #d6dceb !important;
-}
-
-html[data-theme="light"] input::placeholder,
-html[data-theme="light"] textarea::placeholder {
-  color: #8991a5 !important;
-}
-
-html[data-theme="light"] .tab {
-  background: #e8ebf4 !important;
-  color: #69728b !important;
-}
-
-html[data-theme="light"] .tab.active {
-  background: #7858db !important;
-  color: #ffffff !important;
-}
-
-html[data-theme="light"] button.secondary {
-  background: #e8ebf4 !important;
-  color: #29324a !important;
-}
-
-html[data-theme="light"] .item,
-html[data-theme="light"] .qr-card,
-html[data-theme="light"] .qr-link-card {
-  background: #ffffff !important;
-  color: #1c2235 !important;
-  border-color: #dfe4ef !important;
-}
-
-html[data-theme="light"] .item a,
-html[data-theme="light"] .qr-link-card a {
-  color: #6552d9 !important;
-}
-
-html[data-theme="light"] .vault-page {
-  --vault-bg: #f4f6fb;
-  --vault-card: #ffffff;
-  --vault-card-2: #eef1f8;
-  --vault-border: #dfe4ef;
-  --vault-text: #1c2235;
-  --vault-muted: #737b91;
-  color: #1c2235 !important;
-}
-
-html[data-theme="light"] .vault-hero {
-  background: #ffffff !important;
-  border-color: #dfe4ef !important;
-  box-shadow: 0 8px 28px rgba(30, 40, 80, .06) !important;
-}
-
-html[data-theme="light"] .vault-hero-top h3,
-html[data-theme="light"] .vault-brand h2,
-html[data-theme="light"] .vault-list-header h3,
-html[data-theme="light"] .qr-link-card strong {
-  color: #1c2235 !important;
-}
-
-html[data-theme="light"] .vault-brand p,
-html[data-theme="light"] .vault-hero-top p,
-html[data-theme="light"] .vault-status,
-html[data-theme="light"] .qr-link-meta {
-  color: #737b91 !important;
-}
-
-html[data-theme="light"] .vault-upload {
-  background: #f7f8fc !important;
-  border-color: #cfd6e8 !important;
-  color: #1c2235 !important;
-}
-
-html[data-theme="light"] .vault-upload strong {
-  color: #29324a !important;
-}
-
-html[data-theme="light"] .vault-result {
-  background: #f0faf6 !important;
-  border-color: #d2eee1 !important;
-}
-
-html[data-theme="light"] .vault-result input,
-html[data-theme="light"] .vault-result textarea {
-  background: #ffffff !important;
-  color: #1c2235 !important;
-  border-color: #d6dceb !important;
-}
-
-html[data-theme="light"] .qr-empty {
-  background: #ffffff !important;
-  color: #737b91 !important;
-  border-color: #d6dceb !important;
-}
-
-html[data-theme="light"] .qr-link-card button.secondary {
-  background: #eef1f8 !important;
-  color: #29324a !important;
-  border-color: #d6dceb !important;
-}
-
-html[data-theme="light"] .theme-choice {
-  background: #eef1f8 !important;
-  color: #29324a !important;
-  border-color: #d6dceb !important;
-}
-
-html[data-theme="light"] .theme-choice.active {
-  background: #ffffff !important;
-  border-color: #7858db !important;
-  color: #6048ce !important;
-}
-
-html[data-theme="light"] .vault-list-icon,
-html[data-theme="light"] .vault-hero-symbol {
-  background: #eee9ff !important;
-  color: #7357df !important;
-}
-
-html[data-theme="light"] .qr-badge {
-  background: #eee9ff !important;
-  color: #7357df !important;
-}
 </script>
-  
-<style>
-*{box-sizing:border-box}
-body{
-margin:0;background:#101323;color:#f4f5ff;
-font-family:system-ui,sans-serif
-}
-button,input,textarea{font:inherit}
-button{cursor:pointer}
-.app{max-width:600px;margin:auto;padding:18px}
-.header{
-display:flex;align-items:center;justify-content:space-between;
-padding:12px 0 22px
-}
-.logo{font-size:25px;font-weight:900}
-.logo span{color:#9b7cff}
-.card{
-background:#1a1f33;border:1px solid #303650;
-border-radius:20px;padding:18px;margin-bottom:15px
-}
-h2{font-size:19px;margin:0 0 12px}
-p{color:#aab0c9;line-height:1.6}
-input,textarea{
-width:100%;background:#101528;color:white;
-border:1px solid #3a405a;border-radius:12px;
-padding:13px;margin:7px 0 13px;outline:none
-}
-textarea{min-height:100px;resize:vertical}
-button.primary{
-width:100%;padding:14px;border:0;border-radius:12px;
-background:linear-gradient(120deg,#8b5cf6,#537dff);
-color:white;font-weight:800;margin:5px 0
-}
-button.secondary{
-background:#2a3047;color:#fff;border:0;
-border-radius:10px;padding:11px
-}
-button.danger{background:#442837;color:#ffabb8}
-.tabs{
-display:flex;gap:8px;overflow:auto;margin-bottom:15px
-}
-.tab{
-flex:1;min-width:75px;border:0;padding:12px 8px;
-border-radius:12px;background:#20253a;color:#aab0c9
-}
-.tab.active{background:#7958d8;color:#fff}
-.section{display:none}
-.section.active{display:block}
-.item{
-background:#101528;padding:13px;border-radius:12px;
-margin:9px 0;overflow-wrap:anywhere
-}
-.item a{color:#a991ff}
-small{color:#8e95b2}
-#status{font-size:13px;min-height:20px}
-.avatar{
-width:70px;height:70px;border-radius:50%;
-display:grid;place-items:center;font-size:30px;
-background:#2d3653;margin-bottom:10px
-}
-[hidden]{display:none!important}
 
-  
+<!-- QR DECODER -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+<!-- ==================================
+     STYLE
+================================== -->
+<style>
+:root {
+  color-scheme: dark;
+
+  --bg: #101323;
+  --surface: #1a1f33;
+  --surface2: #20253a;
+  --surface3: #101528;
+
+  --border: #303650;
+  --text: #f4f5ff;
+  --muted: #aab0c9;
+
+  --primary: #7958d8;
+  --primary2: #537dff;
+
+  --danger-bg: #442837;
+  --danger-text: #ffabb8;
+
+  --input-bg: #101528;
+  --shadow: 0 8px 30px rgba(0,0,0,.12);
+}
+
+/* LIGHT THEME */
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --surface2: #edf0f8;
+  --surface3: #f7f8fc;
+
+  --border: #dfe4ef;
+  --text: #1c2235;
+  --muted: #6d758c;
+
+  --primary: #7858db;
+  --primary2: #537dff;
+
+  --danger-bg: #fff0f3;
+  --danger-text: #c53d62;
+
+  --input-bg: #f7f8fc;
+  --shadow: 0 5px 22px rgba(30,40,80,.06);
+}
+
+/* RESET */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg);
+  transition: background .25s ease;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transition: background .25s ease, color .25s ease;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active {
+  transform: scale(.97);
+}
+
+a {
+  overflow-wrap: anywhere;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* MAIN APP */
+.app {
+  width: 100%;
+  max-width: 680px;
+  margin: auto;
+  padding: 18px;
+  color: var(--text);
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0 22px;
+}
+
+.logo {
+  font-size: 27px;
+  font-weight: 900;
+  letter-spacing: -.8px;
+  color: var(--text);
+}
+
+.logo span {
+  color: #9b7cff;
+}
+
+.header button {
+  min-width: 90px;
+}
+
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  transition: background .25s ease, border .25s ease;
+}
+
+h1, h2, h3, h4 {
+  color: var(--text);
+}
+
+h2 {
+  font-size: 20px;
+  margin: 0 0 14px;
+}
+
+h3 {
+  font-size: 17px;
+}
+
+p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+/* FORM */
+input, textarea, select {
+  display: block;
+  width: 100%;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin: 8px 0 14px;
+  outline: none;
+  transition: border .2s, background .25s, color .25s;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: #8868ee;
+  box-shadow: 0 0 0 3px rgba(121,88,216,.12);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+  opacity: .8;
+}
+
+textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+/* BUTTONS */
+button.primary {
+  width: 100%;
+  padding: 15px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #8b5cf6, #537dff);
+  color: #fff;
+  font-weight: 800;
+  margin: 6px 0;
+  box-shadow: 0 5px 18px rgba(108,78,225,.16);
+}
+
+button.secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 15px;
+}
+
+button.danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--border);
+}
+
+/* PROFILE */
+.avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  background: var(--surface2);
+  margin-bottom: 14px;
+}
+
+#welcome {
+  font-size: 23px;
+  margin-bottom: 10px;
+}
+
+#myPhone {
+  display: block;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+
+/* NAVIGATION */
+.tabs {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  margin: 18px 0;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.tab {
+  flex: 1;
+  min-width: 82px;
+  border: 1px solid var(--border);
+  padding: 13px 10px;
+  border-radius: 14px;
+  background: var(--surface2);
+  color: var(--muted);
+  white-space: nowrap;
+  transition: .2s ease;
+}
+
+.tab.active {
+  background: linear-gradient(120deg, #8057e8, #7155d8);
+  color: white;
+  border-color: transparent;
+  font-weight: 800;
+}
+
+/* SECTIONS */
+.section {
+  display: none;
+}
+
+.section.active {
+  display: block;
+}
+
+/* LIST ITEMS */
+.item {
+  background: var(--surface3);
+  padding: 15px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+
+.item a {
+  color: #9b7cff;
+}
+
+/* STATUS */
+small {
+  color: var(--muted);
+}
+
+#status, #authStatus {
+  font-size: 13px;
+  min-height: 20px;
+  color: var(--muted);
+}
+
+/* ==================================
+   THEME SETTINGS
+================================== */
+.theme-setting {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.theme-setting h3 {
+  font-size: 19px;
+  margin: 0 0 8px;
+}
+
+.theme-setting p {
+  color: var(--muted);
+}
+
+.theme-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.theme-choice {
+  padding: 15px 12px;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 700;
+  transition: .2s ease;
+}
+
+.theme-choice.active {
+  background: #eee9ff;
+  border: 2px solid #7858db;
+  color: #6048ce;
+  box-shadow: 0 4px 14px rgba(120,88,219,.12);
+}
+
+html[data-theme="dark"] .theme-choice.active {
+  background: #32284f;
+  color: #c6b5ff;
+  border-color: #8965ec;
+}
+
+/* ==================================
+   QR VAULT BASE
+================================== */
 #qrType {
-  width:100%;
-  padding:14px;
-  background:#101528;
-  color:#fff;
-  border:1px solid #3a405a;
-  border-radius:12px;
-  margin:7px 0 13px;
+  width: 100%;
+  padding: 14px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin: 7px 0 13px;
 }
 
 .qr-card {
-  background:#101528;
-  padding:16px;
-  border-radius:16px;
-  margin-top:14px;
-  border:1px solid #303650;
+  background: var(--surface3);
+  padding: 16px;
+  border-radius: 16px;
+  margin-top: 14px;
+  border: 1px solid var(--border);
 }
 
 .qr-card-title {
-  font-size:17px;
-  font-weight:800;
-  margin-bottom:8px;
+  font-size: 17px;
+  font-weight: 800;
+  margin-bottom: 8px;
 }
 
 .qr-badge {
-  display:inline-block;
-  font-size:11px;
-  color:#c6b5ff;
-  background:#32284f;
-  padding:5px 9px;
-  border-radius:20px;
-  margin-bottom:10px;
+  display: inline-block;
+  font-size: 11px;
+  color: #c6b5ff;
+  background: #32284f;
+  padding: 5px 9px;
+  border-radius: 20px;
+  margin-bottom: 10px;
 }
 
 .qr-data {
-  font-size:13px;
-  color:#aab0c9;
-  overflow-wrap:anywhere;
-  white-space:pre-wrap;
-  max-height:120px;
-  overflow-y:auto;
-  margin-bottom:12px;
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 12px;
 }
 
 .qr-actions {
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .qr-actions button {
-  flex:1;
-  min-width:90px;
+  flex: 1;
+  min-width: 90px;
 }
 
 .qr-empty {
-  text-align:center;
-  padding:25px 10px;
-  color:#8991ae;
+  text-align: center;
+  padding: 25px 10px;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  background: var(--surface);
 }
 
 #qrUrl {
-  min-height:120px;
+  min-height: 120px;
 }
 
-  #qrImageInput {
-  padding:12px;
-  background:#101528;
-  border:1px solid #3a405a;
-  color:white;
-  border-radius:12px;
+#qrImageInput {
+  padding: 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
 }
 
 #qrPreview img {
-  width:100%;
-  max-height:280px;
-  object-fit:contain;
-  border-radius:15px;
-  margin:12px 0;
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 15px;
+  margin: 12px 0;
 }
 
+/* QR LINK CARDS */
 .qr-link-card {
-  padding:16px;
-  border-radius:16px;
-  background:#101528;
-  border:1px solid #303650;
-  margin:12px 0;
+  padding: 16px;
+  border-radius: 17px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  margin: 12px 0;
+  overflow: hidden;
 }
 
 .qr-link-button {
-  display:block;
-  width:100%;
-  text-decoration:none;
-  text-align:center;
-  padding:14px;
-  margin-top:12px;
-  border-radius:12px;
-  color:white;
-  background:linear-gradient(135deg,#875cf5,#527cff);
-  font-weight:800;
-  overflow-wrap:anywhere;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-decoration: none;
+  text-align: center;
+  padding: 14px;
+  margin-top: 12px;
+  border-radius: 13px;
+  color: white !important;
+  background: linear-gradient(135deg, #875cf5, #527cff);
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .qr-link-meta {
-  font-size:12px;
-  color:#aab0c9;
-  overflow-wrap:anywhere;
-  margin-top:8px;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+  line-height: 1.6;
 }
 
 .qr-delete-button {
-  border:0;
-  padding:10px 14px;
-  margin-top:10px;
-  border-radius:10px;
-  color:#ffb5c2;
-  background:#442837;
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  margin-top: 10px;
+  border-radius: 10px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
 }
 
 #qrScanStatus {
-  color:#aab0c9;
-  font-size:14px;
-  overflow-wrap:anywhere;
-  margin-top:12px;
+  color: var(--muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  margin-top: 12px;
 }
 
 #qrCameraBox {
-  margin:12px 0;
+  margin: 12px 0;
 }
 
 #qrCameraBox video {
-  max-height:350px;
-  object-fit:cover;
+  max-height: 350px;
+  object-fit: cover;
 }
 
-   
-/* ==========================================
-   POPER QR VAULT — PREMIUM UI
-========================================== */
-
+/* ==================================
+   QR VAULT PREMIUM
+================================== */
 .vault-page {
-  --vault-bg: #101426;
-  --vault-card: #191e33;
-  --vault-card-2: #202640;
-  --vault-border: rgba(159, 168, 211, .13);
+  --vault-bg: var(--bg);
+  --vault-card: var(--surface);
+  --vault-card-2: var(--surface2);
+  --vault-border: var(--border);
   --vault-purple: #865bff;
   --vault-blue: #4f83ff;
-  --vault-text: #f3f4ff;
-  --vault-muted: #959dbb;
+  --vault-text: var(--text);
+  --vault-muted: var(--muted);
 
   color: var(--vault-text);
   padding-bottom: 20px;
 }
-
-/* HEADER */
 
 .vault-header {
   margin-bottom: 22px;
@@ -418,7 +553,7 @@ background:#2d3653;margin-bottom:10px
   border-radius: 18px;
   font-size: 26px;
   background: linear-gradient(135deg, #8a63ff, #4779ff);
-  box-shadow: 0 8px 30px rgba(111, 79, 255, .28);
+  box-shadow: 0 8px 30px rgba(111,79,255,.28);
 }
 
 .vault-eyebrow,
@@ -443,20 +578,13 @@ background:#2d3653;margin-bottom:10px
   line-height: 1.6;
 }
 
-/* MAIN CARD */
-
+/* VAULT MAIN */
 .vault-hero {
   padding: 20px;
   border: 1px solid var(--vault-border);
   border-radius: 25px;
-  background:
-    radial-gradient(
-      circle at top right,
-      rgba(112, 80, 225, .14),
-      transparent 45%
-    ),
-    linear-gradient(145deg, #1b2036, #15192b);
-  box-shadow: 0 14px 35px rgba(0, 0, 0, .14);
+  background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .vault-hero-top {
@@ -491,8 +619,7 @@ background:#2d3653;margin-bottom:10px
   font-size: 32px;
 }
 
-/* BUTTON SCAN */
-
+/* SCAN BUTTON */
 .vault-scan-btn {
   width: 100%;
   min-height: 76px;
@@ -500,13 +627,12 @@ background:#2d3653;margin-bottom:10px
   align-items: center;
   gap: 14px;
   padding: 15px;
-  border: 1px solid rgba(179, 153, 255, .22);
+  border: 1px solid rgba(179,153,255,.22);
   border-radius: 18px;
   background: linear-gradient(120deg, #7653e9, #4d75ef);
   color: white;
   text-align: left;
-  cursor: pointer;
-  box-shadow: 0 8px 22px rgba(103, 76, 232, .2);
+  box-shadow: 0 8px 22px rgba(103,76,232,.2);
   transition: .2s ease;
 }
 
@@ -542,13 +668,12 @@ background:#2d3653;margin-bottom:10px
 }
 
 /* UPLOAD */
-
 .vault-divider {
   display: flex;
   align-items: center;
   gap: 12px;
   margin: 24px 0 18px;
-  color: #727c9e;
+  color: var(--muted);
   font-size: 10px;
   letter-spacing: 1.4px;
   font-weight: 700;
@@ -568,16 +693,15 @@ background:#2d3653;margin-bottom:10px
   align-items: center;
   text-align: center;
   padding: 24px 16px;
-  border: 1.5px dashed rgba(150, 132, 230, .36);
+  border: 1.5px dashed rgba(150,132,230,.36);
   border-radius: 19px;
-  background: rgba(111, 86, 194, .055);
+  background: var(--surface3);
   cursor: pointer;
   transition: .2s ease;
 }
 
 .vault-upload:active {
   transform: scale(.98);
-  background: rgba(111, 86, 194, .14);
 }
 
 .upload-icon {
@@ -594,6 +718,7 @@ background:#2d3653;margin-bottom:10px
 
 .vault-upload strong {
   font-size: 14px;
+  color: var(--text);
 }
 
 .vault-upload > span:not(.upload-cta) {
@@ -606,7 +731,7 @@ background:#2d3653;margin-bottom:10px
   color: #b8a5ff;
   padding: 10px 18px;
   margin-top: 16px;
-  border: 1px solid rgba(159, 135, 255, .2);
+  border: 1px solid rgba(159,135,255,.2);
   border-radius: 11px;
   background: #2c2546;
   font-size: 12px;
@@ -614,24 +739,22 @@ background:#2d3653;margin-bottom:10px
 }
 
 /* IMAGE PREVIEW */
-
 .vault-preview img {
   width: 100%;
   max-height: 260px;
   object-fit: contain;
   border-radius: 15px;
   margin-top: 14px;
-  background: #0d1120;
+  background: var(--surface3);
 }
 
-/* RESULT */
-
+/* QR RESULT */
 .vault-result {
   margin-top: 20px;
   padding: 17px;
   border-radius: 19px;
-  border: 1px solid rgba(100, 220, 170, .15);
-  background: rgba(39, 117, 88, .08);
+  border: 1px solid rgba(100,220,170,.15);
+  background: var(--surface);
 }
 
 .vault-result-heading {
@@ -644,7 +767,7 @@ background:#2d3653;margin-bottom:10px
 }
 
 .vault-success {
-  color: #70dfb2;
+  color: #35b987;
   font-size: 10px;
   font-weight: 700;
 }
@@ -653,18 +776,17 @@ background:#2d3653;margin-bottom:10px
   display: block;
   font-size: 12px;
   font-weight: 700;
-  color: #b8bfd8;
+  color: var(--muted);
   margin: 15px 0 8px;
 }
 
 .vault-result input,
 .vault-result textarea {
   width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #343b58;
+  border: 1px solid var(--border);
   border-radius: 13px;
-  background: #12172a;
-  color: white;
+  background: var(--input-bg);
+  color: var(--text);
   font-size: 14px;
   padding: 15px;
   outline: none;
@@ -674,7 +796,7 @@ background:#2d3653;margin-bottom:10px
 .vault-result input:focus,
 .vault-result textarea:focus {
   border-color: #8a6aff;
-  box-shadow: 0 0 0 3px rgba(122, 90, 255, .1);
+  box-shadow: 0 0 0 3px rgba(122,90,255,.1);
 }
 
 .vault-result textarea {
@@ -682,8 +804,7 @@ background:#2d3653;margin-bottom:10px
   overflow-wrap: anywhere;
 }
 
-/* PREMIUM SAVE BUTTON */
-
+/* SAVE BUTTON */
 .vault-save-btn {
   width: 100%;
   padding: 16px;
@@ -694,7 +815,7 @@ background:#2d3653;margin-bottom:10px
   color: #fff;
   font-size: 14px;
   font-weight: 800;
-  box-shadow: 0 7px 22px rgba(110, 79, 236, .23);
+  box-shadow: 0 7px 22px rgba(110,79,236,.23);
   cursor: pointer;
   transition: .2s ease;
 }
@@ -709,17 +830,15 @@ background:#2d3653;margin-bottom:10px
 }
 
 /* STATUS */
-
 .vault-status {
   margin-top: 13px;
-  color: #aeb6d2;
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
 
-/* SAVED LINKS HEADER */
-
+/* VAULT LIST */
 .vault-list-header {
   display: flex;
   align-items: center;
@@ -737,13 +856,11 @@ background:#2d3653;margin-bottom:10px
   height: 43px;
   display: grid;
   place-items: center;
-  background: #242b45;
+  background: var(--surface2);
   color: #a997ff;
   border-radius: 14px;
   font-size: 21px;
 }
-
-/* SAVED LINK CARDS */
 
 .vault-list {
   display: flex;
@@ -755,7 +872,7 @@ background:#2d3653;margin-bottom:10px
   padding: 17px;
   border-radius: 19px;
   border: 1px solid var(--vault-border);
-  background: linear-gradient(145deg, #1c2239, #171c30);
+  background: var(--surface);
   transition: .2s ease;
   overflow: hidden;
 }
@@ -766,21 +883,20 @@ background:#2d3653;margin-bottom:10px
 
 .qr-link-card strong {
   display: block;
-  color: #f3f4ff;
+  color: var(--text);
   font-size: 15px;
   overflow-wrap: anywhere;
 }
 
 .qr-link-meta {
-  color: #929bb9;
+  color: var(--muted);
   font-size: 11px;
   margin-top: 8px;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
 
-/* OPEN LINK BUTTON */
-
+/* OPEN LINK */
 .qr-link-button {
   display: flex;
   align-items: center;
@@ -788,7 +904,6 @@ background:#2d3653;margin-bottom:10px
   gap: 9px;
   width: 100%;
   min-height: 48px;
-  box-sizing: border-box;
   padding: 13px;
   margin-top: 16px;
   border-radius: 14px;
@@ -797,7 +912,7 @@ background:#2d3653;margin-bottom:10px
   text-decoration: none !important;
   font-weight: 800;
   font-size: 13px;
-  box-shadow: 0 5px 16px rgba(99, 74, 218, .18);
+  box-shadow: 0 5px 16px rgba(99,74,218,.18);
   transition: .2s ease;
 }
 
@@ -806,57 +921,34 @@ background:#2d3653;margin-bottom:10px
   filter: brightness(.9);
 }
 
-/* SECONDARY BUTTONS */
-
+/* VAULT BUTTONS */
 .qr-link-card button.secondary {
   min-height: 42px;
   padding: 11px 14px;
   margin: 10px 5px 0 0;
-  border: 1px solid #39415f;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #292f49;
-  color: #dce1fa;
+  background: var(--surface2);
+  color: var(--text);
   font-size: 12px;
   font-weight: 700;
-  cursor: pointer;
   transition: .2s ease;
-}
-
-.qr-link-card button.secondary:active {
-  transform: scale(.95);
 }
 
 .qr-delete-button {
   min-height: 42px;
   padding: 11px 14px;
   margin-top: 10px;
-  border: 1px solid rgba(255, 112, 143, .13);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #3a263b;
-  color: #ff9eaf;
+  background: var(--danger-bg);
+  color: var(--danger-text);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
 
-.qr-delete-button:active {
-  transform: scale(.95);
-}
-
-/* EMPTY STATE */
-
-.qr-empty {
-  text-align: center;
-  padding: 28px 18px;
-  border: 1px dashed #373e5d;
-  border-radius: 18px;
-  background: rgba(25, 30, 48, .5);
-  color: #8993b3;
-  font-size: 13px;
-}
-
 /* CAMERA */
-
 .vault-camera {
   margin-top: 14px;
   overflow: hidden;
@@ -885,9 +977,54 @@ background:#2d3653;margin-bottom:10px
   font-weight: 800;
 }
 
-/* MOBILE */
+/* ==================================
+   LIGHT MODE EXTRA FIXES
+================================== */
+html[data-theme="light"] .qr-badge {
+  background: #eee9ff;
+  color: #7357df;
+}
 
-@media (max-width: 420px) {
+html[data-theme="light"] .vault-icon {
+  box-shadow: 0 6px 18px rgba(111,79,255,.14);
+}
+
+html[data-theme="light"] .vault-hero-symbol,
+html[data-theme="light"] .vault-list-icon {
+  background: #eee9ff;
+  color: #7357df;
+}
+
+html[data-theme="light"] .upload-icon {
+  background: #eee9ff;
+  color: #7357df;
+}
+
+html[data-theme="light"] .upload-cta {
+  background: #eee9ff;
+  color: #7357df;
+}
+
+html[data-theme="light"] .vault-result {
+  background: #f0faf6;
+  border-color: #d2eee1;
+}
+
+html[data-theme="light"] .vault-success {
+  color: #16895e;
+}
+
+/* MOBILE */
+@media (max-width: 480px) {
+  .app {
+    padding: 14px;
+  }
+
+  .card {
+    padding: 17px;
+    border-radius: 19px;
+  }
+
   .vault-hero {
     padding: 15px;
     border-radius: 21px;
@@ -904,62 +1041,86 @@ background:#2d3653;margin-bottom:10px
   .qr-link-card {
     padding: 14px;
   }
-}
 
-/* BUTTON FEEDBACK */
-
-.vault-page button {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .vault-page *,
-  .qr-link-card,
-  .vault-scan-btn,
-  .vault-save-btn {
-    transition: none !important;
+  .tab {
+    font-size: 13px;
+    padding: 12px 9px;
   }
 }
 
+/* ACCESSIBILITY */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
 </style>
 </head>
 
 <body>
 <div class="app">
 
+<!-- ==================================
+     HEADER
+================================== -->
 <header class="header">
   <div class="logo">📱 POP<span>ER</span></div>
   <button id="logoutBtn" class="secondary" hidden>Logout</button>
 </header>
 
-<!-- LOGIN -->
+<!-- ==================================
+     LOGIN
+================================== -->
 <section id="loginPanel" class="card">
   <h2>Login POPER</h2>
   <p>Masuk menggunakan nomor HP kamu.</p>
 
-  <input id="phoneInput" type="tel" placeholder="08xxxxxxxxxx">
-  <button id="sendOtpBtn" class="primary">Kirim OTP</button>
+  <input
+    id="phoneInput"
+    type="tel"
+    inputmode="tel"
+    autocomplete="tel"
+    placeholder="08xxxxxxxxxx"
+  >
+
+  <button id="sendOtpBtn" class="primary">
+    Kirim OTP
+  </button>
 
   <div id="recaptcha-container"></div>
 
   <div id="otpSection" hidden>
-    <input id="otpInput" inputmode="numeric" maxlength="6"
-      placeholder="Kode OTP 6 digit">
-    <button id="verifyOtpBtn" class="primary">Verifikasi OTP</button>
+    <input
+      id="otpInput"
+      type="text"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      maxlength="6"
+      placeholder="Kode OTP 6 digit"
+    >
+
+    <button id="verifyOtpBtn" class="primary">
+      Verifikasi OTP
+    </button>
   </div>
+
   <div id="authStatus"></div>
 </section>
 
-<!-- DASHBOARD -->
+<!-- ==================================
+     DASHBOARD
+================================== -->
 <main id="dashboard" hidden>
 
+  <!-- PROFILE HEADER -->
   <div class="card">
     <div class="avatar">👤</div>
-    <h2 id="welcome">Selamat datang</h2>
+    <h2 id="welcome">Selamat datang di POPER</h2>
     <small id="myPhone"></small>
   </div>
 
+  <!-- NAVIGATION -->
   <nav class="tabs">
     <button class="tab active" data-tab="bio">Bio</button>
     <button class="tab" data-tab="qr">QR Vault</button>
@@ -967,179 +1128,231 @@ background:#2d3653;margin-bottom:10px
     <button class="tab" data-tab="find">Find Bio</button>
   </nav>
 
-  <!-- BIO -->
+  <!-- ==================================
+       BIO SECTION
+  ================================== -->
   <section class="section active" id="bio">
 
-    <!-- POPER THEME SETTINGS -->
-<div class="theme-setting" id="themeSettings">
-  <h3>🎨 Tampilan POPER</h3>
-  <p>Pilih tampilan yang nyaman untukmu.</p>
+    <!-- THEME SETTINGS -->
+    <div class="theme-setting" id="themeSettings">
+      <h3>🎨 Tampilan POPER</h3>
+      <p>Pilih tampilan yang nyaman untukmu.</p>
 
-  <div class="theme-buttons">
-    <button class="theme-choice" data-theme-choice="light">
-      ☀️ Terang
-    </button>
+      <div class="theme-buttons">
+        <button class="theme-choice" data-theme-choice="light">
+          ☀️ Terang
+        </button>
 
-    <button class="theme-choice" data-theme-choice="dark">
-      🌙 Gelap
-    </button>
-  </div>
+        <button class="theme-choice" data-theme-choice="dark">
+          🌙 Gelap
+        </button>
+      </div>
 
-  <p id="themeStatus" style="font-size:13px;margin-top:12px">
-    Tema tersimpan otomatis.
-  </p>
-</div>
+      <p id="themeStatus" style="font-size:13px;margin-top:12px">
+        Tema tersimpan otomatis.
+      </p>
+    </div>
+
+    <!-- BIO PROFILE EDITOR -->
     <div class="card">
       <h2>Profil Bio Saya</h2>
+
       <input id="bioName" placeholder="Nama">
+
       <textarea id="bioDesc" placeholder="Tentang saya"></textarea>
+
       <input id="bioTitle" placeholder="Judul link">
-      <input id="bioUrl" placeholder="https://alamat-link.com">
-      <button id="addBioLink" class="secondary">+ Tambah Link</button>
+
+      <input id="bioUrl" type="url" placeholder="https://alamat-link.com">
+
+      <button id="addBioLink" class="secondary">
+        + Tambah Link
+      </button>
+
       <div id="bioLinks"></div>
-      <button id="saveBio" class="primary">Simpan Bio Online</button>
+
+      <button id="saveBio" class="primary">
+        Simpan Bio Online
+      </button>
+
       <p id="bioStatus"></p>
     </div>
 
+    <!-- PUBLIC BIO -->
     <button id="openPublicBio" class="primary">
-  🌐 Lihat Public Bio
-</button>
+      🌐 Lihat Public Bio
+    </button>
+
   </section>
 
-  
-<!-- QR VAULT -->
+  <!-- ==================================
+       QR VAULT
+  ================================== -->
+  <section class="section" id="qr">
 
+    <div class="vault-page">
 
-<section class="section" id="qr">
-
-  <div class="vault-page">
-
-    <!-- HEADER -->
-    <div class="vault-header">
-      <div class="vault-brand">
-        <div class="vault-icon">✦</div>
-        <div>
-          <span class="vault-eyebrow">POPER PERSONAL VAULT</span>
-          <h2>QR Vault</h2>
-          <p>Simpan QR. Ubah menjadi link. Akses kapan saja.</p>
+      <!-- HEADER -->
+      <div class="vault-header">
+        <div class="vault-brand">
+          <div class="vault-icon">✦</div>
+          <div>
+            <span class="vault-eyebrow">POPER PERSONAL VAULT</span>
+            <h2>QR Vault</h2>
+            <p>Simpan QR. Ubah menjadi link. Akses kapan saja.</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- SCAN CARD -->
-    <div class="vault-hero">
+      <!-- SCAN CARD -->
+      <div class="vault-hero">
 
-      <div class="vault-hero-top">
-        <div>
-          <span class="vault-label">QUICK ACTION</span>
-          <h3>Masukkan QR kamu</h3>
-          <p>Scan langsung atau ambil gambar QR dari galeri.</p>
+        <div class="vault-hero-top">
+          <div>
+            <span class="vault-label">QUICK ACTION</span>
+            <h3>Masukkan QR kamu</h3>
+            <p>Scan langsung atau ambil gambar QR dari galeri.</p>
+          </div>
+
+          <div class="vault-hero-symbol">⌗</div>
         </div>
-        <div class="vault-hero-symbol">⌗</div>
-      </div>
 
-      <button id="startQRScanner" class="vault-scan-btn">
-        <span class="btn-icon">⌗</span>
-        <span>
-          <strong>Scan QR Kamera</strong>
-          <small>Arahkan kamera ke kode QR</small>
-        </span>
-        <span class="btn-arrow">→</span>
-      </button>
+        <!-- CAMERA SCANNER -->
+        <button id="startQRScanner" class="vault-scan-btn">
+          <span class="btn-icon">⌗</span>
 
-      <div id="qrCameraBox" hidden class="vault-camera">
-        <video id="qrVideo" autoplay playsinline></video>
+          <span>
+            <strong>Scan QR Kamera</strong>
+            <small>Arahkan kamera ke kode QR</small>
+          </span>
 
-        <button id="stopQRScanner" class="vault-stop-btn">
-          ✕ Tutup Kamera
+          <span class="btn-arrow">→</span>
         </button>
-      </div>
 
-      <div class="vault-divider">
-        <span>ATAU UPLOAD GAMBAR</span>
-      </div>
+        <div id="qrCameraBox" hidden class="vault-camera">
+          <video id="qrVideo" autoplay playsinline></video>
 
-      <label for="qrImageInput" class="vault-upload">
-        <div class="upload-icon">⇧</div>
-        <strong>Pilih gambar QR</strong>
-        <span>JPG, PNG, WEBP dari galeri</span>
-        <span class="upload-cta">Pilih gambar</span>
-      </label>
-
-      <input
-        type="file"
-        id="qrImageInput"
-        accept="image/*"
-        hidden
-      />
-
-      <div id="qrPreview" class="vault-preview"></div>
-
-      <!-- RESULT -->
-      <div id="qrResultBox" hidden class="vault-result">
-
-        <div class="vault-result-heading">
-          <span class="vault-label">QR TERDETEKSI</span>
-          <span class="vault-success">● Berhasil dibaca</span>
+          <button id="stopQRScanner" class="vault-stop-btn">
+            ✕ Tutup Kamera
+          </button>
         </div>
 
-        <label class="vault-input-label">Nama tombol</label>
+        <!-- UPLOAD -->
+        <div class="vault-divider">
+          <span>ATAU UPLOAD GAMBAR</span>
+        </div>
+
+        <label for="qrImageInput" class="vault-upload">
+          <div class="upload-icon">⇧</div>
+          <strong>Pilih gambar QR</strong>
+          <span>JPG, PNG, WEBP dari galeri</span>
+          <span class="upload-cta">Pilih gambar</span>
+        </label>
+
         <input
-          id="qrName"
-          placeholder="Contoh: Instagram, Toko, Website"
-        />
+          type="file"
+          id="qrImageInput"
+          accept="image/*"
+          hidden
+        >
 
-        <label class="vault-input-label">Link hasil scan</label>
-        <textarea
-          id="qrUrl"
-          placeholder="Link hasil QR akan muncul di sini"
-          rows="3"
-        ></textarea>
+        <div id="qrPreview" class="vault-preview"></div>
 
-        <button id="saveQR" class="vault-save-btn">
-          <span>＋</span> Simpan ke Vault
-        </button>
+        <!-- RESULT -->
+        <div id="qrResultBox" hidden class="vault-result">
+
+          <div class="vault-result-heading">
+            <span class="vault-label">QR TERDETEKSI</span>
+            <span class="vault-success">● Berhasil dibaca</span>
+          </div>
+
+          <label class="vault-input-label" for="qrName">
+            Nama tombol
+          </label>
+
+          <input
+            id="qrName"
+            placeholder="Contoh: Instagram, Toko, Website"
+          >
+
+          <label class="vault-input-label" for="qrUrl">
+            Link hasil scan
+          </label>
+
+          <textarea
+            id="qrUrl"
+            placeholder="Link hasil QR akan muncul di sini"
+            rows="3"
+          ></textarea>
+
+          <button id="saveQR" class="vault-save-btn">
+            ＋ Simpan ke Vault
+          </button>
+        </div>
+
+        <div id="qrScanStatus" class="vault-status"></div>
       </div>
 
-      <div id="qrScanStatus" class="vault-status"></div>
-    </div>
+      <!-- SAVED LINKS -->
+      <div class="vault-list-header">
+        <div>
+          <span class="vault-label">YOUR COLLECTION</span>
+          <h3>Link Tersimpan</h3>
+        </div>
 
-    <!-- SAVED LINKS -->
-    <div class="vault-list-header">
-      <div>
-        <span class="vault-label">YOUR COLLECTION</span>
-        <h3>Link Tersimpan</h3>
+        <div class="vault-list-icon">▤</div>
       </div>
-      <div class="vault-list-icon">▤</div>
+
+      <div id="qrList" class="vault-list"></div>
+
     </div>
+  </section>
 
-    <div id="qrList" class="vault-list"></div>
-
-  </div>
-
-</section>
-
-
-
-
-  <!-- NOTES -->
+  <!-- ==================================
+       NOTES
+  ================================== -->
   <section class="section" id="notes">
     <div class="card">
-      <h2>Notes</h2>
-      <input id="noteTitle" placeholder="Judul catatan">
-      <textarea id="noteContent" placeholder="Tulis catatan..."></textarea>
-      <button id="saveNote" class="primary">Simpan Catatan</button>
+      <h2>📝 Notes</h2>
+
+      <input
+        id="noteTitle"
+        placeholder="Judul catatan"
+      >
+
+      <textarea
+        id="noteContent"
+        placeholder="Tulis catatan..."
+      ></textarea>
+
+      <button id="saveNote" class="primary">
+        Simpan Catatan
+      </button>
+
       <div id="notesList"></div>
     </div>
   </section>
 
-  <!-- FIND BIO -->
+  <!-- ==================================
+       FIND BIO
+  ================================== -->
   <section class="section" id="find">
     <div class="card">
-      <h2>Find Bio by Phone</h2>
+      <h2>🔎 Find Bio</h2>
+
       <p>Cari Bio Link pengguna menggunakan nomor HP.</p>
-      <input id="findPhone" type="tel" placeholder="Masukkan nomor HP">
-      <button id="findBio" class="primary">Cari Bio</button>
+
+      <input
+        id="findPhone"
+        type="tel"
+        inputmode="tel"
+        placeholder="Masukkan nomor HP"
+      >
+
+      <button id="findBio" class="primary">
+        Cari Bio
+      </button>
+
       <div id="findResult"></div>
     </div>
   </section>
@@ -1148,7 +1361,7 @@ background:#2d3653;margin-bottom:10px
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<!-- APP SCRIPT -->
 <script type="module" src="app.js"></script>
 </body>
 </html>

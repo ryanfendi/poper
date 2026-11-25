@@ -3,274 +3,271 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#10121b">
-  <title>POPER - Scan Number</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101323">
+  <title>POPER — Login</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      background: #101323;
+      color: #f4f5ff;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 430px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo-icon {
+      width: 75px;
+      height: 75px;
+      margin: auto;
+      border-radius: 25px;
+      display: grid;
+      place-items: center;
+      font-size: 35px;
+      background: linear-gradient(135deg, #8b5cf6, #4e7bff);
+    }
+
+    .logo h1 {
+      font-size: 30px;
+      margin: 12px 0 5px;
+    }
+
+    .logo p {
+      color: #a3a7c2;
+      margin: 0;
+    }
+
+    .card {
+      background: #1b2035;
+      border: 1px solid #303650;
+      border-radius: 22px;
+      padding: 24px;
+    }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .subtitle {
+      color: #a5aac4;
+      margin: 0 0 22px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 15px;
+      margin-bottom: 14px;
+      border: 1px solid #3b415d;
+      background: #101528;
+      color: white;
+      border-radius: 12px;
+      outline: none;
+      font-size: 16px;
+    }
+
+    input:focus {
+      border-color: #8b5cf6;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      padding: 15px;
+      background: linear-gradient(135deg, #8b5cf6, #557cff);
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    button.secondary {
+      background: #2a3049;
+    }
+
+    #recaptcha-container {
+      margin: 15px 0;
+      display: flex;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .auth-status {
+      margin-top: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .auth-status.error {
+      color: #ff929e;
+    }
+
+    .auth-status.success {
+      color: #80e4b2;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .account {
+      text-align: center;
+    }
+
+    .account-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      margin: 0 auto 15px;
+      display: grid;
+      place-items: center;
+      background: #2c3654;
+      font-size: 30px;
+    }
+
+    .account-number {
+      padding: 14px;
+      margin: 20px 0;
+      background: #101528;
+      border-radius: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .footer {
+      text-align: center;
+      color: #747b98;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="app">
+<div class="container">
 
-  <header class="header">
-    <div class="brand">
-      <div class="brand-icon">P</div>
-      <div>
-        <h1>poper<span>.</span></h1>
-        <small>SCAN NUMBER · FIND BIO</small>
-      </div>
-    </div>
-    <button class="avatar" id="profileBtn">👤</button>
+  <header class="logo">
+    <div class="logo-icon">📱</div>
+    <h1>POPER</h1>
+    <p>Your phone number is your identity</p>
   </header>
 
-  <main id="homePage" class="page active">
+  <!-- LOGIN -->
+  <section class="card" id="loginPanel">
 
-    <div class="welcome">
-      <p class="eyebrow">PHONE IDENTITY NETWORK</p>
-      <h2>Find people<br>by <span>phone number.</span></h2>
-      <p>Arahkan kamera ke nomor HP untuk menemukan Bio Link pemiliknya.</p>
-    </div>
+    <h2>Masuk ke POPER</h2>
 
-    <button class="scan-card" id="openScanner">
-      <div class="scan-visual">
-        <div class="scan-frame">
-          <span class="corner tl"></span>
-          <span class="corner tr"></span>
-          <span class="corner bl"></span>
-          <span class="corner br"></span>
-          <div class="scan-line"></div>
-          <span class="scan-placeholder">0812 3456 7890</span>
-        </div>
-      </div>
-      <div class="scan-info">
-        <div>
-          <h3>Scan Phone Number</h3>
-          <p>Scan tulisan nomor HP langsung</p>
-        </div>
-        <div class="scan-arrow">↗</div>
-      </div>
-    </button>
-
-    <div class="section-heading">
-      <h3>Quick Access</h3>
-    </div>
-
-    <div class="quick-grid">
-      <button class="quick-item" id="myBioBtn">
-        <div class="quick-icon purple">↗</div>
-        <span>My Bio</span>
-      </button>
-
-      <button class="quick-item" id="vaultBtn">
-        <div class="quick-icon blue">▣</div>
-        <span>QR Vault</span>
-      </button>
-
-      <button class="quick-item" id="notesBtn">
-        <div class="quick-icon orange">✎</div>
-        <span>Notes</span>
-      </button>
-
-      <button class="quick-item" id="historyBtn">
-        <div class="quick-icon green">◷</div>
-        <span>History</span>
-      </button>
-    </div>
-
-    <div class="section-heading">
-      <h3>Recent Scans</h3>
-      <button id="clearHistory">Clear</button>
-    </div>
-
-    <div id="recentList" class="recent-list">
-      <div class="empty-state">
-        <span>◉</span>
-        <p>Nomor yang kamu scan akan muncul di sini.</p>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- SCANNER PAGE -->
-  <section id="scannerPage" class="page">
-    <div class="page-top">
-      <button class="back-btn" id="closeScanner">←</button>
-      <h3>Scan Number</h3>
-      <span></span>
-    </div>
-
-    <div class="camera-box">
-      <video id="camera" autoplay playsinline></video>
-      <div class="camera-overlay">
-        <div class="ocr-frame">
-          <span class="corner tl"></span>
-          <span class="corner tr"></span>
-          <span class="corner bl"></span>
-          <span class="corner br"></span>
-          <div class="camera-scanline"></div>
-        </div>
-      </div>
-      <div id="cameraMessage" class="camera-message">
-        Arahkan kamera ke tulisan nomor HP
-      </div>
-    </div>
-
-    <p class="scanner-tip">
-      Pastikan nomor terlihat jelas, pencahayaan cukup dan kamera tidak goyang.
+    <p class="subtitle">
+      Gunakan nomor HP untuk masuk atau membuat akun.
+      Kami akan mengirim kode verifikasi melalui SMS.
     </p>
 
-    <button class="primary-btn" id="captureBtn">◉ Scan Number</button>
-    <button class="secondary-btn" id="uploadImageBtn">Scan dari gambar</button>
-    <input type="file" id="imageInput" accept="image/*" hidden>
+    <label for="phoneInput">Nomor HP</label>
 
-    <div id="scanStatus" class="status-text"></div>
+    <input
+      type="tel"
+      id="phoneInput"
+      placeholder="08xxxxxxxxxx"
+      autocomplete="tel"
+    >
 
-    <div class="manual-box">
-      <p>Atau masukkan nomor secara manual</p>
-      <div class="manual-input">
-        <input id="manualNumber" type="tel" placeholder="+62 812 xxxx xxxx">
-        <button id="manualSearch">→</button>
-      </div>
+    <button id="sendOtpBtn">
+      Kirim OTP
+    </button>
+
+    <!-- Firebase reCAPTCHA -->
+    <div id="recaptcha-container"></div>
+
+    <!-- OTP -->
+    <div id="otpSection" hidden>
+
+      <label for="otpInput">Kode OTP 6 digit</label>
+
+      <input
+        type="text"
+        id="otpInput"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="6"
+        placeholder="123456"
+      >
+
+      <button id="verifyOtpBtn">
+        Verifikasi OTP
+      </button>
+
     </div>
+
+    <div id="authStatus" class="auth-status"></div>
+
   </section>
 
-  <!-- RESULT PAGE -->
-  <section id="resultPage" class="page">
-    <div class="page-top">
-      <button class="back-btn" id="resultBack">←</button>
-      <h3>Scan Result</h3>
-      <span></span>
-    </div>
+  <!-- ACCOUNT -->
+  <section class="card account" id="accountPanel" hidden>
 
-    <div class="result-card">
-      <div class="result-icon">☎</div>
-      <p>PHONE NUMBER DETECTED</p>
-      <h2 id="detectedNumber"></h2>
-      <div id="resultMessage" class="result-message"></div>
-    </div>
+    <div class="account-avatar">👤</div>
 
-    <button class="primary-btn" id="findBioBtn">Find POPER Bio →</button>
-    <button class="secondary-btn" id="saveNumberBtn">Save Number</button>
-    <button class="secondary-btn" id="whatsappBtn">Open WhatsApp</button>
-  </section>
+    <h2>Login Berhasil!</h2>
 
-  <!-- MY BIO -->
-  <section id="bioPage" class="page">
-    <div class="page-top">
-      <button class="back-btn" id="bioBack">←</button>
-      <h3>My Bio</h3>
-      <button class="text-btn" id="saveBio">Save</button>
-    </div>
-
-    <div class="bio-preview">
-      <div class="bio-avatar" id="bioAvatar">👤</div>
-      <h2 id="bioPreviewName">Your Name</h2>
-      <p id="bioPreviewDesc">Welcome to my POPER page</p>
-    </div>
-
-    <div class="form-group">
-      <label>Display Name</label>
-      <input id="bioName" placeholder="Your name">
-    </div>
-
-    <div class="form-group">
-      <label>Description</label>
-      <textarea id="bioDesc" placeholder="Write something about you"></textarea>
-    </div>
-
-    <div class="form-group">
-      <label>Phone Number</label>
-      <input id="bioPhone" type="tel" placeholder="Your phone number">
-    </div>
-
-    <div class="section-heading">
-      <h3>My Links</h3>
-      <button id="addLinkBtn">+ Add</button>
-    </div>
-
-    <div id="bioLinks"></div>
-
-    <button class="secondary-btn" id="shareBioBtn">Share My Bio</button>
-  </section>
-
-  <!-- QR VAULT -->
-  <section id="vaultPage" class="page">
-    <div class="page-top">
-      <button class="back-btn" id="vaultBack">←</button>
-      <h3>QR Vault</h3>
-      <button class="text-btn" id="addQrBtn">+ Add</button>
-    </div>
-
-    <p class="page-description">
-      Simpan QRIS, QR WiFi, QR website dan QR lainnya di satu tempat.
+    <p class="subtitle">
+      Nomor HP kamu sudah terverifikasi.
     </p>
 
-    <input type="file" id="qrImageInput" accept="image/*" hidden>
-
-    <div class="vault-empty" id="vaultList">
-      <div class="empty-icon">▦</div>
-      <h3>Your QR collection</h3>
-      <p>QR yang kamu simpan akan muncul di sini.</p>
-      <button class="secondary-btn" id="firstQrBtn">+ Save QR Image</button>
+    <div class="account-number">
+      <strong id="accountPhone">-</strong>
     </div>
+
+    <button id="logoutBtn" class="secondary">
+      Logout
+    </button>
+
+    <div id="accountStatus" class="auth-status"></div>
+
   </section>
 
-  <!-- NOTES -->
-  <section id="notesPage" class="page">
-    <div class="page-top">
-      <button class="back-btn" id="notesBack">←</button>
-      <h3>My Notes</h3>
-      <button class="text-btn" id="addNoteBtn">+ Add</button>
-    </div>
+  <div class="footer">
+    POPER · Phone Identity Platform
+  </div>
 
-    <div id="notesList"></div>
-  </section>
+</div>
 
-  <!-- HISTORY -->
-  <section id="historyPage" class="page">
-    <div class="page-top">
-      <button class="back-btn" id="historyBack">←</button>
-      <h3>Scan History</h3>
-      <span></span>
-    </div>
-    <div id="fullHistory"></div>
-  </section>
+<script type="module" src="auth.js"></script>
 
-  <!-- PROFILE -->
-  <section id="profilePage" class="page">
-    <div class="page-top">
-      <button class="back-btn" id="profileBack">←</button>
-      <h3>Account</h3>
-      <span></span>
-    </div>
-    <div class="profile-card">
-      <div class="bio-avatar">👤</div>
-      <h2 id="accountName">Guest User</h2>
-      <p>POPER account</p>
-    </div>
-    <button class="secondary-btn" id="editProfileBtn">Edit My Bio</button>
-  </section>
-
-  <!-- BOTTOM NAV -->
-  <nav class="bottom-nav" id="bottomNav">
-    <button class="nav-item selected" data-page="homePage">
-      <span>⌂</span><small>Home</small>
-    </button>
-    <button class="nav-item" id="navScan">
-      <span>⌗</span><small>Scan</small>
-    </button>
-    <button class="nav-item" data-page="bioPage">
-      <span>↗</span><small>My Bio</small>
-    </button>
-    <button class="nav-item" data-page="vaultPage">
-      <span>▣</span><small>Vault</small>
-    </button>
-  </nav>
-
-<div id="recaptcha-container"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script type="module" src="app.js"></script>
 </body>
 </html>

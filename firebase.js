@@ -10,9 +10,17 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
+
 import {
-  getDatabase
+  getDatabase,
+  ref,
+  get,
+  set,
+  update,
+  remove,
+  push
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+
 
 // =================================
 // FIREBASE CONFIG

@@ -3,47 +3,43 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#f5f7fb">
-<title>POPER — Phone Scanner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f7fb">
+<title>POPER — Phone Identity</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
 :root {
-  --bg:#f5f7fb;
+  --bg:#f4f7fb;
   --card:#ffffff;
-  --text:#182033;
-  --muted:#8a94a6;
-  --primary:#5b67f1;
-  --primary2:#7c83ff;
-  --border:#e9edf5;
-  --success:#16a779;
-  --danger:#ef5350;
-  --shadow:0 8px 28px rgba(32,49,95,.07);
+  --text:#172033;
+  --muted:#7c879a;
+  --border:#e4eaf2;
+  --primary:#3978f6;
+  --primary2:#6b5cff;
+  --soft:#eaf1ff;
+  --success:#16a34a;
+  --danger:#dc2626;
+  --shadow:0 10px 35px rgba(26,45,80,.07);
 }
 
 * {
   box-sizing:border-box;
-  margin:0;
-  padding:0;
 }
 
 body {
-  font-family:Inter,sans-serif;
+  margin:0;
   background:var(--bg);
   color:var(--text);
-  min-height:100vh;
-}
-
-body.dark {
-  --bg:#111827;
-  --card:#1e293b;
-  --text:#f1f5f9;
-  --muted:#9aa8bb;
-  --border:#334155;
-  --shadow:0 8px 28px rgba(0,0,0,.2);
+  font-family:Inter,sans-serif;
+  transition:background .2s,color .2s;
 }
 
 button,input,textarea {
@@ -52,27 +48,37 @@ button,input,textarea {
 
 button {
   cursor:pointer;
-  border:0;
+  -webkit-tap-highlight-color:transparent;
 }
 
-.app {
-  max-width:520px;
+.hidden {
+  display:none!important;
+}
+
+.app-shell {
+  max-width:760px;
   margin:auto;
   min-height:100vh;
-  padding:18px 16px 100px;
+  padding-bottom:100px;
 }
 
-.header {
+.topbar {
   display:flex;
   align-items:center;
   justify-content:space-between;
-  margin:6px 0 24px;
+  padding:18px 20px;
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:var(--bg);
+  backdrop-filter:blur(15px);
 }
 
 .logo {
   font-family:"Baloo 2",sans-serif;
-  font-size:30px;
+  font-size:29px;
   font-weight:800;
+  letter-spacing:-1px;
   color:var(--primary);
 }
 
@@ -80,14 +86,22 @@ button {
   color:var(--text);
 }
 
+.top-actions {
+  display:flex;
+  gap:8px;
+}
+
 .icon-btn {
+  border:1px solid var(--border);
   background:var(--card);
   color:var(--text);
-  border:1px solid var(--border);
   width:42px;
   height:42px;
   border-radius:14px;
-  font-size:18px;
+}
+
+main {
+  padding:8px 16px 24px;
 }
 
 .section {
@@ -99,252 +113,542 @@ button {
 }
 
 .hero {
-  margin-bottom:20px;
+  padding:24px 4px 20px;
 }
 
 .hero h1 {
   font-family:"Baloo 2",sans-serif;
-  font-size:27px;
-  line-height:1.15;
-  margin-bottom:8px;
+  font-size:30px;
+  line-height:1.1;
+  margin:0 0 8px;
 }
 
 .hero p {
   color:var(--muted);
-  font-size:14px;
   line-height:1.6;
+  margin:0;
 }
 
 .card {
   background:var(--card);
   border:1px solid var(--border);
-  border-radius:24px;
-  padding:18px;
-  box-shadow:var(--shadow);
+  border-radius:23px;
+  padding:19px;
   margin-bottom:16px;
+  box-shadow:var(--shadow);
 }
 
-.card-title {
-  font-size:16px;
-  font-weight:700;
-  margin-bottom:14px;
+.card h2,.card h3 {
+  margin-top:0;
 }
 
-.scanner-box {
-  background:#111827;
-  border-radius:20px;
-  overflow:hidden;
-  position:relative;
-  aspect-ratio:4/3;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.scanner-box video {
+.primary-btn,.secondary-btn,.danger-btn {
   width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.scanner-box video.hidden {
-  display:none;
-}
-
-.scan-frame {
-  position:absolute;
-  width:86%;
-  height:65%;
-  border:2px solid #8b92ff;
-  border-radius:18px;
-  pointer-events:none;
-  box-shadow:0 0 0 1000px rgba(0,0,0,.15);
-}
-
-.scanner-hint {
-  position:absolute;
-  bottom:14px;
-  left:0;
-  right:0;
-  text-align:center;
-  color:#fff;
-  font-size:12px;
-  text-shadow:0 1px 3px #000;
-}
-
-.camera-placeholder {
-  text-align:center;
-  color:#aab4c7;
-  padding:20px;
-}
-
-.camera-placeholder .camera-icon {
-  font-size:44px;
-  margin-bottom:10px;
-}
-
-.camera-placeholder p {
-  font-size:13px;
-}
-
-.camera-placeholder.hidden {
-  display:none;
-}
-
-.btn {
-  padding:14px 16px;
+  border:0;
   border-radius:15px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
+  padding:14px 16px;
   font-weight:700;
-  width:100%;
-  transition:.2s;
+  min-height:48px;
 }
 
-.btn:active {
-  transform:scale(.98);
-}
-
-.btn-primary {
+.primary-btn {
   background:linear-gradient(135deg,var(--primary),var(--primary2));
   color:white;
 }
 
-.btn-secondary {
-  background:var(--bg);
-  color:var(--text);
-  border:1px solid var(--border);
+.secondary-btn {
+  background:var(--soft);
+  color:var(--primary);
 }
 
-.btn-success {
-  background:var(--success);
-  color:white;
+.danger-btn {
+  background:#fee2e2;
+  color:#b91c1c;
 }
 
-.btn-danger {
-  background:var(--danger);
-  color:white;
-}
-
-.btn-small {
-  padding:10px;
-  border-radius:12px;
-  font-size:13px;
-}
-
-.button-grid {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:12px;
-}
-
-.input-group {
-  margin-top:14px;
-}
-
-.input-group label {
-  display:block;
-  font-size:12px;
+.small-btn {
+  width:auto;
+  padding:9px 13px;
+  min-height:38px;
+  border-radius:11px;
+  border:0;
+  background:var(--soft);
+  color:var(--primary);
   font-weight:700;
-  color:var(--muted);
-  margin-bottom:8px;
 }
 
-.input {
+.field {
+  margin-bottom:15px;
+}
+
+.field label {
+  display:block;
+  margin-bottom:7px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.field input,.field textarea {
   width:100%;
-  background:var(--bg);
   border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px;
+  border-radius:13px;
+  background:var(--bg);
   color:var(--text);
+  padding:13px;
   outline:none;
 }
 
-.input:focus {
+.field input:focus,.field textarea:focus {
   border-color:var(--primary);
 }
 
-.result-number {
-  font-family:"Baloo 2",sans-serif;
-  font-size:27px;
-  font-weight:800;
-  letter-spacing:1px;
-  text-align:center;
-  padding:14px 4px;
+.field textarea {
+  min-height:95px;
+  resize:vertical;
+}
+
+.muted {
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.6;
 }
 
 .status {
-  font-size:12px;
-  color:var(--muted);
   text-align:center;
-  padding:10px;
-  min-height:36px;
-}
-
-.status.success {
-  color:var(--success);
+  font-size:13px;
+  min-height:20px;
+  margin-top:10px;
+  color:var(--muted);
 }
 
 .status.error {
   color:var(--danger);
 }
 
-.status.loading {
-  color:var(--primary);
+.status.success {
+  color:var(--success);
 }
 
-.divider {
+.home-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.home-tile {
+  border:1px solid var(--border);
+  border-radius:19px;
+  background:var(--card);
+  color:var(--text);
+  padding:18px;
+  text-align:left;
+  min-height:125px;
+}
+
+.home-tile .tile-icon {
+  font-size:26px;
+  display:block;
+  margin-bottom:12px;
+}
+
+.home-tile strong {
+  display:block;
+  margin-bottom:5px;
+}
+
+.home-tile small {
+  color:var(--muted);
+  line-height:1.5;
+}
+
+.section-title {
+  font-family:"Baloo 2",sans-serif;
+  font-size:25px;
+  margin:12px 0 4px;
+}
+
+.section-desc {
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.6;
+  margin:0 0 18px;
+}
+
+.camera-frame {
+  position:relative;
+  width:100%;
+  min-height:260px;
+  border-radius:20px;
+  overflow:hidden;
+  background:#101827;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.camera-frame video {
+  width:100%;
+  height:100%;
+  min-height:260px;
+  object-fit:cover;
+}
+
+.camera-placeholder {
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:#cbd5e1;
+  gap:8px;
+  padding:20px;
+  text-align:center;
+}
+
+.camera-placeholder span {
+  font-size:48px;
+}
+
+.scan-guide {
+  pointer-events:none;
+  position:absolute;
+  width:85%;
+  height:100px;
+  border:2px solid #60a5fa;
+  border-radius:18px;
+  box-shadow:0 0 0 1000px rgba(0,0,0,.15);
+}
+
+.button-row {
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+}
+
+.button-row>* {
+  flex:1;
+}
+
+.result-box {
+  background:var(--soft);
+  border-radius:16px;
+  padding:14px;
+  margin-top:14px;
+}
+
+.phone-number-input {
+  font-size:20px!important;
+  font-weight:700;
+  letter-spacing:1px;
+}
+
+.phone-candidates {
+  margin-top:12px;
+  background:var(--soft);
+  border-radius:16px;
+  padding:12px;
+}
+
+.candidate-title {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13px;
+  margin-bottom:8px;
+}
+
+#candidateList {
+  display:grid;
+  gap:8px;
+}
+
+.phone-candidate {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:13px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--card);
+  color:var(--text);
+  text-align:left;
+  width:100%;
+}
+
+.phone-candidate.selected {
+  border:2px solid var(--primary);
+}
+
+.crop-editor {
+  margin-top:14px;
+  border:1px solid var(--border);
+  background:var(--card);
+  border-radius:18px;
+  padding:12px;
+}
+
+.crop-toolbar {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.crop-tool {
+  border:1px solid var(--border);
+  background:var(--soft);
+  color:var(--primary);
+  width:38px;
+  height:38px;
+  border-radius:12px;
+  font-size:20px;
+}
+
+#cropViewport {
+  position:relative;
+  height:300px;
+  overflow:hidden;
+  background:#0f172a;
+  border-radius:13px;
+  touch-action:none;
+}
+
+#cropCanvas {
+  position:absolute;
+  left:0;
+  top:0;
+  transform-origin:top left;
+}
+
+#cropSelection {
+  position:absolute;
+  left:10%;
+  top:30%;
+  width:80%;
+  height:40%;
+  border:2px solid #60a5fa;
+  box-shadow:0 0 0 999px rgba(0,0,0,.55);
+  pointer-events:none;
+}
+
+.crop-help {
+  font-size:12px;
+  color:var(--muted);
+  text-align:center;
+}
+
+.phone-capture-preview {
+  width:100%;
+  max-height:240px;
+  object-fit:contain;
+  border-radius:15px;
+  margin-top:10px;
+}
+
+.profile-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:20px;
+}
+
+.profile-avatar {
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  object-fit:cover;
+  background:var(--soft);
+  display:block;
+  margin:0 auto 12px;
+}
+
+.profile-center {
+  text-align:center;
+}
+
+.profile-center h2 {
+  margin:8px 0;
+}
+
+.profile-link-list {
+  display:grid;
+  gap:10px;
+  margin-top:15px;
+}
+
+.profile-link {
+  display:block;
+  padding:14px;
+  border-radius:13px;
+  border:1px solid var(--border);
+  background:var(--bg);
+  text-decoration:none;
+  color:var(--text);
+  text-align:center;
+  font-weight:700;
+}
+
+.profile-actions {
+  display:grid;
+  gap:10px;
+  margin-top:15px;
+}
+
+.contact-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+}
+
+.contact-action {
+  background:var(--bg);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:15px;
+  padding:15px;
+  text-align:left;
+  min-height:82px;
+}
+
+.contact-action span {
+  display:block;
+  font-size:23px;
+  margin-bottom:7px;
+}
+
+.identity-card {
+  border-radius:25px;
+  padding:20px;
+  background:linear-gradient(145deg,#eaf2ff,#f7faff);
+  border:1px solid #dbe7fa;
+  color:#152745;
+}
+
+.identity-header {
   display:flex;
   align-items:center;
   gap:12px;
-  color:var(--muted);
-  font-size:12px;
-  margin:16px 0;
 }
 
-.divider::before,.divider::after {
-  content:"";
-  flex:1;
-  height:1px;
-  background:var(--border);
+.identity-avatar {
+  width:58px;
+  height:58px;
+  border-radius:18px;
+  background:#d9e9ff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  overflow:hidden;
 }
 
-.upload-label {
-  display:block;
-  background:var(--bg);
-  border:1px dashed var(--primary);
-  color:var(--primary);
-  border-radius:16px;
-  padding:18px;
-  text-align:center;
-  font-weight:700;
-  cursor:pointer;
+.identity-avatar img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
-.upload-label span {
-  display:block;
-  font-size:12px;
-  color:var(--muted);
-  margin-top:5px;
-}
-
-input[type=file] {
-  display:none;
-}
-
-.preview-image {
+.identity-qr {
+  margin:20px auto;
+  background:white;
+  border-radius:18px;
+  padding:15px;
+  width:max-content;
   max-width:100%;
-  max-height:280px;
-  border-radius:16px;
-  display:block;
-  margin:12px auto;
 }
 
-.preview-image.hidden {
-  display:none;
+.identity-qr img,.identity-qr canvas {
+  display:block;
+  max-width:100%;
+}
+
+.identity-link {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:white;
+  border:1px solid #dce5f0;
+  border-radius:12px;
+  padding:10px;
+  overflow-wrap:anywhere;
+}
+
+.identity-link span {
+  flex:1;
+  font-size:12px;
+}
+
+.identity-link button {
+  border:0;
+  border-radius:9px;
+  background:#eaf2ff;
+  color:#2563eb;
+  padding:8px;
+  font-weight:700;
+}
+
+.editor-photo {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.editor-photo img {
+  width:105px;
+  height:105px;
+  object-fit:cover;
+  border-radius:50%;
+  border:3px solid var(--border);
+}
+
+.editor-divider {
+  border:0;
+  border-top:1px solid var(--border);
+  margin:20px 0;
+}
+
+.qr-video {
+  width:100%;
+  min-height:220px;
+  background:#101827;
+  border-radius:17px;
+  object-fit:cover;
+}
+
+.qr-list {
+  display:grid;
+  gap:10px;
+}
+
+.qr-item,.note-item {
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:15px;
+  background:var(--card);
+}
+
+.qr-item-actions,.note-actions {
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+.qr-item-actions button,.note-actions button {
+  flex:1;
+}
+
+.note-item h4 {
+  margin:0 0 7px;
+}
+
+.note-item p {
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
 }
 
 .bottom-nav {
@@ -352,381 +656,568 @@ input[type=file] {
   bottom:0;
   left:0;
   right:0;
-  z-index:100;
-  background:var(--card);
-  border-top:1px solid var(--border);
+  z-index:30;
   display:flex;
   justify-content:center;
-  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  background:var(--card);
+  border-top:1px solid var(--border);
+  padding:8px 4px calc(8px + env(safe-area-inset-bottom));
 }
 
 .nav-inner {
-  max-width:520px;
   width:100%;
-  display:flex;
-  justify-content:space-around;
+  max-width:760px;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
 }
 
 .nav-item {
-  background:none;
+  border:0;
+  background:transparent;
   color:var(--muted);
-  padding:8px 12px;
   display:flex;
   flex-direction:column;
   align-items:center;
   gap:4px;
-  font-size:10px;
-  border-radius:12px;
+  padding:7px 2px;
+  font-size:11px;
 }
 
-.nav-item .nav-icon {
+.nav-item span {
   font-size:21px;
 }
 
 .nav-item.active {
   color:var(--primary);
-  font-weight:700;
+  font-weight:800;
 }
 
-.feature-card {
-  display:flex;
-  align-items:center;
-  gap:14px;
-  padding:16px;
-  border-radius:18px;
+.login-wrap {
+  max-width:430px;
+  margin:35px auto;
+  padding:18px;
+}
+
+.login-card {
   background:var(--card);
   border:1px solid var(--border);
-  margin-bottom:12px;
-  cursor:pointer;
+  border-radius:24px;
+  padding:23px;
+  box-shadow:var(--shadow);
 }
 
-.feature-icon {
-  width:50px;
-  height:50px;
-  border-radius:16px;
-  display:grid;
-  place-items:center;
-  font-size:24px;
-  background:rgba(91,103,241,.12);
-}
-
-.feature-card h3 {
-  font-size:15px;
-  margin-bottom:4px;
-}
-
-.feature-card p {
-  color:var(--muted);
-  font-size:12px;
-}
-
-.back-btn {
-  display:flex;
-  gap:8px;
-  align-items:center;
-  background:none;
-  color:var(--primary);
-  font-weight:700;
-  margin-bottom:18px;
-}
-
-.small-note {
-  color:var(--muted);
-  font-size:11px;
-  line-height:1.5;
+.login-logo {
   text-align:center;
-  margin-top:10px;
+  margin-bottom:20px;
 }
 
-.hide {
-  display:none!important;
+.login-logo .logo {
+  font-size:40px;
+}
+
+.login-logo p {
+  color:var(--muted);
+}
+
+#recaptcha-container {
+  margin:10px 0;
+}
+
+body.dark {
+  --bg:#101827;
+  --card:#182235;
+  --text:#e8edf6;
+  --muted:#a3afc2;
+  --border:#2b3850;
+  --soft:#22334e;
+  --shadow:0 10px 30px rgba(0,0,0,.15);
+}
+
+body.dark .identity-card {
+  background:linear-gradient(145deg,#1c2d46,#182235);
+  color:#e8edf6;
+  border-color:#334761;
+}
+
+body.dark .identity-link {
+  color:#2563eb;
+}
+
+body.dark .identity-qr {
+  background:white;
+}
+
+body.dark .contact-action {
+  background:var(--card);
 }
 
 @media(min-width:600px) {
-  .app {
-    padding-top:28px;
+  main {
+    padding-left:24px;
+    padding-right:24px;
   }
 }
 </style>
 </head>
 
 <body>
-<div class="app">
 
-<header class="header">
-  <div class="logo">POPER<span>.</span></div>
-  <button class="icon-btn" id="themeToggle" title="Tema">☀️</button>
-</header>
-
-<!-- HOME -->
-<section class="section active" id="scan">
-  <div class="hero">
-    <h1>Phone Scanner 📱</h1>
-    <p>Scan nomor HP, temukan bio, dan hubungkan dengan orang lain.</p>
-  </div>
-
-  <div class="feature-card" data-open-tab="scanner">
-    <div class="feature-icon">📷</div>
-    <div>
-      <h3>Scan Nomor HP</h3>
-      <p>Scan angka dari kamera, foto, atau galeri.</p>
-    </div>
-  </div>
-
-  <div class="feature-card" data-open-tab="bio">
-    <div class="feature-icon">👤</div>
-    <div>
-      <h3>My Bio</h3>
-      <p>Kelola profil dan link pribadi.</p>
-    </div>
-  </div>
-
-  <div class="feature-card" data-open-tab="qr">
-    <div class="feature-icon">🔳</div>
-    <div>
-      <h3>QR Vault</h3>
-      <p>Simpan QR dan akses link dengan mudah.</p>
-    </div>
-  </div>
-
-  <div class="feature-card" data-open-tab="notes">
-    <div class="feature-icon">📝</div>
-    <div>
-      <h3>Notes</h3>
-      <p>Simpan catatan pribadi.</p>
-    </div>
-  </div>
-
-  <div class="feature-card" data-open-tab="find">
-    <div class="feature-icon">🔎</div>
-    <div>
-      <h3>Find Bio</h3>
-      <p>Cari bio berdasarkan nomor HP.</p>
-    </div>
-  </div>
-</section>
-
-<!-- PHONE SCANNER -->
-<section class="section" id="phoneScanner">
-
-  <button class="back-btn" id="backFromScanner">← Kembali</button>
-
-  <div class="hero">
-    <h1>Scan Nomor HP</h1>
-    <p>Arahkan kamera ke nomor HP atau gunakan foto. Pastikan tulisan terlihat jelas.</p>
-  </div>
-
-  <div class="card">
-    <div class="scanner-box">
-      <video id="phoneScanVideo" autoplay playsinline muted class="hidden"></video>
-
-      <div class="camera-placeholder" id="cameraPlaceholder">
-        <div class="camera-icon">📷</div>
-        <p>Kamera siap digunakan</p>
-      </div>
-
-      <div class="scan-frame"></div>
-      <div class="scanner-hint">Posisikan nomor HP di dalam kotak</div>
+<div id="loginPanel" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo">POPER<span>.</span></div>
+      <p>Phone Identity & Digital Bio</p>
     </div>
 
-    <div class="button-grid">
-      <button class="btn btn-primary" id="startPhoneCamera">📷 Mulai Kamera</button>
-      <button class="btn btn-secondary" id="stopPhoneCamera">⏹ Stop</button>
-    </div>
-
-    <div class="divider">ATAU GUNAKAN GAMBAR</div>
-
-    <label class="upload-label" for="phoneImageUpload">
-      🖼️ Upload Gambar
-      <span>Memilih foto nomor HP dari galeri</span>
-    </label>
-    <input type="file" id="phoneImageUpload" accept="image/*">
-
-    <div style="height:10px"></div>
-
-    <label class="upload-label" for="phoneTakePhoto">
-      📸 Ambil Foto Nomor
-      <span>Gunakan kamera untuk mengambil foto</span>
-    </label>
-    <input type="file" id="phoneTakePhoto" accept="image/*" capture="environment">
-
-    <img id="phoneImagePreview" class="preview-image hidden" alt="Foto nomor HP">
-
-    <div id="phoneOCRStatus" class="status">Scanner siap.</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Nomor terdeteksi</div>
-    <div class="input-group">
-      <label for="scannedPhoneNumber">Nomor HP (bisa dieddit)</label>
-      <input class="input result-number" id="scannedPhoneNumber" type="tel" placeholder="08xxxxxxxxxx">
-    </div>
-
-    <button class="btn btn-success" id="searchScannedPhone" style="margin-top:14px">
-      🔎 Cari Bio
-    </button>
-    <p class="small-note">OCR bisa keliru membaca tulisan tangan. Periksa nomor sebelum mencari.</p>
-  </div>
-</section>
-
-<!-- BIO -->
-<section class="section" id="bio">
-  <div class="hero">
-    <h1>My Bio 👤</h1>
-    <p>Kelola profil dan link kamu.</p>
-  </div>
-
-  <div class="card">
-    <div class="input-group">
-      <label>Nama</label>
-      <input class="input" id="bioName" placeholder="Nama kamu">
-    </div>
-    <div class="input-group">
-      <label>Deskripsi</label>
-      <textarea class="input" id="bioDescription" rows="3" placeholder="Tentang kamu"></textarea>
-    </div>
-    <div class="input-group">
-      <label>Link Bio (URL)</label>
-      <input class="input" id="bioLink" placeholder="https://...">
-    </div>
-    <button class="btn btn-primary" id="saveBio" style="margin-top:15px">💾 Simpan Bio</button>
-    <button class="btn btn-secondary" id="openPublicBio" style="margin-top:10px">🌐 Lihat Bio</button>
-    <div id="bioStatus" class="status"></div>
-  </div>
-</section>
-
-<!-- QR VAULT -->
-<section class="section" id="qr">
-  <div class="hero">
-    <h1>QR Vault 🔳</h1>
-    <p>Scan QR code, simpan link, dan buka kembali kapan saja.</p>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Scan QR melalui kamera</div>
-    <div class="scanner-box">
-      <video id="qrVideo" autoplay playsinline muted class="hidden"></video>
-      <div class="camera-placeholder" id="qrPlaceholder">
-        <div class="camera-icon">🔳</div>
-        <p>Kamera QR siap</p>
-      </div>
-    </div>
-
-    <div class="button-grid">
-      <button class="btn btn-primary" id="startQRScanner">📷 Scan QR</button>
-      <button class="btn btn-secondary" id="stopQRScanner">⏹ Stop</button>
-    </div>
-
-    <div class="divider">ATAU UPLOAD QR</div>
-
-    <label class="upload-label" for="qrImageInput">
-      🖼️ Upload gambar QR
-      <span>Ambil QR dari galeri</span>
-    </label>
-    <input type="file" id="qrImageInput" accept="image/*">
-
-    <div class="input-group">
-      <label>Nama QR</label>
-      <input class="input" id="qrName" placeholder="Contoh: Instagram, Website">
-    </div>
-
-    <div class="input-group">
-      <label>Link hasil QR</label>
-      <textarea class="input" id="qrUrl" rows="2" placeholder="https://..."></textarea>
-    </div>
-
-    <button class="btn btn-success" id="saveQR" style="margin-top:12px">💾 Simpan QR</button>
-    <div id="qrStatus" class="status"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">QR tersimpan</div>
-    <div id="qrVaultList"></div>
-  </div>
-</section>
-
-<!-- NOTES -->
-<section class="section" id="notes">
-  <div class="hero">
-    <h1>Notes 📝</h1>
-    <p>Catatan pribadi kamu.</p>
-  </div>
-  <div class="card">
-    <textarea class="input" id="noteText" rows="7" placeholder="Tulis catatan di sini..."></textarea>
-    <button class="btn btn-primary" id="saveNote" style="margin-top:12px">💾 Simpan Catatan</button>
-    <div id="notesStatus" class="status"></div>
-  </div>
-</section>
-
-<!-- FIND BIO -->
-<section class="section" id="find">
-  <div class="hero">
-    <h1>Find Bio 🔎</h1>
-    <p>Cari bio berdasarkan nomor HP.</p>
-  </div>
-
-  <div class="card">
-    <div class="input-group">
+    <div class="field">
       <label>Nomor HP</label>
-      <input class="input" id="findPhone" type="tel" placeholder="08xxxxxxxxxx">
+      <input id="phoneInput" type="tel" placeholder="+6281234567890">
     </div>
-    <button class="btn btn-primary" id="findBioButton" style="margin-top:12px">🔎 Cari Bio</button>
-    <div id="findBioStatus" class="status"></div>
-    <div id="findBioResult"></div>
-  </div>
-</section>
 
-<!-- AUTH -->
-<section class="section" id="loginPanel">
-  <div class="hero">
-    <h1>Login POPER</h1>
-    <p>Masuk menggunakan nomor HP dengan OTP.</p>
-  </div>
-  <div class="card">
-    <div class="input-group">
-      <label>Nomor HP</label>
-      <input class="input" id="loginPhone" type="tel" placeholder="+628xxxxxxxxxx">
-    </div>
-    <button class="btn btn-primary" id="sendOTP" style="margin-top:12px">Kirim OTP</button>
+    <button id="sendOtpBtn" class="primary-btn">Kirim OTP</button>
+
     <div id="recaptcha-container"></div>
-    <div class="input-group">
-      <label>Kode OTP</label>
-      <input class="input" id="otpCode" inputmode="numeric" placeholder="6 digit kode">
+
+    <div id="otpSection" class="hidden">
+      <div class="field">
+        <label>Kode OTP</label>
+        <input id="otpInput" inputmode="numeric" autocomplete="one-time-code" placeholder="6 digit kode OTP">
+      </div>
+      <button id="verifyOtpBtn" class="primary-btn">Verifikasi OTP</button>
     </div>
-    <button class="btn btn-success" id="verifyOTP" style="margin-top:12px">Verifikasi OTP</button>
+
     <div id="authStatus" class="status"></div>
   </div>
-</section>
-
-<!-- DASHBOARD -->
-<section class="section" id="dashboard">
-  <div class="hero">
-    <h1>Selamat datang di POPER 👋</h1>
-    <p id="userInfo">Akun kamu</p>
-  </div>
-  <div class="card">
-    <p style="text-align:center">Akun berhasil login.</p>
-    <button class="btn btn-danger" id="logoutButton" style="margin-top:15px">Logout</button>
-  </div>
-</section>
-
 </div>
 
-<nav class="bottom-nav" id="bottomNav">
+<div id="dashboard" class="app-shell hidden">
+
+  <header class="topbar">
+    <div class="logo">POPER<span>.</span></div>
+    <div class="top-actions">
+      <button id="themeToggle" class="icon-btn" title="Tema">☀️</button>
+      <button id="logoutBtn" class="icon-btn" title="Keluar">↪</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- HOME -->
+    <section id="home" class="section active">
+      <div class="hero">
+        <h1>Semua koneksi,<br>lebih mudah.</h1>
+        <p>Scan nomor HP, temukan Bio, bagikan identitas dan simpan QR dalam satu aplikasi.</p>
+      </div>
+
+      <div class="card">
+        <h3>👋 Selamat datang di POPER</h3>
+        <p class="muted">Mulai dengan scan nomor HP, buat identitas digital, atau simpan QR favoritmu.</p>
+        <button class="primary-btn" data-open-tab="phoneScanner">📷 Scan Nomor HP</button>
+      </div>
+
+      <div class="home-grid">
+        <button class="home-tile" data-open-tab="bio">
+          <span class="tile-icon">🔗</span>
+          <strong>Bio Link</strong>
+          <small>Profil dan tautan personal</small>
+        </button>
+
+        <button class="home-tile" data-open-tab="identity">
+          <span class="tile-icon">🪪</span>
+          <strong>Identity QR</strong>
+          <small>QR identitas pribadi</small>
+        </button>
+
+        <button class="home-tile" data-open-tab="qr">
+          <span class="tile-icon">📦</span>
+          <strong>QR Vault</strong>
+          <small>Simpan dan scan QR</small>
+        </button>
+
+        <button class="home-tile" data-open-tab="notes">
+          <span class="tile-icon">📝</span>
+          <strong>Notes</strong>
+          <small>Catatan personal</small>
+        </button>
+
+        <button class="home-tile" data-open-tab="profileEditor">
+          <span class="tile-icon">✏️</span>
+          <strong>Edit Profile</strong>
+          <small>Atur identitas dan sosial media</small>
+        </button>
+
+        <button class="home-tile" data-open-tab="find">
+          <span class="tile-icon">🔎</span>
+          <strong>Find Bio</strong>
+          <small>Cari pengguna berdasarkan nomor</small>
+        </button>
+      </div>
+    </section>
+
+    <!-- PHONE SCANNER -->
+    <section id="phoneScanner" class="section">
+      <h2 class="section-title">📱 Phone Scanner</h2>
+      <p class="section-desc">Scan nomor HP dari kamera, upload foto, atau ambil gambar. OCR dapat mendeteksi beberapa nomor sekaligus.</p>
+
+      <div class="card">
+        <div class="camera-frame">
+          <video id="phoneScanVideo" autoplay playsinline muted></video>
+          <div id="phoneScanPlaceholder" class="camera-placeholder">
+            <span>📷</span>
+            <strong>Kamera siap digunakan</strong>
+            <small>Tekan tombol Mulai Scanner</small>
+          </div>
+          <div class="scan-guide"></div>
+        </div>
+
+        <div class="button-row">
+          <button id="startPhoneCamera" class="primary-btn">Mulai Kamera</button>
+          <button id="stopPhoneCamera" class="secondary-btn">Stop</button>
+        </div>
+
+        <div class="field" style="margin-top:16px">
+          <label>Upload gambar nomor</label>
+          <input id="phoneImageUpload" type="file" accept="image/*">
+        </div>
+
+        <div class="field">
+          <label>Foto langsung</label>
+          <input id="phoneTakePhoto" type="file" accept="image/*" capture="environment">
+        </div>
+
+        <img id="phoneImagePreview" class="phone-capture-preview hidden" alt="Preview gambar">
+
+        <div id="cropEditor" class="crop-editor hidden">
+          <div class="crop-toolbar">
+            <button id="zoomOut" class="crop-tool">−</button>
+            <span id="zoomValue">100%</span>
+            <button id="zoomIn" class="crop-tool">+</button>
+            <button id="resetCrop" class="crop-tool">↻</button>
+          </div>
+
+          <div id="cropViewport">
+            <canvas id="cropCanvas"></canvas>
+            <div id="cropSelection"></div>
+          </div>
+
+          <p class="crop-help">Geser gambar untuk mengatur area nomor HP. Gunakan tombol +/− untuk zoom.</p>
+          <button id="scanCropButton" class="primary-btn">🔎 Baca Area Pilihan</button>
+        </div>
+
+        <div class="field" style="margin-top:18px">
+          <label>Nomor HP hasil OCR</label>
+          <input id="scannedPhoneNumber" class="phone-number-input" type="tel" placeholder="08xxxxxxxxxx">
+        </div>
+
+        <div id="phoneCandidates" class="phone-candidates hidden">
+          <div class="candidate-title">
+            <strong>Nomor ditemukan</strong>
+            <span id="candidateCount">0 nomor</span>
+          </div>
+          <div id="candidateList"></div>
+        </div>
+
+        <button id="searchScannedPhone" class="primary-btn" style="margin-top:10px">🔎 Cari Bio</button>
+        <button id="backFromScanner" class="secondary-btn" style="margin-top:10px">Kembali</button>
+        <div id="phoneScanStatus" class="status"></div>
+      </div>
+
+      <div id="phoneScanResult" class="card hidden"></div>
+    </section>
+
+    <!-- BIO -->
+    <section id="bio" class="section">
+      <h2 class="section-title">🔗 My Bio Link</h2>
+      <p class="section-desc">Buat halaman Bio Link dan hubungkan profilmu.</p>
+
+      <div class="card">
+        <div class="field">
+          <label>Nama</label>
+          <input id="bioName" placeholder="Nama tampilan">
+        </div>
+
+        <div class="field">
+          <label>Deskripsi</label>
+          <textarea id="bioDesc" placeholder="Tentang saya"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Judul Bio Link</label>
+          <input id="bioTitle" placeholder="Link utama saya">
+        </div>
+
+        <div class="field">
+          <label>URL</label>
+          <input id="bioUrl" type="url" placeholder="https://...">
+        </div>
+
+        <button id="saveBio" class="primary-btn">💾 Simpan Bio</button>
+        <div id="bioStatus" class="status"></div>
+      </div>
+    </section>
+
+    <!-- QR VAULT -->
+    <section id="qr" class="section">
+      <h2 class="section-title">📦 QR Vault</h2>
+      <p class="section-desc">Scan QR atau upload gambar QR, simpan link-nya agar bisa dibuka kapan saja.</p>
+
+      <div class="card">
+        <video id="qrVideo" class="qr-video hidden" autoplay playsinline></video>
+        <div id="qrPlaceholder" class="camera-placeholder" style="position:relative;min-height:160px;background:#101827;border-radius:16px">
+          <span>▦</span>
+          <strong>QR Scanner</strong>
+          <small>Scan QR dari kamera</small>
+        </div>
+
+        <div class="button-row">
+          <button id="startQRScanner" class="primary-btn">Scan QR</button>
+          <button id="stopQRScanner" class="secondary-btn">Stop</button>
+        </div>
+
+        <div class="field" style="margin-top:15px">
+          <label>Upload gambar QR</label>
+          <input id="qrImageInput" type="file" accept="image/*">
+        </div>
+
+        <div class="field">
+          <label>Nama QR</label>
+          <input id="qrName" placeholder="Nama QR">
+        </div>
+
+        <div class="field">
+          <label>Link hasil QR</label>
+          <textarea id="qrUrl" placeholder="https://..." rows="3"></textarea>
+        </div>
+
+        <button id="saveQR" class="primary-btn">💾 Simpan QR</button>
+        <div id="qrStatus" class="status"></div>
+      </div>
+
+      <div class="card">
+        <h3>QR tersimpan</h3>
+        <div id="qrVaultList" class="qr-list"></div>
+      </div>
+    </section>
+
+    <!-- NOTES -->
+    <section id="notes" class="section">
+      <h2 class="section-title">📝 Notes</h2>
+      <p class="section-desc">Catatan pribadi tersimpan di akun POPER.</p>
+
+      <div class="card">
+        <input id="noteId" type="hidden">
+
+        <div class="field">
+          <label>Judul</label>
+          <input id="noteTitle" placeholder="Judul catatan">
+        </div>
+
+        <div class="field">
+          <label>Isi catatan</label>
+          <textarea id="noteText" rows="5" placeholder="Tulis catatan..."></textarea>
+        </div>
+
+        <button id="saveNote" class="primary-btn">💾 Simpan Catatan</button>
+        <button id="clearNote" class="secondary-btn" style="margin-top:9px">Bersihkan</button>
+        <div id="noteStatus" class="status"></div>
+      </div>
+
+      <div id="notesList" class="qr-list"></div>
+    </section>
+
+    <!-- FIND BIO -->
+    <section id="find" class="section">
+      <h2 class="section-title">🔎 Find Bio</h2>
+      <p class="section-desc">Cari Bio POPER berdasarkan nomor HP.</p>
+
+      <div class="card">
+        <div class="field">
+          <label>Nomor HP</label>
+          <input id="findPhone" type="tel" placeholder="08xxxxxxxxxx">
+        </div>
+
+        <button id="findBioButton" class="primary-btn">Cari Profil</button>
+        <div id="findStatus" class="status"></div>
+      </div>
+
+      <div id="findResult" class="card hidden"></div>
+
+      <div id="contactConnect" class="card hidden">
+        <div class="identity-header">
+          <div class="identity-avatar">👤</div>
+          <div>
+            <strong id="contactPhoneDisplay"></strong>
+            <p id="contactConnectStatus" class="muted"></p>
+          </div>
+        </div>
+
+        <div class="contact-grid" style="margin-top:15px">
+          <button id="contactWhatsApp" class="contact-action">
+            <span>💬</span><strong>WhatsApp</strong>
+          </button>
+          <button id="contactSave" class="contact-action">
+            <span>📥</span><strong>Simpan Kontak</strong>
+          </button>
+          <button id="contactCopy" class="contact-action">
+            <span>📋</span><strong>Salin Nomor</strong>
+          </button>
+          <button id="contactShare" class="contact-action">
+            <span>↗️</span><strong>Bagikan</strong>
+          </button>
+        </div>
+
+        <button id="contactInvite" class="primary-btn" style="margin-top:12px">✨ Undang ke POPER</button>
+      </div>
+    </section>
+
+    <!-- IDENTITY -->
+    <section id="identity" class="section">
+      <h2 class="section-title">🪪 Smart Identity</h2>
+      <p class="section-desc">QR identitas digitalmu. Bagikan agar orang lain dapat membuka profilmu.</p>
+
+      <div class="identity-card">
+        <div class="identity-header">
+          <div class="identity-avatar" id="identityAvatar">👤</div>
+          <div>
+            <h3 id="identityName">POPER User</h3>
+            <small id="identityPhone">Nomor</small>
+          </div>
+        </div>
+
+        <div id="identityQR" class="identity-qr"></div>
+
+        <div class="identity-link">
+          <span id="identityLink"></span>
+          <button id="copyIdentityLink">Salin</button>
+        </div>
+
+        <div class="profile-actions">
+          <button id="shareIdentity" class="primary-btn">↗️ Bagikan Identitas</button>
+          <button id="downloadIdentityQR" class="secondary-btn">📥 Simpan QR</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROFILE EDITOR -->
+    <section id="profileEditor" class="section">
+      <h2 class="section-title">✏️ Edit Profil</h2>
+      <p class="section-desc">Atur profil publik dan tautan media sosialmu.</p>
+
+      <div class="card">
+        <div class="editor-photo">
+          <img id="editProfilePhoto" src="https://placehold.co/120x120" alt="Foto profil">
+          <label class="small-btn" for="profilePhotoUpload">📷 Ganti Foto</label>
+          <input id="profilePhotoUpload" type="file" accept="image/*" hidden>
+        </div>
+
+        <div class="field">
+          <label>Nama</label>
+          <input id="editProfileName" maxlength="50" placeholder="Nama kamu">
+        </div>
+
+        <div class="field">
+          <label>Username</label>
+          <input id="editUsername" maxlength="30" placeholder="username">
+        </div>
+
+        <div class="field">
+          <label>Bio</label>
+          <textarea id="editProfileBio" maxlength="160" placeholder="Ceritakan tentang dirimu"></textarea>
+        </div>
+
+        <div class="field">
+          <label>WhatsApp</label>
+          <input id="editProfileWhatsApp" type="tel" placeholder="08xxxxxxxxxx">
+        </div>
+
+        <hr class="editor-divider">
+        <h3>Social Media & Link</h3>
+
+        <div class="field">
+          <label>Instagram</label>
+          <input id="editInstagram" placeholder="https://instagram.com/username">
+        </div>
+        <div class="field">
+          <label>TikTok</label>
+          <input id="editTikTok" placeholder="https://tiktok.com/@username">
+        </div>
+        <div class="field">
+          <label>Facebook</label>
+          <input id="editFacebook" placeholder="https://facebook.com/username">
+        </div>
+        <div class="field">
+          <label>YouTube</label>
+          <input id="editYouTube" placeholder="https://youtube.com/@username">
+        </div>
+        <div class="field">
+          <label>Website</label>
+          <input id="editWebsite" placeholder="https://website.com">
+        </div>
+        <div class="field">
+          <label>Telegram</label>
+          <input id="editTelegram" placeholder="https://t.me/username">
+        </div>
+
+        <button id="saveProfileEditor" class="primary-btn">💾 Simpan Profil</button>
+        <button id="previewProfileEditor" class="secondary-btn" style="margin-top:9px">👁 Preview Profil</button>
+        <div id="profileEditorStatus" class="status"></div>
+      </div>
+    </section>
+
+    <!-- PUBLIC PROFILE -->
+    <section id="publicProfile" class="section">
+      <div class="profile-card">
+        <div id="publicProfileLoading" class="status">Memuat profil...</div>
+
+        <div id="publicProfileContent" class="hidden">
+          <div class="profile-center">
+            <img id="publicAvatar" class="profile-avatar" src="https://placehold.co/120x120" alt="Avatar">
+            <h2 id="publicName">Nama</h2>
+            <p id="publicUsername" class="muted"></p>
+            <p id="publicBioText"></p>
+          </div>
+
+          <div id="publicLinks" class="profile-link-list"></div>
+
+          <div class="profile-actions">
+            <button id="publicSaveContact" class="primary-btn">📥 Simpan Kontak</button>
+            <button id="publicShareProfile" class="secondary-btn">↗️ Bagikan Profil</button>
+            <button id="publicBackHome" class="secondary-btn">POPER</button>
+          </div>
+        </div>
+
+        <div id="publicProfileNotFound" class="hidden profile-center">
+          <h2>Profil tidak ditemukan</h2>
+          <p class="muted">Profil belum tersedia atau link tidak valid.</p>
+          <button class="primary-btn" id="publicNotFoundHome">Kembali ke POPER</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- NAVIGATION -->
+<nav id="bottomNav" class="bottom-nav hidden">
   <div class="nav-inner">
-    <button class="nav-item active" data-tab="scan"><span class="nav-icon">🏠</span>Home</button>
-    <button class="nav-item" data-tab="bio"><span class="nav-icon">👤</span>Bio</button>
-    <button class="nav-item" data-tab="qr"><span class="nav-icon">🔳</span>QR Vault</button>
-    <button class="nav-item" data-tab="notes"><span class="nav-icon">📝</span>Notes</button>
-    <button class="nav-item" data-tab="find"><span class="nav-icon">🔎</span>Find</button>
+    <button class="nav-item active" data-open-tab="home">
+      <span>🏠</span>Home
+    </button>
+    <button class="nav-item" data-open-tab="phoneScanner">
+      <span>📷</span>Scan
+    </button>
+    <button class="nav-item" data-open-tab="bio">
+      <span>🔗</span>Bio
+    </button>
+    <button class="nav-item" data-open-tab="qr">
+      <span>▦</span>QR Vault
+    </button>
+    <button class="nav-item" data-open-tab="notes">
+      <span>📝</span>Notes
+    </button>
   </div>
 </nav>
 
-<!-- LIBRARIES -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-
-<!-- APP -->
 <script type="module" src="app.js"></script>
 </body>
 </html>

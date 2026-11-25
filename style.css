@@ -944,3 +944,138 @@ button:active {
     border-right: 1px solid var(--border);
   }
 }
+
+
+/* =================================
+   POPER THEME SYSTEM
+   Light / Dark Mode
+================================= */
+
+:root {
+  --bg: #f4f6fc;
+  --surface: #ffffff;
+  --surface2: #edf0f8;
+  --text: #1c2235;
+  --muted: #737b91;
+  --border: #dfe4ef;
+  --primary: #6558ee;
+  --primary2: #8278ff;
+  --nav-bg: rgba(255,255,255,.94);
+  --shadow: 0 8px 30px rgba(20,30,70,.08);
+}
+
+html[data-theme="dark"] {
+  --bg: #10121b;
+  --surface: #191d2b;
+  --surface2: #23283b;
+  --text: #f4f5ff;
+  --muted: #a4abc2;
+  --border: #30364b;
+  --primary: #7569ff;
+  --primary2: #9288ff;
+  --nav-bg: rgba(18,20,31,.96);
+  --shadow: 0 8px 30px rgba(0,0,0,.25);
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  transition: background .25s ease, color .25s ease;
+}
+
+/* Main containers */
+.card,
+.panel,
+.section-card,
+.profile-card,
+.settings-card,
+.vault-page,
+.modal-content {
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Form elements */
+input,
+textarea,
+select {
+  background: var(--surface2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+}
+
+/* Navigation */
+.bottom-nav,
+.navbar,
+.bottom-navigation {
+  background: var(--nav-bg);
+  border-color: var(--border);
+}
+
+/* Settings */
+.theme-setting {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.theme-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.theme-choice {
+  flex: 1;
+  padding: 15px 10px;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface2);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.theme-choice.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(101,88,238,.15);
+  transform: translateY(-2px);
+}
+
+.theme-choice:active {
+  transform: scale(.96);
+}
+
+/* Buttons */
+button {
+  transition: transform .15s, filter .2s;
+}
+
+button:active {
+  transform: scale(.97);
+}
+
+/* Theme transition */
+* {
+  transition:
+    background-color .2s ease,
+    color .2s ease,
+    border-color .2s ease;
+}

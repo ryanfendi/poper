@@ -33,22 +33,12 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 
 let recaptchaVerifier = null;
-let confirmationResult = null;
 
 function normalizePhone(phone) {
   let p = String(phone || "").replace(/\D/g, "");
 
-  if (p.startsWith("0")) {
-    p = "62" + p.slice(1);
-  } else if (p.startsWith("8")) {
-    p = "62" + p;
-  } else if (!p.startsWith("62")) {
-    throw new Error("Gunakan nomor Indonesia, contoh 08123456789");
-  }
-
-  if (p.length < 10 || p.length > 15) {
-    throw new Error("Nomor HP tidak valid");
-  }
+  if (p.startsWith("0")) p = "62" + p.slice(1);
+  else if (p.startsWith("8")) p = "62" + p;
 
   return "+" + p;
 }
@@ -59,7 +49,6 @@ function resetRecaptcha() {
   } catch (e) {}
 
   recaptchaVerifier = null;
-  confirmationResult = null;
 
   const container = document.getElementById("recaptcha-container");
   if (container) container.innerHTML = "";
@@ -69,17 +58,14 @@ function setupRecaptcha() {
   if (recaptchaVerifier) return recaptchaVerifier;
 
   const container = document.getElementById("recaptcha-container");
-
-  if (!container) {
-    throw new Error("recaptcha-container tidak ditemukan");
-  }
+  if (!container) throw new Error("reCAPTCHA container tidak ditemukan.");
 
   container.innerHTML = "";
 
   recaptchaVerifier = new RecaptchaVerifier(auth, container, {
     size: "normal",
     callback: () => console.log("reCAPTCHA verified"),
-    "expired-callback": () => console.log("reCAPTCHA expired")
+    "expired-callback": () => resetRecaptcha()
   });
 
   return recaptchaVerifier;
@@ -87,67 +73,7 @@ function setupRecaptcha() {
 
 async function sendOTP(phone) {
   const verifier = setupRecaptcha();
-
-  try {
-    confirmationResult = await signInWithPhoneNumber(
-      auth,
-      normalizePhone(phone),
-      verifier
-    );
-
-    return confirmationResult;
-  } catch (error) {
-    resetRecaptcha();
-    throw error;
-  }
-}
-
-async function verifyOTP(code) {
-  if (!confirmationResult) {
-    throw new Error("Kirim OTP terlebih dahulu.");
-  }
-
-  const otp = String(code || "").trim();
-
-  if (!/^\d{6}$/.test(otp)) {
-    throw new Error("OTP harus 6 digit.");
-  }
-
-  const result = await confirmationResult.confirm(otp);
-  confirmationResult = null;
-  return result;
-}
-
-function listenAuth(callback) {
-  return onAuthStateChanged(auth, callback);
-}
-
-async function logout() {
-  resetRecaptcha();
-  await signOut(auth);
-}
-
-async function saveData(path, data) {
-  return set(ref(db, path), data);
-}
-
-async function getData(path) {
-  const snapshot = await get(ref(db, path));
-  return snapshot.exists() ? snapshot.val() : null;
-}
-
-async function updateData(path, data) {
-  return update(ref(db, path), data);
-}
-
-async function deleteData(path) {
-  return remove(ref(db, path));
-}
-
-async function pushData(path, data) {
-  const newRef = push(ref(db, path));
-  await set(newRef, data);
-  return newRef.key;
+  return signInWithPhoneNumber(auth, normalizePhone(phone), verifier);
 }
 
 window.POPER = {
@@ -158,20 +84,25 @@ window.POPER = {
   setupRecaptcha,
   resetRecaptcha,
   sendOTP,
-  verifyOTP,
-  onAuth: listenAuth,
-  logout,
-  saveData,
-  getData,
-  updateData,
-  deleteData,
-  pushData,
-  get currentUser() {
-    return auth.currentUser;
-  },
-  get uid() {
-    return auth.currentUser?.uid || null;
-  }
-};
 
-console.log("POPER Firebase ready");
+  onAuth: callback => onAuthStateChanged(auth, callback),
+  logout: () => signOut(auth),
+
+  saveData: (path, data) => set(ref(db, path), data),
+
+  getData: async path => {
+    const snapshot = await get(ref(db, path));
+    return snapshot.exists() ? snapshot.val() : null;
+  },
+
+  updateData: (path, data) => update(ref(db, path), data),
+  deleteData: path => remove(ref(db, path)),
+
+  pushData: async (path, data) => {
+    const newRef = push(ref(db, path));
+    await set(newRef, data);
+    return newRef.key;
+  },
+
+  currentUser: () => auth.currentUser
+};

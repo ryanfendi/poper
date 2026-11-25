@@ -949,6 +949,64 @@ button:active{
   </section>
 
   
+<!-- PHONE NUMBER SCANNER -->
+<section id="phoneScanner" class="section">
+  <div class="card phone-scanner-card">
+
+    <h2>📷 Phone Scanner</h2>
+    <p>Arahkan kamera ke nomor HP yang ingin kamu cari.</p>
+
+    <div class="phone-camera-frame">
+      <video
+        id="phoneScanVideo"
+        autoplay
+        playsinline
+        muted
+      ></video>
+
+      <div class="phone-scan-overlay">
+        <div class="phone-scan-guide">
+          <span>SCAN NOMOR HP</span>
+        </div>
+      </div>
+    </div>
+
+    <p id="phoneScanStatus">
+      Kamera belum aktif.
+    </p>
+
+    <button id="startPhoneCamera" class="primary">
+      📷 Aktifkan Kamera
+    </button>
+
+    <button id="stopPhoneCamera" class="secondary">
+      Tutup Kamera
+    </button>
+
+    <label for="scannedPhoneNumber">
+      Nomor HP Terbaca
+    </label>
+
+    <input
+      id="scannedPhoneNumber"
+      type="tel"
+      placeholder="Nomor hasil scan"
+    >
+
+    <button id="searchScannedPhone" class="primary">
+      🔎 Cari POPER
+    </button>
+
+    <button id="backFromScanner" class="secondary">
+      ← Kembali
+    </button>
+
+    <div id="phoneScanResult"></div>
+
+  </div>
+</section>
+
+  
 <!-- POPER PHONE SCANNER -->
 <section id="phoneScanner" class="section">
   <div class="card phone-scanner-card">

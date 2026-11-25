@@ -832,3 +832,44 @@ document.getElementById("openPublicBio")?.addEventListener("click", () => {
     "_blank"
   );
 });
+
+
+/* =================================
+   POPER THEME CONTROLLER
+================================= */
+
+(function () {
+  const root = document.documentElement;
+  const buttons = document.querySelectorAll("[data-theme-choice]");
+  const status = document.getElementById("themeStatus");
+
+  function applyTheme(theme) {
+    if (theme !== "light" && theme !== "dark") {
+      theme = "dark";
+    }
+
+    root.setAttribute("data-theme", theme);
+    localStorage.setItem("poper-theme", theme);
+
+    buttons.forEach(button => {
+      const active = button.dataset.themeChoice === theme;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active);
+    });
+
+    if (status) {
+      status.textContent =
+        theme === "light"
+          ? "☀️ Mode terang aktif"
+          : "🌙 Mode gelap aktif";
+    }
+  }
+
+  buttons.forEach(button => {
+    button.addEventListener("click", () => {
+      applyTheme(button.dataset.themeChoice);
+    });
+  });
+
+  applyTheme(localStorage.getItem("poper-theme") || "dark");
+})();

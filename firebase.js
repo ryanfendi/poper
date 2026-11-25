@@ -122,6 +122,7 @@ function listenAuth(callback) {
 // POPER GLOBAL API
 // =================================
 
+
 window.POPER = {
   app,
   auth,
@@ -134,9 +135,34 @@ window.POPER = {
   logout,
   onAuth: listenAuth,
 
+  // DATABASE FUNCTIONS
+  saveData: async (path, data) => {
+    return set(ref(db, path), data);
+  },
+
+  getData: async (path) => {
+    const snapshot = await get(ref(db, path));
+    return snapshot.exists() ? snapshot.val() : null;
+  },
+
+  updateData: async (path, data) => {
+    return update(ref(db, path), data);
+  },
+
+  deleteData: async (path) => {
+    return remove(ref(db, path));
+  },
+
+  pushData: async (path, data) => {
+    const newRef = push(ref(db, path));
+    await set(newRef, data);
+    return newRef.key;
+  },
+
   get currentUser() {
     return auth.currentUser;
   }
 };
 
-console.log("POPER Firebase siap.");
+console.log("POPER Firebase + Database Ready");
+

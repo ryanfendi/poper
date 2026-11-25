@@ -854,7 +854,108 @@ button:active{
   color:var(--text);
 }
 
-  
+
+
+/* =================================
+   POPER PHONE SCANNER
+================================= */
+
+.phone-scanner-card {
+  text-align: center;
+}
+
+.phone-camera-frame {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  background: #080b16;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin: 18px 0;
+}
+
+.phone-camera-frame video {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
+.phone-scan-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.phone-scan-guide {
+  width: 88%;
+  height: 95px;
+  border: 2px solid #8c6bff;
+  border-radius: 18px;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  box-shadow: 0 0 24px rgba(140,107,255,.2);
+}
+
+.phone-scan-guide span {
+  background: rgba(10,12,25,.8);
+  color: #fff;
+  font-size: 10px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  margin-bottom: -12px;
+  letter-spacing: 2px;
+}
+
+.phone-scan-guide::after {
+  content: "";
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 50%;
+  height: 2px;
+  background: #7fc7ff;
+  box-shadow: 0 0 12px #7fc7ff;
+  animation: phoneScanLine 2s ease-in-out infinite;
+}
+
+@keyframes phoneScanLine {
+  0%, 100% { opacity: .3; }
+  50% { opacity: 1; }
+}
+
+#phoneScanStatus {
+  min-height: 28px;
+  font-size: 13px;
+}
+
+#phoneScanner button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+#phoneScanner input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+}
+
+#phoneScanResult {
+  text-align: left;
+  margin-top: 15px;
+}
+
+#phoneScanner .secondary {
+  color: var(--text);
+}
+
+      
 </style>
 </head>
 

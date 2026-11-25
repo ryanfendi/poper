@@ -1,182 +1,142 @@
 
-/* =========================================
-   POPER FIREBASE CONNECTION
-   Firebase SDK v12
-========================================= */
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 
 import {
   getAuth,
   onAuthStateChanged,
-  RecaptchaVerifier,
   signInWithPhoneNumber,
+  RecaptchaVerifier,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 import {
-  getDatabase,
-  ref,
-  get,
-  set,
-  update,
-  remove,
-  push
+  getDatabase
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
-/* GANTI DENGAN CONFIG FIREBASE KAMU */
+// =================================
+// FIREBASE CONFIG
+// Ganti dengan konfigurasi project kamu
+// =================================
+
 const firebaseConfig = {
   apiKey: "AIzaSyD4eRul_asozC7eT15z2tcMaRO-gNJ7Us8",
   authDomain: "poperweb.firebaseapp.com",
-  databaseURL: "https://poperweb-default-rtdb.asia-southeast1.firebasedatabase.app/",
+  databaseURL: "https://poperweb-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "poperweb",
   storageBucket: "poperweb.firebasestorage.app",
   messagingSenderId: "91901111544",
   appId: "1:91901111544:web:a2f1c0a418e16f6ee45f0d"
 };
 
+// =================================
+// INITIALIZE
+// =================================
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-/* =========================================
-   AUTH OTP
-========================================= */
+let recaptchaVerifier = null;
+let recaptchaWidgetId = null;
 
-let verifier = null;
-let confirmation = null;
+function normalizePhone(phone) {
+  let number = String(phone || "").replace(/\D/g, "");
 
-function initRecaptcha() {
-  if (verifier) return verifier;
+  if (number.startsWith("0")) {
+    number = "62" + number.slice(1);
+  } else if (!number.startsWith("62")) {
+    number = "62" + number;
+  }
 
-  verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-    size: "invisible"
-  });
-
-  return verifier;
+  return "+" + number;
 }
 
-async function requestOTP(phone) {
-  const verifier = initRecaptcha();
+function setupRecaptcha() {
+  if (recaptchaVerifier) {
+    return recaptchaVerifier;
+  }
 
-  confirmation = await signInWithPhoneNumber(
+  recaptchaVerifier = new RecaptchaVerifier(
     auth,
-    phone,
-    verifier
+    "recaptcha-container",
+    {
+      size: "normal",
+      callback: () => {
+        console.log("reCAPTCHA berhasil.");
+      },
+      "expired-callback": () => {
+        console.log("reCAPTCHA expired, ulangi.");
+      }
+    }
   );
 
-  return confirmation;
+  return recaptchaVerifier;
 }
 
-async function confirmOTP(code) {
-  if (!confirmation) throw new Error("OTP belum diminta");
+async function resetRecaptcha() {
+  if (recaptchaVerifier) {
+    try {
+      await recaptchaVerifier.clear();
+    } catch (e) {
+      console.warn(e);
+    }
+  }
 
-  const result = await confirmation.confirm(code);
-  return result.user;
+  recaptchaVerifier = null;
+  recaptchaWidgetId = null;
+
+  const container =
+    document.getElementById("recaptcha-container");
+
+  if (container) {
+    container.innerHTML = "";
+  }
 }
 
-async function logout() {
+async function sendOTP(phone) {
+  const formatted = normalizePhone(phone);
+
+  if (!/^\+628\d{8,13}$/.test(formatted)) {
+    throw new Error("Nomor HP Indonesia tidak valid.");
+  }
+
+  const verifier = setupRecaptcha();
+
+  return await signInWithPhoneNumber(
+    auth,
+    formatted,
+    verifier
+  );
+}
+
+function logout() {
   return signOut(auth);
 }
 
-/* =========================================
-   DATABASE
-========================================= */
-
-async function saveData(path, data) {
-  return set(ref(db, path), data);
+function listenAuth(callback) {
+  return onAuthStateChanged(auth, callback);
 }
 
-async function getData(path) {
-  const snapshot = await get(ref(db, path));
-  return snapshot.exists() ? snapshot.val() : null;
-}
-
-async function updateData(path, data) {
-  return update(ref(db, path), data);
-}
-
-async function deleteData(path) {
-  return remove(ref(db, path));
-}
-
-async function pushData(path, data) {
-  const newRef = push(ref(db, path));
-  await set(newRef, data);
-  return newRef.key;
-}
-
-/* =========================================
-   PHONE LOOKUP
-========================================= */
-
-function normalizePhone(phone) {
-  let digits = String(phone).replace(/\D/g, "");
-
-  if (digits.startsWith("0")) {
-    digits = "62" + digits.substring(1);
-  } else if (!digits.startsWith("62")) {
-    digits = "62" + digits;
-  }
-
-  return "+" + digits;
-}
-
-async function registerPhone(uid, phone) {
-  const normalized = normalizePhone(phone);
-
-  await saveData("phoneLookup/" + normalized.replace("+", ""), {
-    uid: uid,
-    phone: normalized
-  });
-}
-
-async function findPhone(phone) {
-  const normalized = normalizePhone(phone);
-  const key = normalized.replace("+", "");
-
-  return getData("phoneLookup/" + key);
-}
-
-/* =========================================
-   USER PROFILE
-========================================= */
-
-async function saveProfile(uid, profile) {
-  return updateData("users/" + uid + "/publicBio", profile);
-}
-
-async function getProfile(uid) {
-  return getData("users/" + uid + "/publicBio");
-}
-
-/* =========================================
-   EXPORT
-========================================= */
+// =================================
+// POPER GLOBAL API
+// =================================
 
 window.POPER = {
   app,
   auth,
   db,
 
-  requestOTP,
-  confirmOTP,
-  logout,
-
-  saveData,
-  getData,
-  updateData,
-  deleteData,
-  pushData,
-
   normalizePhone,
-  registerPhone,
-  findPhone,
+  setupRecaptcha,
+  resetRecaptcha,
+  sendOTP,
+  logout,
+  onAuth: listenAuth,
 
-  saveProfile,
-  getProfile,
-
-  onAuthStateChanged
+  get currentUser() {
+    return auth.currentUser;
+  }
 };
 
-console.log("🔥 POPER Firebase Ready");
+console.log("POPER Firebase siap.");

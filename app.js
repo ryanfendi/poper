@@ -239,154 +239,446 @@ async function loadBio() {
    QR VAULT
 ========================= */
 
-const QR_TYPES = {
-  qris: "QRIS / Pembayaran",
-  website: "Website / Link",
-  wifi: "WiFi",
-  text: "Teks / QR lainnya"
-};
 
-$("saveQR").onclick = async () => {
+/* =========================================
+   POPER QR VAULT - IMAGE SCAN + CAMERA
+========================================= */
+
+const qrNameInput = document.getElementById("qrName");
+const qrUrlInput = document.getElementById("qrUrl");
+const qrImageInput = document.getElementById("qrImageInput");
+const qrPreview = document.getElementById("qrPreview");
+const qrResultBox = document.getElementById("qrResultBox");
+const qrList = document.getElementById("qrList");
+const qrScanStatus = document.getElementById("qrScanStatus");
+
+const qrVideo = document.getElementById("qrVideo");
+const qrCameraBox = document.getElementById("qrCameraBox");
+
+let scannedQRValue = "";
+let cameraStream = null;
+let cameraActive = false;
+let cameraFrame = null;
+
+/* STATUS */
+
+function qrStatus(message) {
+  if (qrScanStatus) {
+    qrScanStatus.textContent = message;
+  }
+}
+
+/* NORMALIZE QR CONTENT TO URL */
+
+function qrToURL(value) {
+  value = String(value || "").trim();
+
+  // URL sudah lengkap
+  try {
+    const url = new URL(value);
+
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.href;
+    }
+  } catch {}
+
+  // URL tanpa https://
+  if (/^(www\.)?[a-z0-9-]+\.[a-z]{2,}/i.test(value)) {
+    try {
+      return new URL("https://" + value).href;
+    } catch {}
+  }
+
+  // QR bukan URL web
+  return null;
+}
+
+/* IMAGE QR DECODER */
+
+async function decodeQRImage(file) {
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    qrStatus("File harus berupa gambar.");
+    return;
+  }
+
+  qrStatus("Membaca gambar QR...");
+
+  const image = new Image();
+  const imageURL = URL.createObjectURL(file);
+
+  image.onload = () => {
+    try {
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d", {
+        willReadFrequently: true
+      });
+
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+
+      context.drawImage(image, 0, 0);
+
+      const imageData = context.getImageData(
+        0, 0, canvas.width, canvas.height
+      );
+
+      if (!window.jsQR) {
+        qrStatus("Library QR belum berhasil dimuat. Refresh halaman.");
+        return;
+      }
+
+      const result = window.jsQR(
+        imageData.data,
+        imageData.width,
+        imageData.height,
+        {
+          inversionAttempts: "attemptBoth"
+        }
+      );
+
+      if (!result) {
+        qrStatus("QR tidak ditemukan. Coba gambar yang lebih jelas.");
+        qrResultBox.hidden = true;
+        return;
+      }
+
+      processQRResult(result.data, file.name);
+
+    } catch (error) {
+      console.error(error);
+      qrStatus("Gagal membaca gambar QR.");
+    } finally {
+      URL.revokeObjectURL(imageURL);
+    }
+  };
+
+  image.onerror = () => {
+    URL.revokeObjectURL(imageURL);
+    qrStatus("Gambar tidak dapat dibuka.");
+  };
+
+  image.src = imageURL;
+}
+
+/* PROCESS RESULT */
+
+function processQRResult(value, filename = "") {
+  scannedQRValue = String(value || "").trim();
+
+  if (!scannedQRValue) {
+    qrStatus("QR kosong.");
+    return;
+  }
+
+  const url = qrToURL(scannedQRValue);
+
+  qrResultBox.hidden = false;
+  qrUrlInput.value = url || scannedQRValue;
+
+  if (!qrNameInput.value.trim()) {
+    qrNameInput.value = filename
+      ? filename.replace(/\.[^.]+$/, "")
+      : url
+        ? new URL(url).hostname
+        : "QR Tersimpan";
+  }
+
+  if (url) {
+    qrStatus("QR berhasil dibaca! Link siap disimpan.");
+  } else {
+    qrStatus(
+      "QR berhasil dibaca, tetapi isinya bukan URL web. " +
+      "Data tampil untuk disimpan, namun tidak bisa menjadi tombol buka website."
+    );
+  }
+}
+
+/* UPLOAD IMAGE */
+
+qrImageInput?.addEventListener("change", async () => {
+  const file = qrImageInput.files?.[0];
+
+  if (!file) return;
+
+  qrPreview.innerHTML = "";
+
+  const previewURL = URL.createObjectURL(file);
+  const img = document.createElement("img");
+
+  img.src = previewURL;
+  img.alt = "Preview QR";
+  qrPreview.appendChild(img);
+
+  await decodeQRImage(file);
+
+  // Preview URL dipertahankan selama gambar tampil
+  img.onload = () => {};
+});
+
+/* SAVE QR LINK */
+
+document.getElementById("saveQR")?.addEventListener("click", async () => {
   const uid = currentUID();
-  if (!uid) return alert("Login dahulu.");
 
-  const name = $("qrName").value.trim();
-  const value = $("qrUrl").value.trim();
-  const type = $("qrType").value;
+  if (!uid) {
+    alert("Login terlebih dahulu.");
+    return;
+  }
+
+  const name = qrNameInput.value.trim();
+  const value = qrUrlInput.value.trim();
+  const url = qrToURL(value);
 
   if (!name || !value) {
-    alert("Isi nama dan data QR terlebih dahulu.");
+    alert("Nama dan hasil QR harus diisi.");
+    return;
+  }
+
+  if (!url) {
+    alert(
+      "QR ini bukan link website HTTP/HTTPS. " +
+      "Silakan scan QR yang berisi link website untuk membuat tombol buka."
+    );
     return;
   }
 
   try {
-    $("saveQR").disabled = true;
+    const saveButton = document.getElementById("saveQR");
+    saveButton.disabled = true;
+    saveButton.textContent = "Menyimpan...";
 
     await window.POPER.pushData(`qrVault/${uid}`, {
       name,
-      value,
-      type,
+      value: url,
+      type: "website",
+      originalQR: scannedQRValue,
       createdAt: Date.now()
     });
 
-    $("qrName").value = "";
-    $("qrUrl").value = "";
+    qrNameInput.value = "";
+    qrUrlInput.value = "";
+    qrImageInput.value = "";
+    qrPreview.innerHTML = "";
+    qrResultBox.hidden = true;
+    scannedQRValue = "";
+
+    qrStatus("Link berhasil disimpan ke Vault!");
 
     await loadQR();
 
-    alert("Berhasil disimpan ke QR Vault!");
-
   } catch (error) {
-    alert("Gagal menyimpan: " + error.message);
+    console.error(error);
+    qrStatus("Gagal menyimpan link: " + error.message);
 
   } finally {
-    $("saveQR").disabled = false;
+    const saveButton = document.getElementById("saveQR");
+    saveButton.disabled = false;
+    saveButton.textContent = "💾 Simpan Link ke Vault";
   }
-};
+});
+
+/* LOAD SAVED LINKS */
 
 async function loadQR() {
   const uid = currentUID();
   if (!uid) return;
 
   const data = await window.POPER.getData(`qrVault/${uid}`);
-  const container = $("qrList");
 
-  container.innerHTML = "";
+  qrList.innerHTML = "";
 
   if (!data || Object.keys(data).length === 0) {
-    container.innerHTML = `
+    qrList.innerHTML = `
       <div class="qr-empty">
-        <div style="font-size:35px">🗂️</div>
-        <p>Vault masih kosong.</p>
-        <small>Simpan QRIS, link, WiFi atau data QR di sini.</small>
+        <p>Belum ada link tersimpan.</p>
       </div>
     `;
     return;
   }
 
   Object.entries(data).reverse().forEach(([id, item]) => {
+    const url = qrToURL(item.value);
+
     const card = document.createElement("div");
-    card.className = "qr-card";
+    card.className = "qr-link-card";
 
-    const typeLabel = QR_TYPES[item.type] || "Data QR";
-    const validURL = safeURL(item.value);
+    const title = document.createElement("strong");
+    title.textContent = item.name || "Link tersimpan";
 
-    card.innerHTML = `
-      <div class="qr-card-title">${escapeHTML(item.name)}</div>
-      <span class="qr-badge">${escapeHTML(typeLabel)}</span>
-      <div class="qr-data">${escapeHTML(item.value)}</div>
+    const meta = document.createElement("div");
+    meta.className = "qr-link-meta";
+    meta.textContent = url || item.value || "";
 
-      <div class="qr-actions">
-        <button class="secondary" data-copy>Salin</button>
-        ${validURL ? `<button class="secondary" data-open>Buka</button>` : ""}
-        <button class="secondary" data-addbio>+ Bio</button>
-        <button class="secondary danger" data-delete>Hapus</button>
-      </div>
-    `;
+    card.appendChild(title);
+    card.appendChild(meta);
 
-    // COPY
-    card.querySelector("[data-copy]").onclick = async () => {
+    // OPEN LINK BUTTON
+    if (url) {
+      const openButton = document.createElement("a");
+
+      openButton.className = "qr-link-button";
+      openButton.textContent = "🔗 Buka " + (item.name || "Link");
+      openButton.href = url;
+      openButton.target = "_blank";
+      openButton.rel = "noopener noreferrer";
+
+      card.appendChild(openButton);
+    }
+
+    // COPY BUTTON
+    const copyButton = document.createElement("button");
+    copyButton.className = "secondary";
+    copyButton.textContent = "Salin Link";
+
+    copyButton.onclick = async () => {
       try {
         await navigator.clipboard.writeText(item.value);
-        alert("Data berhasil disalin!");
+        alert("Link disalin!");
       } catch {
-        prompt("Salin data berikut:", item.value);
+        prompt("Salin link:", item.value);
       }
     };
 
-    // OPEN URL (only valid http/https)
-    const openButton = card.querySelector("[data-open]");
-    if (openButton && validURL) {
-      openButton.onclick = () => {
-        window.open(validURL, "_blank", "noopener,noreferrer");
-      };
-    }
+    card.appendChild(copyButton);
 
     // ADD TO BIO
-    card.querySelector("[data-addbio]").onclick = () => {
-      const url = safeURL(item.value);
+    const bioButton = document.createElement("button");
+    bioButton.className = "secondary";
+    bioButton.textContent = "+ Tambahkan ke Bio";
 
+    bioButton.onclick = () => {
       if (!url) {
-        alert(
-          "Data ini bukan URL website. " +
-          "Data QR tetap tersimpan di Vault, " +
-          "tetapi tidak bisa dijadikan link Bio secara langsung."
-        );
+        alert("Data ini bukan URL website.");
         return;
       }
 
-      const alreadyExists = links.some(link => link.url === url);
-
-      if (alreadyExists) {
-        alert("Link tersebut sudah ada di Bio.");
+      if (links.some(link => link.url === url)) {
+        alert("Link sudah ada di Bio.");
         return;
       }
 
       links.push({
-        title: item.name,
+        title: item.name || "Link",
         url
       });
 
       renderLinks();
 
-      alert("Ditambahkan ke Bio. Tekan Simpan Bio Online untuk menyimpan perubahan.");
+      alert("Link masuk ke daftar Bio. Tekan Simpan Bio Online.");
     };
+
+    card.appendChild(bioButton);
 
     // DELETE
-    card.querySelector("[data-delete]").onclick = async () => {
-      if (!confirm(`Hapus "${item.name}" dari Vault?`)) return;
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "qr-delete-button";
+    deleteButton.textContent = "Hapus";
 
-      try {
-        await window.POPER.deleteData(`qrVault/${uid}/${id}`);
-        await loadQR();
-      } catch (error) {
-        alert("Gagal menghapus: " + error.message);
-      }
+    deleteButton.onclick = async () => {
+      if (!confirm("Hapus link ini dari QR Vault?")) return;
+
+      await window.POPER.deleteData(`qrVault/${uid}/${id}`);
+      await loadQR();
     };
 
-    container.appendChild(card);
+    card.appendChild(deleteButton);
+
+    qrList.appendChild(card);
   });
 }
+
+/* =========================================
+   CAMERA QR SCANNER
+========================================= */
+
+document.getElementById("startQRScanner")?.addEventListener("click", async () => {
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" }
+      },
+      audio: false
+    });
+
+    qrVideo.srcObject = cameraStream;
+    qrCameraBox.hidden = false;
+    cameraActive = true;
+
+    qrStatus("Arahkan kamera ke QR Code...");
+    scanCameraFrame();
+
+  } catch (error) {
+    console.error(error);
+    qrStatus("Kamera tidak dapat dibuka. Periksa izin kamera dan HTTPS.");
+  }
+});
+
+function scanCameraFrame() {
+  if (!cameraActive) return;
+
+  if (qrVideo.readyState >= 2 && window.jsQR) {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", {
+      willReadFrequently: true
+    });
+
+    canvas.width = qrVideo.videoWidth;
+    canvas.height = qrVideo.videoHeight;
+
+    if (canvas.width && canvas.height) {
+      context.drawImage(qrVideo, 0, 0, canvas.width, canvas.height);
+
+      const imageData = context.getImageData(
+        0, 0, canvas.width, canvas.height
+      );
+
+      const result = window.jsQR(
+        imageData.data,
+        imageData.width,
+        imageData.height,
+        { inversionAttempts: "attemptBoth" }
+      );
+
+      if (result) {
+        processQRResult(result.data);
+        stopCameraScanner();
+        return;
+      }
+    }
+  }
+
+  cameraFrame = requestAnimationFrame(scanCameraFrame);
+}
+
+function stopCameraScanner() {
+  cameraActive = false;
+
+  if (cameraFrame) {
+    cancelAnimationFrame(cameraFrame);
+    cameraFrame = null;
+  }
+
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+
+  if (qrVideo) {
+    qrVideo.srcObject = null;
+  }
+
+  if (qrCameraBox) {
+    qrCameraBox.hidden = true;
+  }
+}
+
+document.getElementById("stopQRScanner")?.addEventListener("click", () => {
+  stopCameraScanner();
+  qrStatus("Kamera ditutup.");
+});
+
 
 /* =========================
    NOTES

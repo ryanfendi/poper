@@ -149,69 +149,117 @@ document.querySelectorAll("[data-open-tab]").forEach(button=>{
   });
 });
 
+
 /* =========================================
-   AUTH
+   AUTH FIX
 ========================================= */
 
-function loginUI(user){
-  if(publicSlug) return;
+let authReady = false;
+let loadingUser = false;
 
-  $("loginPanel").hidden = !user;
-  $("dashboard").hidden = !user;
-  $("bottomNav").hidden = !user;
-  $("logoutBtn").hidden = !user;
+function loginUI(user) {
+  if (publicSlug) return;
 
-  if(!user) return;
+  const loggedIn = !!user;
 
-  $("welcome").textContent = "Halo, pengguna POPER!";
-  $("myPhone").textContent = user.phoneNumber || "";
+  $("loginPanel").hidden = loggedIn;
+  $("dashboard").hidden = !loggedIn;
+  $("bottomNav").hidden = !loggedIn;
+  $("logoutBtn").hidden = !loggedIn;
 
-  loadAll();
+  if (loggedIn) {
+    $("welcome").textContent = "Halo, pengguna POPER!";
+    $("myPhone").textContent = user.phoneNumber || "";
+  }
 }
 
-$("sendOtpBtn")?.addEventListener("click",async()=>{
+$("sendOtpBtn")?.addEventListener("click", async () => {
   const phone = $("phoneInput").value.trim();
 
-  if(!phone){
-    msg("authStatus","Masukkan nomor HP.");
+  if (!phone) {
+    msg("authStatus", "Masukkan nomor HP.");
     return;
   }
 
-  try{
-    msg("authStatus","Mengirim OTP...");
+  try {
+    $("sendOtpBtn").disabled = true;
+    msg("authStatus", "Mengirim OTP...");
+
     confirmation = await window.POPER.sendOTP(phone);
+
     $("otpSection").hidden = false;
-    msg("authStatus","OTP telah dikirim.");
-  }catch(e){
-    msg("authStatus",e.message || "OTP gagal dikirim.");
-    try{window.POPER.resetRecaptcha();}catch{}
+    msg("authStatus", "OTP berhasil dikirim. Masukkan kode.");
+
+  } catch (error) {
+    console.error("Send OTP:", error);
+
+    msg("authStatus", error.message || "OTP gagal dikirim.");
+
+    await window.POPER.resetRecaptcha();
+
+  } finally {
+    $("sendOtpBtn").disabled = false;
   }
 });
 
-$("verifyOtpBtn")?.addEventListener("click",async()=>{
+$("verifyOtpBtn")?.addEventListener("click", async () => {
   const code = $("otpInput").value.trim();
 
-  if(!confirmation || !code){
-    msg("authStatus","Masukkan kode OTP.");
+  if (!confirmation) {
+    msg("authStatus", "Kirim OTP terlebih dahulu.");
     return;
   }
 
-  try{
-    const result = await confirmation.confirm(code);
-    loginUI(result.user);
-    msg("authStatus","Login berhasil.");
-  }catch(e){
-    msg("authStatus",e.message || "OTP salah.");
+  if (!code) {
+    msg("authStatus", "Masukkan kode OTP.");
+    return;
+  }
+
+  try {
+    $("verifyOtpBtn").disabled = true;
+    msg("authStatus", "Memverifikasi kode...");
+
+    await confirmation.confirm(code);
+
+    // Tidak perlu loginUI manual.
+    // onAuthStateChanged akan menampilkan dashboard.
+
+    msg("authStatus", "Verifikasi berhasil.");
+
+  } catch (error) {
+    console.error("Verify OTP:", error);
+    msg("authStatus", error.message || "Kode OTP salah.");
+  } finally {
+    $("verifyOtpBtn").disabled = false;
   }
 });
 
-$("logoutBtn")?.addEventListener("click",async()=>{
-  await window.POPER.logout();
+$("logoutBtn")?.addEventListener("click", async () => {
+  try {
+    await window.POPER.logout();
+  } catch (error) {
+    alert(error.message || "Logout gagal.");
+  }
 });
 
-window.POPER.onAuth(user=>{
+window.POPER.onAuth(async user => {
+  console.log("Firebase Auth State:", user);
+
   loginUI(user);
+
+  if (user && !loadingUser) {
+    loadingUser = true;
+
+    try {
+      await loadAll();
+    } finally {
+      loadingUser = false;
+    }
+  }
+
+  authReady = true;
 });
+
 
 /* =========================================
    BIO LINKS - MULTI

@@ -407,26 +407,38 @@ $("saveBio")?.addEventListener("click",async()=>{
 });
 
 async function loadBio(){
-  const user=auth.currentUser;
+  const user = auth.currentUser;
   if(!user) return;
 
-  const data=await window.POPER.getData(`users/${user.uid}/publicBio`);
-  if(!data) return;
+  try {
+    const data = await window.POPER.getData(
+      `users/${user.uid}/publicBio`
+    );
 
-  $("bioName").value=data.name||"";
-  $("bioDesc").value=data.description||"";
-  links=Array.isArray(data.links)?data.links:[[];
+    if(!data) {
+      links = [];
+      renderBioLinks();
+      return;
+    }
 
-  // Backward compatibility with old data format
-  links=links.map(link=>({
-    id:link.id||makeId(),
-    title:link.title||"",
-    url:link.url||"",
-    image:link.image||"",
-    wiggle:!!link.wiggle
-  }));
+    $("bioName").value = data.name || "";
+    $("bioDesc").value = data.description || "";
 
-  renderBioLinks();
+    links = Array.isArray(data.links) ? data.links : [];
+
+    links = links.map(link => ({
+      id: link.id || makeId(),
+      title: link.title || "",
+      url: link.url || "",
+      image: link.image || "",
+      wiggle: !!link.wiggle
+    }));
+
+    renderBioLinks();
+
+  } catch(error) {
+    console.error("Load Bio error:", error);
+  }
 }
 
 /* =========================================
